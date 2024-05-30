@@ -42,6 +42,7 @@ jobs:
           github-token: ${{ github.token }}
       - uses: DanySK/build-check-deploy-gradle-action@2.4.20
         with:
+          maven-central-username: nicolasfarabegoli
           maven-central-password: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
           should-run-codecov: false
           should-deploy: true
@@ -90,6 +91,7 @@ jobs:
             ./gradlew $OVERRIDE_VERSION -PstagingRepositoryId=${{ needs.staging-repo.outputs.maven-central-repo-id }} uploadAll --parallel
           should-run-codecov: ${{ runner.os == 'Linux' }}
           should-deploy: ${{ contains(needs.staging-repo.result, 'success') }}
+          maven-central-username: nicolasfarabegoli
           maven-central-password: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
           signing-key: ${{ secrets.SIGNING_KEY }}
           signing-password: ${{ secrets.SIGNING_PASSWORD }}
@@ -152,6 +154,7 @@ jobs:
           should-run-codecov: false
           should-deploy: true
           github-token: ${{ github.token }}
+          maven-central-username: nicolasfarabegoli
           maven-central-password: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
           npm-token: ${{ secrets.NPM_TOKEN }}
           signing-key: ${{ secrets.SIGNING_KEY }}
