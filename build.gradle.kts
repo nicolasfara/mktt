@@ -1,31 +1,50 @@
+import org.danilopianini.gradle.mavencentral.DocStyle
 import org.danilopianini.gradle.mavencentral.JavadocJar
 import org.gradle.internal.os.OperatingSystem
+import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_0
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
+    alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.kotest.multiplatform)
     alias(libs.plugins.dokka)
     alias(libs.plugins.gitSemVer)
     alias(libs.plugins.kotlin.qa)
-    alias(libs.plugins.multiJvmTesting)
-    alias(libs.plugins.npm.publish)
     alias(libs.plugins.publishOnCentral)
     alias(libs.plugins.taskTree)
 }
 
-group = "org.danilopianini"
+group = "it.nicolasfarabegoli"
 
 repositories {
     google()
     mavenCentral()
 }
 
+android {
+    namespace = "it.nicolasfarabegoli"
+    compileSdk = 34
+    sourceSets["main"].manifest.srcFile("src/androidMain/AndroidManifest.xml")
+    defaultConfig {
+        minSdk = 21
+    }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
+}
+
+@OptIn(ExperimentalKotlinGradlePluginApi::class)
 kotlin {
+    androidTarget {
+        publishAllLibraryVariants()
+    }
+
     jvm {
-        compilations.all {
-            kotlinOptions.jvmTarget = "1.8"
-        }
         testRuns["test"].executionTask.configure {
             useJUnitPlatform()
         }
@@ -44,12 +63,6 @@ kotlin {
                 implementation(libs.kotest.runner.junit5)
             }
         }
-        val nativeMain by creating {
-            dependsOn(commonMain)
-        }
-        val nativeTest by creating {
-            dependsOn(commonTest)
-        }
     }
 
     js(IR) {
@@ -59,10 +72,7 @@ kotlin {
     }
 
     val nativeSetup: KotlinNativeTarget.() -> Unit = {
-        compilations["main"].defaultSourceSet.dependsOn(kotlin.sourceSets["nativeMain"])
-        compilations["test"].defaultSourceSet.dependsOn(kotlin.sourceSets["nativeTest"])
         binaries {
-            executable()
             sharedLib()
             staticLib()
         }
@@ -84,22 +94,17 @@ kotlin {
     macosX64(nativeSetup)
     macosArm64(nativeSetup)
     iosArm64(nativeSetup)
-    iosX64(nativeSetup)
     iosSimulatorArm64(nativeSetup)
     watchosArm32(nativeSetup)
-    watchosX64(nativeSetup)
+    watchosArm64(nativeSetup)
     watchosSimulatorArm64(nativeSetup)
     tvosArm64(nativeSetup)
-    tvosX64(nativeSetup)
     tvosSimulatorArm64(nativeSetup)
 
-    targets.all {
-        compilations.all {
-            kotlinOptions {
-                allWarningsAsErrors = true
-                freeCompilerArgs += listOf("-Xexpect-actual-classes")
-            }
-        }
+    compilerOptions {
+        allWarningsAsErrors = true
+        apiVersion = KOTLIN_2_0
+        freeCompilerArgs.add("-Xexpect-actual-classes")
     }
 
     val os = OperatingSystem.current()
@@ -139,6 +144,12 @@ tasks.withType<JavadocJar>().configureEach {
     from(dokka.outputDirectory)
 }
 
+tasks.withType<KotlinCompile>().configureEach {
+    compilerOptions {
+        jvmTarget = JvmTarget.JVM_1_8
+    }
+}
+
 signing {
     if (System.getenv("CI") == "true") {
         val signingKey: String? by project
@@ -148,36 +159,27 @@ signing {
 }
 
 publishOnCentral {
-    projectLongName.set("Template for Kotlin Multiplatform Project")
-    projectDescription.set("A template repository for Kotlin Multiplatform projects")
-    repository("https://maven.pkg.github.com/danysk/${rootProject.name}".lowercase()) {
-        user.set("DanySK")
-        password.set(System.getenv("GITHUB_TOKEN"))
-    }
+    projectLongName.set("MKTT")
+    projectDescription.set("A Kotlin multiplatform MQTT client library.")
+    projectUrl.set("https://github.com/nicolasfara/${rootProject.name}")
+    licenseName.set("MIT License")
+    licenseUrl.set("https://opensource.org/license/mit/")
+    docStyle.set(DocStyle.HTML)
     publishing {
         publications {
             withType<MavenPublication> {
+                scmConnection.set("git:git@github.com:nicolasfara/${rootProject.name}")
+                projectUrl.set("https://github.com/nicolasfara/${rootProject.name}")
                 pom {
                     developers {
                         developer {
-                            name.set("Danilo Pianini")
-                            email.set("danilo.pianini@gmail.com")
-                            url.set("http://www.danilopianini.org/")
+                            name.set("Nicolas Farabegoli")
+                            email.set("nicolas.farabegoli@gmail.com")
+                            url.set("https://www.nicolasfarabegoli.it/")
                         }
                     }
                 }
             }
-        }
-    }
-}
-
-npmPublish {
-    registries {
-        register("npmjs") {
-            uri.set("https://registry.npmjs.org")
-            val npmToken: String? by project
-            authToken.set(npmToken)
-            dry.set(npmToken.isNullOrBlank())
         }
     }
 }
