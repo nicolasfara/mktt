@@ -32,7 +32,11 @@ kotlin {
     }
 
     sourceSets {
-        val commonMain by getting { }
+        val commonMain by getting {
+            dependencies {
+                implementation(libs.kotlinx.coroutines)
+            }
+        }
         val commonTest by getting {
             dependencies {
                 implementation(libs.bundles.kotlin.testing.common)

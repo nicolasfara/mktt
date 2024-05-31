@@ -1,6 +1,7 @@
 [versions]
-kotest = "6.0.0.M1"
-kotlin = "2.0.21"
+coroutines = "1.9.0-RC"
+kotest = "5.9.1"
+kotlin = "2.0.0"
 
 [libraries]
 kotest-assertions-core = { module = "io.kotest:kotest-assertions-core", version.ref = "kotest" }
@@ -8,6 +9,7 @@ kotest-framework-engine = { module = "io.kotest:kotest-framework-engine", versio
 kotest-runner-junit5 = { module = "io.kotest:kotest-runner-junit5-jvm", version.ref = "kotest" }
 kotlin-test-common = { module = "org.jetbrains.kotlin:kotlin-test-common", version.ref = "kotlin" }
 kotlin-test-annotations-common = { module = "org.jetbrains.kotlin:kotlin-test-annotations-common", version.ref = "kotlin" }
+kotlinx-coroutines = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
 
 [bundles]
 kotest-common = [
