@@ -5,6 +5,7 @@ import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_0
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
+import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
@@ -38,7 +39,7 @@ android {
     }
 }
 
-@OptIn(ExperimentalKotlinGradlePluginApi::class)
+@OptIn(ExperimentalKotlinGradlePluginApi::class, ExperimentalWasmDsl::class)
 kotlin {
     androidTarget {
         publishAllLibraryVariants()
@@ -65,8 +66,14 @@ kotlin {
         }
     }
 
+    wasmJs {
+//        browser()
+        nodejs()
+        binaries.library()
+    }
+
     js(IR) {
-        browser()
+//        browser()
         nodejs()
         binaries.library()
     }
