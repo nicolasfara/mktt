@@ -2,6 +2,7 @@
 build/
 .idea/
 .vscode
+.kotlin/
 bin
 kotlin-js-store
 *.hprof
