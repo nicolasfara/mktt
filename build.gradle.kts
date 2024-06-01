@@ -43,6 +43,12 @@ kotlin {
                 implementation(libs.bundles.kotest.common)
             }
         }
+        val jvmMain by getting {
+            dependencies {
+                implementation(libs.kotlinx.coroutines.rx2)
+                implementation(libs.hive.mqtt)
+            }
+        }
         val jvmTest by getting {
             dependencies {
                 implementation(libs.kotest.runner.junit5)
