@@ -67,7 +67,7 @@ class MqttTopicFilterTest : FreeSpec({
             "home/livingroom",
             "#",
             "home/+/+/temperature",
-            "home/+/+/#"
+            "home/+/+/#",
         )
         val topics = listOf(
             "home/livingroom/temperature",
@@ -76,7 +76,7 @@ class MqttTopicFilterTest : FreeSpec({
             "home/livingroom",
             "home",
             "home/bedroom/bed/temperature",
-            "home/bedroom/floor1/temperature"
+            "home/bedroom/floor1/temperature",
         )
         filters.zip(topics).forEach { (filter, topic) ->
             MqttTopicFilter(filter).matches(MqttTopic(topic)) shouldBe true

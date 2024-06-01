@@ -8,5 +8,5 @@ data class MqttConfiguration(
     val cleanSession: Boolean = true,
     val keepAliveInterval: Int = 60,
     val connectionTimeout: Int = 30,
-    val maxInFlight: Int = 10
+    val maxInFlight: Int = 10,
 )
