@@ -7,8 +7,8 @@ import kotlinx.coroutines.flow.Flow
 interface MqttClient {
     suspend fun connect()
     suspend fun disconnect()
-    fun subscribe(qoS: QoS): Flow<MqttMessage>
+    fun subscribe(topic: String, qoS: QoS, noLocal: Boolean = true): Flow<MqttMessage>
     suspend fun publish(message: MqttMessage)
 }
 
-//expect fun createMqttClient(): MqttClient
+// expect fun createMqttClient(): MqttClient
