@@ -4,6 +4,7 @@ import com.hivemq.client.mqtt.MqttClient as HiveMqClient
 import it.nicolasfarabegoli.mktt.configuration.MqttConfiguration
 import it.nicolasfarabegoli.mktt.message.MqttMessage
 import it.nicolasfarabegoli.mktt.message.QoS
+import it.nicolasfarabegoli.mktt.message.connect.connack.MqttConnAckReasonCode
 import it.nicolasfarabegoli.mktt.subscribe.MqttRetainHandling
 import it.nicolasfarabegoli.mktt.subscribe.MqttSubscription
 import it.nicolasfarabegoli.mktt.topic.MqttTopic
@@ -27,8 +28,9 @@ class HivemqMqttClient(
             .toRx()
     }
 
-    override suspend fun connect(): Unit = withContext(defaultDispatcher) {
-        hiveMqClient.connect().await()
+    override suspend fun connect(): MqttConnAckReasonCode = withContext(defaultDispatcher) {
+        val reasonCode = hiveMqClient.connect().await().reasonCode
+        MqttConnAckReasonCode.fromCode(reasonCode.code.toByte())
     }
 
     override suspend fun disconnect(): Unit = withContext(defaultDispatcher) {
