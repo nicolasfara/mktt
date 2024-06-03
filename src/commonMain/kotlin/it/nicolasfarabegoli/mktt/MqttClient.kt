@@ -4,6 +4,7 @@ import it.nicolasfarabegoli.mktt.configuration.MqttConfiguration
 import it.nicolasfarabegoli.mktt.message.ExactlyOnce
 import it.nicolasfarabegoli.mktt.message.MqttMessage
 import it.nicolasfarabegoli.mktt.message.QoS
+import it.nicolasfarabegoli.mktt.message.connect.connack.MqttConnAck
 import it.nicolasfarabegoli.mktt.subscribe.MqttRetainHandling
 import it.nicolasfarabegoli.mktt.subscribe.MqttSubscription
 import it.nicolasfarabegoli.mktt.subscribe.Send
@@ -15,7 +16,7 @@ import kotlinx.coroutines.flow.Flow
 
 interface MqttClient {
     val defaultDispatcher: CoroutineDispatcher
-    suspend fun connect()
+    suspend fun connect(): MqttConnAck
     suspend fun disconnect()
     fun <Message> subscribe(
         filter: MqttTopicFilter = MqttTopicFilter(),
