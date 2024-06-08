@@ -1,9 +1,9 @@
 package it.nicolasfarabegoli.mktt.message
 
-sealed interface QoS {
+sealed interface MqttQoS {
     val code: Int
     companion object {
-        fun fromCode(code: Int): QoS {
+        fun fromCode(code: Int): MqttQoS {
             return when (code) {
                 0 -> AtMostOnce
                 1 -> AtLeastOnce
@@ -14,14 +14,14 @@ sealed interface QoS {
     }
 }
 
-data object AtMostOnce : QoS {
+data object AtMostOnce : MqttQoS {
     override val code: Int = 0
 }
 
-data object AtLeastOnce : QoS {
+data object AtLeastOnce : MqttQoS {
     override val code: Int = 1
 }
 
-data object ExactlyOnce : QoS {
+data object ExactlyOnce : MqttQoS {
     override val code: Int = 2
 }
