@@ -5,7 +5,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 
 actual fun MqttClient(
     configuration: MqttConfiguration,
-    dispatcher: CoroutineDispatcher
+    dispatcher: CoroutineDispatcher,
 ): MqttClient {
     TODO("Not yet implemented")
 }
