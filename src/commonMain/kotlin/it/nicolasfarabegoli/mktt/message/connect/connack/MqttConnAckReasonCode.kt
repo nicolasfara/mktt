@@ -1,9 +1,10 @@
 package it.nicolasfarabegoli.mktt.message.connect.connack
 
 import it.nicolasfarabegoli.mktt.message.MqttCommonReasonCode
+import it.nicolasfarabegoli.mktt.message.MqttReasonCode
 
-sealed interface MqttConnAckReasonCode {
-    val code: Byte
+sealed interface MqttConnAckReasonCode : MqttReasonCode {
+    override val code: Byte
 
     companion object {
         fun fromCode(code: Byte): MqttConnAckReasonCode {
