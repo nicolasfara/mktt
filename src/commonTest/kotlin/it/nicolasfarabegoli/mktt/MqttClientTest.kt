@@ -1,6 +1,7 @@
 package it.nicolasfarabegoli.mktt
 
 import io.kotest.assertions.throwables.shouldNotThrow
+import io.kotest.assertions.throwables.shouldThrowUnit
 import io.kotest.core.spec.style.FreeSpec
 import io.kotest.core.test.testCoroutineScheduler
 import io.kotest.matchers.shouldBe
@@ -16,8 +17,22 @@ class MqttClientTest : FreeSpec({
         val dispatcher = StandardTestDispatcher(testCoroutineScheduler)
         val mqttClient = MqttClient(MqttConfiguration(hostname = "test.mosquitto.org"), dispatcher)
         shouldNotThrow<Exception> {
-            mqttClient.connect() shouldBe MqttConnAckReasonCode.Success
+            mqttClient.connect().reasonCode shouldBe MqttConnAckReasonCode.Success
             mqttClient.disconnect()
+        }
+    }
+    "The client should fail with an exception when connecting to an invalid broker" {
+        val dispatcher = StandardTestDispatcher(testCoroutineScheduler)
+        val mqttClient = MqttClient(MqttConfiguration(hostname = "invalid.broker"), dispatcher)
+        shouldThrowUnit<Exception> {
+            mqttClient.connect()
+        }
+    }
+    "The client should fail with an exception when connecting to a valid broker using an invalid port" {
+        val dispatcher = StandardTestDispatcher(testCoroutineScheduler)
+        val mqttClient = MqttClient(MqttConfiguration(hostname = "test.mosquitto.org", port = 1234), dispatcher)
+        shouldThrowUnit<Exception> {
+            mqttClient.connect()
         }
     }
 })
