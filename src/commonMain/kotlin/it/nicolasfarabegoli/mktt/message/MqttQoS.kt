@@ -12,16 +12,16 @@ sealed interface MqttQoS {
             }
         }
     }
-}
 
-data object AtMostOnce : MqttQoS {
-    override val code: Int = 0
-}
+    data object AtMostOnce : MqttQoS {
+        override val code: Int = 0
+    }
 
-data object AtLeastOnce : MqttQoS {
-    override val code: Int = 1
-}
+    data object AtLeastOnce : MqttQoS {
+        override val code: Int = 1
+    }
 
-data object ExactlyOnce : MqttQoS {
-    override val code: Int = 2
+    data object ExactlyOnce : MqttQoS {
+        override val code: Int = 2
+    }
 }
