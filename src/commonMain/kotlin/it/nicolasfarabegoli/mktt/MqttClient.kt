@@ -1,7 +1,6 @@
 package it.nicolasfarabegoli.mktt
 
 import it.nicolasfarabegoli.mktt.configuration.MqttConfiguration
-import it.nicolasfarabegoli.mktt.message.ExactlyOnce
 import it.nicolasfarabegoli.mktt.message.MqttQoS
 import it.nicolasfarabegoli.mktt.message.connect.connack.MqttConnAck
 import it.nicolasfarabegoli.mktt.message.publish.MqttPublish
@@ -23,7 +22,7 @@ interface MqttClient {
     suspend fun disconnect()
     fun subscribe(
         filter: MqttTopicFilter,
-        qoS: MqttQoS = ExactlyOnce,
+        qoS: MqttQoS = MqttQoS.ExactlyOnce,
         noLocal: Boolean = true,
         retainHandling: MqttRetainHandling = Send,
         retainAsPublished: Boolean = false,
@@ -34,7 +33,7 @@ interface MqttClient {
     suspend fun publish(
         message: ByteArray,
         topic: MqttTopic,
-        qoS: MqttQoS = ExactlyOnce,
+        qoS: MqttQoS = MqttQoS.ExactlyOnce,
         retain: Boolean = false,
     ): MqttPublishResult = publish(MqttPublish(topic = topic, payload = message, qos = qoS, isRetain = retain))
 }
