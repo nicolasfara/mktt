@@ -45,6 +45,8 @@ class HivemqMqttClient(configuration: MqttConfiguration, override val defaultDis
 
     override fun publish(messages: Flow<MqttPublish>): Flow<MqttPublishResult> {
         val mappedMessages = messages.map { it.toHivemqMqtt() }
-        return hiveMqClient.publish(mappedMessages.asFlowable()).asFlow().map { it.toMqtt() }
+        return hiveMqClient.publish(mappedMessages.asFlowable())
+            .asFlow()
+            .map { it.toMqtt() }
     }
 }

@@ -4,9 +4,6 @@ import com.hivemq.client.mqtt.datatypes.MqttQos
 import com.hivemq.client.mqtt.mqtt5.message.connect.connack.Mqtt5ConnAck
 import com.hivemq.client.mqtt.mqtt5.message.subscribe.Mqtt5RetainHandling
 import com.hivemq.client.mqtt.mqtt5.message.subscribe.Mqtt5Subscribe
-import it.nicolasfarabegoli.mktt.message.AtLeastOnce
-import it.nicolasfarabegoli.mktt.message.AtMostOnce
-import it.nicolasfarabegoli.mktt.message.ExactlyOnce
 import it.nicolasfarabegoli.mktt.message.MqttQoS
 import it.nicolasfarabegoli.mktt.message.connect.connack.MqttConnAck
 import it.nicolasfarabegoli.mktt.message.connect.connack.MqttConnAckReasonCode
@@ -32,9 +29,9 @@ internal object HivemqAdapter {
 
     internal fun MqttQoS.toHiveMqttQos(): MqttQos {
         return when (this) {
-            AtMostOnce -> MqttQos.AT_MOST_ONCE
-            AtLeastOnce -> MqttQos.AT_LEAST_ONCE
-            ExactlyOnce -> MqttQos.EXACTLY_ONCE
+            MqttQoS.AtMostOnce -> MqttQos.AT_MOST_ONCE
+            MqttQoS.AtLeastOnce -> MqttQos.AT_LEAST_ONCE
+            MqttQoS.ExactlyOnce -> MqttQos.EXACTLY_ONCE
         }
     }
 
