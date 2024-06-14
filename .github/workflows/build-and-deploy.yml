@@ -40,7 +40,7 @@ jobs:
         uses: nicolasfara/precompute-semantic-release-version-action@1.0.2
         with:
           github-token: ${{ github.token }}
-      - uses: DanySK/build-check-deploy-gradle-action@2.4.21
+      - uses: DanySK/build-check-deploy-gradle-action@2.4.22
         with:
           maven-central-username: nicolasfarabegoli
           maven-central-password: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
@@ -81,7 +81,7 @@ jobs:
     steps:
       - name: Checkout
         uses: DanySK/action-checkout@0.2.19
-      - uses: DanySK/build-check-deploy-gradle-action@2.4.21
+      - uses: DanySK/build-check-deploy-gradle-action@2.4.22
         with:
           deploy-command: |
             # Stop gradle on windows
@@ -105,7 +105,7 @@ jobs:
     steps:
       - name: Checkout the repo
         uses: actions/checkout@v4.1.7
-      - uses: DanySK/build-check-deploy-gradle-action@2.4.21
+      - uses: DanySK/build-check-deploy-gradle-action@2.4.22
         with:
           maven-central-username: nicolasfarabegoli
           maven-central-password: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
@@ -143,7 +143,7 @@ jobs:
         uses: actions/setup-node@v4.0.2
         with:
           node-version: ${{ steps.node-version.outputs.version }}
-      - uses: DanySK/build-check-deploy-gradle-action@2.4.21
+      - uses: DanySK/build-check-deploy-gradle-action@2.4.22
         env:
           STAGING_REPO_ID: ${{ needs.staging-repo.outputs.maven-central-repo-id }}
         with:
