@@ -1,3 +1,49 @@
+## 1.0.0 (2024-06-15)
+
+
+### Dependency updates
+
+* **deps:** update android.plugins to v8.4.1 ([fefd709](https://github.com/nicolasfara/mktt/commit/fefd7095c15b49b162eb1896e4b6142f3ca7bf32))
+* **deps:** update android.plugins to v8.4.2 ([1151c04](https://github.com/nicolasfara/mktt/commit/1151c04625621e032f5be528e91725c58a18c231))
+* **deps:** update android.plugins to v8.5.0 ([043d0e9](https://github.com/nicolasfara/mktt/commit/043d0e92aa357c798ca22bf19d512bee850cc4dd))
+* **deps:** update dependency gradle to v8.8 ([0fe72cd](https://github.com/nicolasfara/mktt/commit/0fe72cd4c83f5fde6a70111c38943bb9342602ee))
+* **deps:** update kotest to v5.9.1 ([cb34804](https://github.com/nicolasfara/mktt/commit/cb348049e307ad40e9ed5b0c2fdf3f631d8c0df6))
+* **deps:** update node.js to 20.14 ([32a3b4d](https://github.com/nicolasfara/mktt/commit/32a3b4d4d84c50c2ab3ef9f35361ec363078d126))
+* **deps:** update plugin com.gradle.develocity to v3.17.5 ([2a5e1b4](https://github.com/nicolasfara/mktt/commit/2a5e1b4cb3c7a893d45d7db3b8865d80ec316aab))
+* **deps:** update plugin gitsemver to v3.1.7 ([3dccf63](https://github.com/nicolasfara/mktt/commit/3dccf63dc8cab405ff997edc1cac615f31296eed))
+* **deps:** update plugin kotlin-qa to v0.62.1 ([fc74c57](https://github.com/nicolasfara/mktt/commit/fc74c570263243fa53de211017a55b5a5fbeaac7))
+* **deps:** update plugin kotlin-qa to v0.62.2 ([5dd7cb3](https://github.com/nicolasfara/mktt/commit/5dd7cb360c560e6df771089465508f5db20cc6f6))
+* **deps:** update plugin kotlin-qa to v0.62.3 ([877a347](https://github.com/nicolasfara/mktt/commit/877a347eda9111eba27c08ee8a0452ea613bf2b0))
+* **deps:** update plugin org.danilopianini.gradle-pre-commit-git-hooks to v2.0.7 ([6f5eccf](https://github.com/nicolasfara/mktt/commit/6f5eccfb34d74ad595e0963173c633e8306cec75))
+* **deps:** update plugin publishoncentral to v5.1.2 ([f1b6103](https://github.com/nicolasfara/mktt/commit/f1b610388ad85ca9bcd8443891e04fff38d2ff97))
+* **deps:** update plugin publishoncentral to v5.1.3 ([7ba69a8](https://github.com/nicolasfara/mktt/commit/7ba69a8429b5699c82ada55d83aa6411bd8c1654))
+* **deps:** update plugin tasktree to v4 ([7476890](https://github.com/nicolasfara/mktt/commit/7476890b3c2fd2f0fb5037dc2b3166453123bed5))
+
+
+### Documentation
+
+* add mktt logo ([e7d22bf](https://github.com/nicolasfara/mktt/commit/e7d22bfcbf0be3df6806c5c3a289fccb30d8a264))
+
+
+### Build and continuous integration
+
+* add missing maven username ([482f47c](https://github.com/nicolasfara/mktt/commit/482f47cc0426f6db77e1e959ae45e26a41ad3c27))
+* **deps:** update actions/checkout action to v4.1.7 ([449a414](https://github.com/nicolasfara/mktt/commit/449a4149dda3a7b58f6a2087a31b2343229375d5))
+* **deps:** update danysk/action-checkout action to v0.2.19 ([5dc589e](https://github.com/nicolasfara/mktt/commit/5dc589e62bcd54b330509ca86b92acfd809470a7))
+* **deps:** update danysk/build-check-deploy-gradle-action action to v2.4.21 ([544f046](https://github.com/nicolasfara/mktt/commit/544f046fb4b35d9ef345bd4509b97c66154e9bde))
+* **deps:** update danysk/build-check-deploy-gradle-action action to v2.4.22 ([2a59b41](https://github.com/nicolasfara/mktt/commit/2a59b419f4c6355ed7c7560f0d71f19c729b067c))
+* enable wasm ([6ce8bff](https://github.com/nicolasfara/mktt/commit/6ce8bff88011b67631785cc3972b46e10c52f60e))
+* setup build ([72765fe](https://github.com/nicolasfara/mktt/commit/72765fede2ab150d262c37407840de0e3a52da5e))
+* setup maven central username ([54c7a50](https://github.com/nicolasfara/mktt/commit/54c7a50319bcf9020a28524646cf2273050dd667))
+* use secret variable for maven central username ([2d0c5d7](https://github.com/nicolasfara/mktt/commit/2d0c5d77fdc03b224c6f1dcc1d13b28143e62619))
+
+
+### General maintenance
+
+* add missing source set ([b192ace](https://github.com/nicolasfara/mktt/commit/b192acec1d3383a8bf2f4e6778f6741650db84f3))
+* exclude .kotlin folder ([3fb8c7e](https://github.com/nicolasfara/mktt/commit/3fb8c7e6724c26bd92c8b8c2d2335a80841a942a))
+* update renovate config ([daa21c5](https://github.com/nicolasfara/mktt/commit/daa21c5f29dc13ea0d91b70bd4ea53fd0e47df79))
+
 ## [0.1.26](https://github.com/DanySK/Template-for-Kotlin-Multiplatform-Projects/compare/0.1.25...0.1.26) (2024-05-21)
 
 
