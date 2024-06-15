@@ -1,8 +1,5 @@
-# A template for Kotlin multiplatform projects 
+<p align="center">
+    <img alt="MKTT logo" src="mktt-logo.svg">
+</p>
 
-## Features
-* Automatic publish on Maven Central
-* Automatic QA
-* Pre-configured Kotest multiplatform
-* Pre-configured Renovate
-* Pre-configured semantic release for conventional commits
+> A Kotlin Multiplatform MQTT Library
