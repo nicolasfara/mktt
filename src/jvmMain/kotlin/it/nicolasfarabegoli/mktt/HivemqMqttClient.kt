@@ -11,6 +11,7 @@ import it.nicolasfarabegoli.mktt.message.publish.MqttPublishResult
 import it.nicolasfarabegoli.mktt.subscribe.MqttSubscription
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.reactive.asFlow
 import kotlinx.coroutines.rx2.asFlowable
@@ -18,7 +19,10 @@ import kotlinx.coroutines.rx2.await
 import kotlinx.coroutines.withContext
 import com.hivemq.client.mqtt.MqttClient as HiveMqClient
 
-class HivemqMqttClient(configuration: MqttConfiguration, override val defaultDispatcher: CoroutineDispatcher) : MqttClient {
+class HivemqMqttClient(
+    configuration: MqttConfiguration,
+    override val defaultDispatcher: CoroutineDispatcher,
+) : MqttClient {
     private val hiveMqClient by lazy {
         HiveMqClient.builder()
             .serverHost(configuration.hostname)
@@ -42,11 +46,13 @@ class HivemqMqttClient(configuration: MqttConfiguration, override val defaultDis
         .subscribePublishes(subscription.toHivemqMqtt())
         .asFlow()
         .map { it.toMqtt() }
+        .flowOn(defaultDispatcher)
 
     override fun publish(messages: Flow<MqttPublish>): Flow<MqttPublishResult> {
         val mappedMessages = messages.map { it.toHivemqMqtt() }
         return hiveMqClient.publish(mappedMessages.asFlowable())
             .asFlow()
             .map { it.toMqtt() }
+            .flowOn(defaultDispatcher)
     }
 }

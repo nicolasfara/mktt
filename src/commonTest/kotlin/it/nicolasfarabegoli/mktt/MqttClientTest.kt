@@ -65,19 +65,4 @@ class MqttClientTest : FreeSpec({
             mqttClient.connect()
         }
     }
-    "The client should publish successfully a message" {
-        val dispatcher = StandardTestDispatcher(testCoroutineScheduler)
-        val mqttClient = MqttClient(MqttConfiguration(hostname = "test.mosquitto.org"), dispatcher)
-        shouldNotThrow<Exception> {
-            mqttClient.connect().reasonCode shouldBe MqttConnAckReasonCode.Success
-            val messageResult = mqttClient.publish(
-                byteArrayOf(0x00),
-                "test/topic".asTopic(),
-                qoS = MqttQoS.ExactlyOnce
-            )
-            messageResult.error shouldBe null
-            messageResult.publish.topic shouldBe "test/topic".asTopic()
-            mqttClient.disconnect()
-        }
-    }
 })

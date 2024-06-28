@@ -7,6 +7,18 @@ sealed interface MqttPublishResult {
     val publish: MqttPublish
     val error: Throwable?
 
+    companion object {
+        operator fun invoke(
+            publish: MqttPublish,
+            error: Throwable?,
+        ): MqttPublishResult = MqttResultImpl(publish, error)
+
+        private data class MqttResultImpl(
+            override val publish: MqttPublish,
+            override val error: Throwable?,
+        ) : MqttPublishResult
+    }
+
     data class MqttQoS1Result(
         override val publish: MqttPublish,
         override val error: Throwable?,
