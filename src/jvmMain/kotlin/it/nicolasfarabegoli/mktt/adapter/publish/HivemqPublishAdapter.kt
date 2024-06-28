@@ -54,7 +54,7 @@ object HivemqPublishAdapter {
                 error = this.error.getOrNull(),
                 pubRec = this.pubRec.toMqtt(),
             )
-            else -> error("Unknown ${this::class} type")
+            else -> MqttPublishResult(this.publish.toMqtt(), this.error.getOrNull())
         }
     }
 }
