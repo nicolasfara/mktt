@@ -1,5 +1,6 @@
 package it.nicolasfarabegoli.mktt
 
+import com.hivemq.client.mqtt.mqtt5.Mqtt5Client
 import it.nicolasfarabegoli.mktt.adapter.HivemqAdapter.fromHivemqMqttConnAck
 import it.nicolasfarabegoli.mktt.adapter.HivemqAdapter.toHivemqMqtt
 import it.nicolasfarabegoli.mktt.adapter.publish.HivemqPublishAdapter.toHivemqMqtt
@@ -17,24 +18,23 @@ import kotlinx.coroutines.reactive.asFlow
 import kotlinx.coroutines.rx2.asFlowable
 import kotlinx.coroutines.rx2.await
 import kotlinx.coroutines.withContext
-import com.hivemq.client.mqtt.MqttClient as HiveMqClient
 
 class HivemqMqttClient(
     configuration: MqttConfiguration,
     override val defaultDispatcher: CoroutineDispatcher,
 ) : MqttClient {
     private val hiveMqClient by lazy {
-        HiveMqClient.builder()
+        Mqtt5Client.builder()
             .serverHost(configuration.hostname)
             .serverPort(configuration.port)
             .identifier(configuration.clientId)
-            .useMqttVersion5()
-            .build()
-            .toRx()
+            .buildRx()
     }
 
     override suspend fun connect(): MqttConnAck = withContext(defaultDispatcher) {
-        val reasonCode = hiveMqClient.connect().await()
+        val reasonCode = hiveMqClient.connect()
+            .doOnSuccess { println("Connected to the broker") }
+            .await()
         fromHivemqMqttConnAck(reasonCode)
     }
 
@@ -44,6 +44,7 @@ class HivemqMqttClient(
 
     override fun subscribe(subscription: MqttSubscription): Flow<MqttPublish> = hiveMqClient
         .subscribePublishes(subscription.toHivemqMqtt())
+        .doOnNext { println("Received message: $it") }
         .asFlow()
         .map { it.toMqtt() }
         .flowOn(defaultDispatcher)
@@ -51,6 +52,7 @@ class HivemqMqttClient(
     override fun publish(messages: Flow<MqttPublish>): Flow<MqttPublishResult> {
         val mappedMessages = messages.map { it.toHivemqMqtt() }
         return hiveMqClient.publish(mappedMessages.asFlowable())
+            .doOnNext { println("Published message: $it") }
             .asFlow()
             .map { it.toMqtt() }
             .flowOn(defaultDispatcher)

@@ -12,7 +12,7 @@ sealed interface MqttPubRecReasonCode : MqttReasonCode {
         NotAuthorized,
         TopicNameInvalid,
         QuotaExceeded,
-        PayloadFormatInvalid
+        PayloadFormatInvalid,
     ).contains(this)
 
     companion object {

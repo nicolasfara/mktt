@@ -13,7 +13,7 @@ object HivemqPubAckAdapter {
     )
 
     fun Mqtt5PubAckReasonCode.toMqtt(): MqttPubAckReasonCode {
-        return when(this) {
+        return when (this) {
             Mqtt5PubAckReasonCode.SUCCESS -> MqttPubAckReasonCode.Success
             Mqtt5PubAckReasonCode.NO_MATCHING_SUBSCRIBERS -> MqttPubAckReasonCode.NoMatchingSubscribers
             Mqtt5PubAckReasonCode.UNSPECIFIED_ERROR -> MqttPubAckReasonCode.UnspecifiedError

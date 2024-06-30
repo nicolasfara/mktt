@@ -4,9 +4,7 @@ import io.kotest.assertions.throwables.shouldNotThrow
 import io.kotest.core.spec.style.FreeSpec
 import io.kotest.core.test.testCoroutineScheduler
 import io.kotest.matchers.shouldBe
-import io.kotest.matchers.string.UUIDVersion
 import it.nicolasfarabegoli.mktt.configuration.MqttConfiguration
-import it.nicolasfarabegoli.mktt.message.MqttMessage
 import it.nicolasfarabegoli.mktt.message.MqttQoS
 import it.nicolasfarabegoli.mktt.message.connect.connack.MqttConnAckReasonCode
 import it.nicolasfarabegoli.mktt.message.publish.MqttPublish
@@ -32,22 +30,22 @@ class MqttClientSubscribeTest : FreeSpec({
     }
     "The client should subscribe to a topic and start collecting the messages" {
         val dispatcher = StandardTestDispatcher(testCoroutineScheduler)
-        val mqttClient = MqttClient(MqttConfiguration(hostname = "test.mosquitto.org"), dispatcher)
+        val client = MqttClient(MqttConfiguration(hostname = "test.mosquitto.org"), dispatcher)
         shouldNotThrow<Exception> {
-            mqttClient.connect().reasonCode shouldBe MqttConnAckReasonCode.Success
+            client.connect().reasonCode shouldBe MqttConnAckReasonCode.Success
             val filterTopic = MqttTopicFilter.of("test/topic")
             val job = launch(UnconfinedTestDispatcher(testCoroutineScheduler)) {
-                mqttClient.subscribe(filterTopic, qoS = MqttQoS.ExactlyOnce).take(1).collect {
+                client.subscribe(filterTopic, qoS = MqttQoS.ExactlyOnce).take(1).collect {
                     println("Received message: $it")
-                    it.payload shouldBe byteArrayOf(0x00)
+                    it.payload shouldBe "hello".encodeToByteArray()
                 }
             }
             val message = MqttPublish(
                 topic = "test/topic".asTopic(),
-                payload = byteArrayOf(0x00),
+                payload = "test message".encodeToByteArray(),
                 qos = MqttQoS.ExactlyOnce,
             )
-            mqttClient.publish(message).error shouldBe null
+            client.publish(message).error shouldBe null
             job.join()
         }
     }

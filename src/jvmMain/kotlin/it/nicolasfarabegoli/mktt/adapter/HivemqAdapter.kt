@@ -44,7 +44,7 @@ internal object HivemqAdapter {
     }
 
     internal fun MqttSubscription.toHivemqMqtt(): Mqtt5Subscribe = Mqtt5Subscribe.builder()
-        .topicFilter(topicFilter.toString())
+        .topicFilter(topicFilter.filterName)
         .qos(qoS.toHiveMqttQos())
         .noLocal(noLocal)
         .retainAsPublished(retainAsPublished)

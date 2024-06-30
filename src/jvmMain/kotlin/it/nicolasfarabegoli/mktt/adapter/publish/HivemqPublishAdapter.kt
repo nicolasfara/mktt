@@ -24,7 +24,8 @@ object HivemqPublishAdapter {
             contentType = contentType.getOrNull()?.toString(),
             responseTopic = responseTopic.getOrNull()?.let {
                 val topic = it.toByteBuffer().toByteArray().decodeToString()
-                if (topic != "null") it.toMqtt() else null // Workaround for: https://github.com/hivemq/hivemq-mqtt-client/issues/632
+                // Workaround for: https://github.com/hivemq/hivemq-mqtt-client/issues/632
+                if (topic != "null") it.toMqtt() else null
             },
             correlationData = correlationData.getOrNull()?.array(),
         )
@@ -32,7 +33,7 @@ object HivemqPublishAdapter {
 
     fun MqttPublish.toHivemqMqtt(): Mqtt5Publish {
         return Mqtt5Publish.builder()
-            .topic(topic.toString())
+            .topic(topic.topicName)
             .qos(qos.toHiveMqttQos())
             .payload(payload)
             .retain(isRetain)

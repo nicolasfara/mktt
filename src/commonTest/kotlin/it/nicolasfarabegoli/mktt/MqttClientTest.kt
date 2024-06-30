@@ -6,9 +6,7 @@ import io.kotest.core.spec.style.FreeSpec
 import io.kotest.core.test.testCoroutineScheduler
 import io.kotest.matchers.shouldBe
 import it.nicolasfarabegoli.mktt.configuration.MqttConfiguration
-import it.nicolasfarabegoli.mktt.message.MqttQoS
 import it.nicolasfarabegoli.mktt.message.connect.connack.MqttConnAckReasonCode
-import it.nicolasfarabegoli.mktt.topic.MqttTopic.Companion.asTopic
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 

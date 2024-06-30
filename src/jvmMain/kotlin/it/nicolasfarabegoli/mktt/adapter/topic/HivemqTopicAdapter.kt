@@ -7,12 +7,8 @@ import com.hivemq.client.mqtt.datatypes.MqttTopic as HiveMqttTopic
 
 internal object HivemqTopicAdapter {
     fun HiveMqttTopic.toMqtt(): MqttTopic {
-        val topicStringRepr = toByteBuffer().toByteArray().decodeToString()
-        val topic = "topic=([^,]+)".toRegex().find(topicStringRepr)?.groupValues?.get(1)
-            ?: error("Invalid topic string representation")
-        val filterStringRepr = filter().toByteBuffer().toByteArray().decodeToString()
-        val filter = "MqttTopicFilterImpl.+filter=([^,]+)".toRegex().find(filterStringRepr)?.groupValues?.get(1)
-            ?: error("Invalid topic string representation")
+        val topic = toByteBuffer().toByteArray().decodeToString()
+        val filter = filter().toByteBuffer().toByteArray().decodeToString()
         return MqttTopic.of(topic, MqttTopicFilter.of(filter))
     }
 }

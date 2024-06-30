@@ -1,7 +1,7 @@
 package it.nicolasfarabegoli.mktt.topic
 
 interface MqttTopicFilter {
-    val filter: String
+    val filterName: String
     val levels: List<String>
     val containsWildcards: Boolean
     val containsMultilevelWildcard: Boolean
@@ -15,17 +15,16 @@ interface MqttTopicFilter {
     }
 
     private data class MqttTopicFilterImpl(
-        override val filter: String,
-        override val levels: List<String> = filter.split("/"),
+        override val filterName: String,
+        override val levels: List<String> = filterName.split("/"),
         override val containsWildcards: Boolean = levels.any { it == "#" || it == "+" },
         override val containsMultilevelWildcard: Boolean = levels.contains("#"),
         override val containsSingleLevelWildcard: Boolean = levels.contains("+"),
     ) : MqttTopicFilter {
         override fun matches(topic: MqttTopic): Boolean {
-            val topicLevels = topic.levels
-            if (topicLevels.size < levels.size) return false
-            return levels.zip(topicLevels).all { (filterLevel, topicLevel) ->
-                filterLevel == "#" || filterLevel == topicLevel || filterLevel == "+"
+            if (topic.levels.size != levels.size) return false
+            return levels.zip(topic.levels).all { (filter, topic) ->
+                filter == topic || filter == "#" || filter == "+"
             }
         }
         override fun matches(filter: MqttTopicFilter): Boolean = filter == this
