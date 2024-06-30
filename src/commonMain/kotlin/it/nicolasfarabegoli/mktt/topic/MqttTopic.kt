@@ -1,7 +1,7 @@
 package it.nicolasfarabegoli.mktt.topic
 
 interface MqttTopic {
-    val topic: String
+    val topicName: String
     val levels: List<String>
     val filter: MqttTopicFilter
 
@@ -13,8 +13,8 @@ interface MqttTopic {
     }
 
     private data class MqttTopicImpl(
-        override val topic: String,
-        override val filter: MqttTopicFilter = MqttTopicFilter.of(topic),
-        override val levels: List<String> = topic.split("/"),
+        override val topicName: String,
+        override val filter: MqttTopicFilter = MqttTopicFilter.of(topicName),
+        override val levels: List<String> = topicName.split("/"),
     ) : MqttTopic
 }

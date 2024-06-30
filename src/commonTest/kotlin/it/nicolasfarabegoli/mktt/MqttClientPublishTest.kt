@@ -25,14 +25,14 @@ class MqttClientPublishTest : FreeSpec({
         shouldNotThrow<Exception> {
             mqttClient.connect().reasonCode shouldBe MqttConnAckReasonCode.Success
             val messageResult = mqttClient.publish(
-                byteArrayOf(0x00),
+                "hello world".encodeToByteArray(),
                 "test/topic".asTopic(),
-                qoS = MqttQoS.ExactlyOnce
+                qoS = MqttQoS.ExactlyOnce,
             )
             messageResult.error shouldBe null
             messageResult.publish.topic shouldBe "test/topic".asTopic()
             messageResult.publish.qos shouldBe MqttQoS.ExactlyOnce
-            messageResult.publish.payload shouldBe byteArrayOf(0x00)
+            messageResult.publish.payload shouldBe "hello world".encodeToByteArray()
             mqttClient.disconnect()
         }
     }
@@ -52,12 +52,12 @@ class MqttClientPublishTest : FreeSpec({
     }
     "The client should fail with an exception when publishing and the client is not connected" {
         val dispatcher = StandardTestDispatcher(testCoroutineScheduler)
-        val mqttClient = MqttClient(MqttConfiguration(hostname = "test.mosquitto.org"), dispatcher)
+        val mqttClient = MqttClient(MqttConfiguration(hostname = "broker.hivemq.com"), dispatcher)
         shouldThrow<Exception> {
             mqttClient.publish(
                 byteArrayOf(0x00),
                 "test/topic".asTopic(),
-                qoS = MqttQoS.ExactlyOnce
+                qoS = MqttQoS.ExactlyOnce,
             )
         }
     }

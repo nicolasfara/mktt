@@ -14,7 +14,7 @@ sealed interface MqttPubAckReasonCode : MqttReasonCode {
             NotAuthorized,
             TopicNameInvalid,
             QuotaExceeded,
-            PayloadFormatInvalid
+            PayloadFormatInvalid,
         ).contains(this)
     }
 
