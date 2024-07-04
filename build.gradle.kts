@@ -82,6 +82,13 @@ kotlin {
     }
 
     val nativeSetup: KotlinNativeTarget.() -> Unit = {
+        compilations.getByName("main") {
+            cinterops {
+                val pahomqtt by creating {
+                    definitionFile = file("src/nativeInterop/cinterop/pahomqtt.def")
+                }
+            }
+        }
         binaries {
             sharedLib()
             staticLib()
