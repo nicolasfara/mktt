@@ -32,7 +32,7 @@ jobs:
       will-release: ${{ steps.compute-next-version.outputs.will-release }}
     steps:
       - name: Checkout the repo
-        uses: actions/checkout@v4.1.7
+        uses: actions/checkout@v4.2.0
         with:
           fetch-depth: 0
       - name: Compute next release version
@@ -104,7 +104,7 @@ jobs:
     if: needs.check-secrets.outputs.run-with-secrets == 'true'
     steps:
       - name: Checkout the repo
-        uses: actions/checkout@v4.1.7
+        uses: actions/checkout@v4.2.0
       - uses: DanySK/build-check-deploy-gradle-action@3.5.7
         with:
           maven-central-username: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
@@ -133,7 +133,7 @@ jobs:
     if: needs.check-secrets.outputs.run-with-secrets == 'true'
     steps:
       - name: Checkout
-        uses: actions/checkout@v4.1.7
+        uses: actions/checkout@v4.2.0
         with:
           token: ${{ secrets.DEPLOYMENT_TOKEN }}
       - name: Find the version of Node from package.json
