@@ -5,7 +5,7 @@ on:
 
 jobs:
   check-secrets:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     outputs:
       run-with-secrets: ${{ steps.require-secrets.outputs.run-with-secrets }}
     steps:
@@ -20,7 +20,7 @@ jobs:
           echo "run-with-secrets=${{ steps.detect-secrets.outputs.has-secrets == 'true' && !github.event.repository.fork }}" >> $GITHUB_OUTPUT
 
   staging-repo:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs:
       - check-secrets
     concurrency:
@@ -100,7 +100,7 @@ jobs:
     needs:
       - staging-repo
       - build
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     if: needs.check-secrets.outputs.run-with-secrets == 'true'
     steps:
       - name: Checkout the repo
@@ -129,7 +129,7 @@ jobs:
       - staging-repo
       - build
       - close-staging-repos
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     if: needs.check-secrets.outputs.run-with-secrets == 'true'
     steps:
       - name: Checkout
@@ -162,7 +162,7 @@ jobs:
           signing-password: ${{ secrets.SIGNING_PASSWORD }}
 
   success:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs:
       - check-secrets
       - staging-repo
