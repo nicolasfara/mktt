@@ -1,7 +1,12 @@
 name: CI/CD Process
+
 on:
   workflow_call:
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.number || github.ref }}
+  cancel-in-progress: ${{ !contains(github.ref, 'master') }}
 
 jobs:
   check-secrets:
@@ -23,8 +28,6 @@ jobs:
     runs-on: ubuntu-24.04
     needs:
       - check-secrets
-    concurrency:
-      group: staging-repo-${{ github.workflow }}-${{ github.event.number || github.ref }}
     if: needs.check-secrets.outputs.run-with-secrets == 'true'
     outputs:
       maven-central-repo-id: ${{ steps.staging-repo.outputs.MavenCentral }}
@@ -75,9 +78,6 @@ jobs:
       matrix:
         os: [ windows-2022, macos-14, ubuntu-22.04 ]
     runs-on: ${{ matrix.os }}
-    concurrency:
-      group: build-${{ github.workflow }}-${{ matrix.os }}-${{ github.event.number || github.ref }}
-      cancel-in-progress: true
     steps:
       - name: Checkout
         uses: DanySK/action-checkout@0.2.20
@@ -123,7 +123,8 @@ jobs:
     concurrency:
       # Only one release job at a time per branch, as only master releases.
       # Strictly sequential.
-      group: release-${{ github.event.number || github.ref }}
+      group: release-${{ github.workflow }}-${{ github.event.number || github.ref }}
+      cancel-in-progress: false
     needs:
       - check-secrets
       - staging-repo
