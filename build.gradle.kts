@@ -2,18 +2,17 @@ import org.danilopianini.gradle.mavencentral.DocStyle
 import org.danilopianini.gradle.mavencentral.JavadocJar
 import org.gradle.internal.os.OperatingSystem
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
+import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_0
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
-import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.kotest.multiplatform)
     alias(libs.plugins.dokka)
     alias(libs.plugins.gitSemVer)
+    alias(libs.plugins.multiJvmTesting)
     alias(libs.plugins.kotlin.qa)
     alias(libs.plugins.publishOnCentral)
     alias(libs.plugins.taskTree)
@@ -26,25 +25,7 @@ repositories {
     mavenCentral()
 }
 
-android {
-    namespace = "it.nicolasfarabegoli"
-    compileSdk = 34
-    sourceSets["main"].manifest.srcFile("src/androidMain/AndroidManifest.xml")
-    defaultConfig {
-        minSdk = 21
-    }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
-    }
-}
-
-@OptIn(ExperimentalKotlinGradlePluginApi::class, ExperimentalWasmDsl::class)
 kotlin {
-    androidTarget {
-        publishAllLibraryVariants()
-    }
-
     jvm {
         testRuns["test"].executionTask.configure {
             useJUnitPlatform()
@@ -66,6 +47,7 @@ kotlin {
         }
     }
 
+    @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
 //        browser()
         nodejs()
@@ -108,9 +90,9 @@ kotlin {
     tvosArm64(nativeSetup)
     tvosSimulatorArm64(nativeSetup)
 
+    @OptIn(ExperimentalKotlinGradlePluginApi::class)
     compilerOptions {
         allWarningsAsErrors = true
-        apiVersion = KOTLIN_2_0
         freeCompilerArgs.add("-Xexpect-actual-classes")
     }
 
@@ -128,7 +110,7 @@ kotlin {
             compileTaskProvider.get().enabled = false
             tasks[processResourcesTaskName].enabled = false
         }
-        binaries.configureEach { linkTask.enabled = false }
+        binaries.configureEach { linkTaskProvider.get().enabled = false }
 
         mavenPublication {
             tasks.withType<AbstractPublishToMaven>().configureEach {

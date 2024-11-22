@@ -1,5 +1,4 @@
 [versions]
-android-plugins = "8.7.2"
 kotest = "5.9.1"
 kotlin = "2.0.10"
 
@@ -23,8 +22,6 @@ kotlin-testing-common = [
 ]
 
 [plugins]
-android-library = { id = "com.android.library", version.ref = "android-plugins" }
-android-application = { id = "com.android.application", version.ref = "android-plugins" }
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotest-multiplatform = { id = "io.kotest.multiplatform", version.ref = "kotest" }
 dokka = "org.jetbrains.dokka:1.9.20"
