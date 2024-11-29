@@ -15,7 +15,7 @@ class MqttClientTest : FreeSpec({
     coroutineTestScope = true
     "The client should be able to connect and disconnect from the broker" {
         val dispatcher = StandardTestDispatcher(testCoroutineScheduler)
-        val mqttClient = MqttClient(MqttConfiguration(hostname = "test.mosquitto.org"), dispatcher)
+        val mqttClient = MqttClient(MqttConfiguration(hostname = "mqtt.eclipseprojects.io"), dispatcher)
         shouldNotThrow<Exception> {
             mqttClient.connect().reasonCode shouldBe MqttConnAckReasonCode.Success
             mqttClient.disconnect()
@@ -37,14 +37,14 @@ class MqttClientTest : FreeSpec({
 //    }
     "The client should fail with an exception when disconnecting without connecting" {
         val dispatcher = StandardTestDispatcher(testCoroutineScheduler)
-        val mqttClient = MqttClient(MqttConfiguration(hostname = "test.mosquitto.org"), dispatcher)
+        val mqttClient = MqttClient(MqttConfiguration(hostname = "mqtt.eclipseprojects.io"), dispatcher)
         shouldThrowUnit<Exception> {
             mqttClient.disconnect()
         }
     }
     "The client should fail with an exception when disconnecting twice" {
         val dispatcher = StandardTestDispatcher(testCoroutineScheduler)
-        val mqttClient = MqttClient(MqttConfiguration(hostname = "test.mosquitto.org"), dispatcher)
+        val mqttClient = MqttClient(MqttConfiguration(hostname = "mqtt.eclipseprojects.io"), dispatcher)
         shouldNotThrow<Exception> {
             mqttClient.connect().reasonCode shouldBe MqttConnAckReasonCode.Success
             mqttClient.disconnect()
@@ -55,7 +55,7 @@ class MqttClientTest : FreeSpec({
     }
     "The client should fail with an exception when connecting twice" {
         val dispatcher = StandardTestDispatcher(testCoroutineScheduler)
-        val mqttClient = MqttClient(MqttConfiguration(hostname = "test.mosquitto.org"), dispatcher)
+        val mqttClient = MqttClient(MqttConfiguration(hostname = "mqtt.eclipseprojects.io"), dispatcher)
         shouldNotThrow<Exception> {
             mqttClient.connect().reasonCode shouldBe MqttConnAckReasonCode.Success
         }

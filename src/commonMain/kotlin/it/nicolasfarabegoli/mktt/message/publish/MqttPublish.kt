@@ -5,6 +5,10 @@ import it.nicolasfarabegoli.mktt.message.MqttMessageType
 import it.nicolasfarabegoli.mktt.message.MqttQoS
 import it.nicolasfarabegoli.mktt.topic.MqttTopic
 
+/**
+ * Represents a PUBLISH message with a specific [qos], [topic], [payload], [isRetain], [expiryInterval], [contentType],
+ * [responseTopic], and [correlationData].
+ */
 data class MqttPublish(
     val qos: MqttQoS = MqttQoS.AtMostOnce,
     val topic: MqttTopic,
