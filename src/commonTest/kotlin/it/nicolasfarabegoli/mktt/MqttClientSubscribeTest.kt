@@ -4,7 +4,6 @@ import io.kotest.assertions.throwables.shouldNotThrow
 import io.kotest.core.spec.style.FreeSpec
 import io.kotest.core.test.testCoroutineScheduler
 import io.kotest.matchers.shouldBe
-import io.kotest.matchers.string.UUIDVersion
 import it.nicolasfarabegoli.mktt.configuration.MqttConfiguration
 import it.nicolasfarabegoli.mktt.message.MqttQoS
 import it.nicolasfarabegoli.mktt.message.connect.connack.MqttConnAckReasonCode
@@ -22,7 +21,7 @@ class MqttClientSubscribeTest : FreeSpec({
     coroutineTestScope = true
     "The client should subscribe successfully to a topic" {
         val dispatcher = StandardTestDispatcher(testCoroutineScheduler)
-        val mqttClient = MqttClient(MqttConfiguration(hostname = "test.mosquitto.org"), dispatcher)
+        val mqttClient = MqttClient(MqttConfiguration(hostname = "mqtt.eclipseprojects.io"), dispatcher)
         shouldNotThrow<Exception> {
             mqttClient.connect().reasonCode shouldBe MqttConnAckReasonCode.Success
             val filterTopic = MqttTopicFilter.of("test/topic")
@@ -31,7 +30,7 @@ class MqttClientSubscribeTest : FreeSpec({
     }
     "The client should subscribe to a topic and start collecting the messages".config(enabled = false) {
         val dispatcher = StandardTestDispatcher(testCoroutineScheduler)
-        val client = MqttClient(MqttConfiguration(hostname = "test.mosquitto.org"), dispatcher)
+        val client = MqttClient(MqttConfiguration(hostname = "mqtt.eclipseprojects.io"), dispatcher)
         shouldNotThrow<Exception> {
             client.connect().reasonCode shouldBe MqttConnAckReasonCode.Success
             val filterTopic = MqttTopicFilter.of("test/topic")

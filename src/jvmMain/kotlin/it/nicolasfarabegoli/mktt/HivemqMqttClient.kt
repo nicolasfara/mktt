@@ -19,6 +19,11 @@ import kotlinx.coroutines.rx2.asFlowable
 import kotlinx.coroutines.rx2.await
 import kotlinx.coroutines.withContext
 
+/**
+ * An implementation of [MqttClient] using HiveMQ MQTT Client.
+ *
+ * Takes a [configuration] and a [defaultDispatcher] as parameters.
+ */
 class HivemqMqttClient(
     configuration: MqttConfiguration,
     override val defaultDispatcher: CoroutineDispatcher,

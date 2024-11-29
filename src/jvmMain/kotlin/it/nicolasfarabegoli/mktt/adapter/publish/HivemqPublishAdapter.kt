@@ -13,7 +13,13 @@ import it.nicolasfarabegoli.mktt.utils.JavaKotlinUtils.toByteArray
 import it.nicolasfarabegoli.mktt.utils.JavaKotlinUtils.toLongOrNull
 import kotlin.jvm.optionals.getOrNull
 
+/**
+ * Adapter that converts HiveMQ's [Mqtt5Publish] to MKTT's [MqttPublish].
+ */
 object HivemqPublishAdapter {
+    /**
+     * Converts a HiveMQ's [Mqtt5Publish] to a MKTT's [MqttPublish].
+     */
     fun Mqtt5Publish.toMqtt(): MqttPublish {
         return MqttPublish(
             qos = MqttQoS.fromCode(qos.code),
@@ -31,6 +37,9 @@ object HivemqPublishAdapter {
         )
     }
 
+    /**
+     * Converts a MKTT's [MqttPublish] to a HiveMQ's [Mqtt5Publish].
+     */
     fun MqttPublish.toHivemqMqtt(): Mqtt5Publish {
         return Mqtt5Publish.builder()
             .topic(topic.topicName)
@@ -43,6 +52,9 @@ object HivemqPublishAdapter {
             .build()
     }
 
+    /**
+     * Converts a HiveMQ's [Mqtt5PublishResult] to a MKTT's [MqttPublishResult].
+     */
     fun Mqtt5PublishResult.toMqtt(): MqttPublishResult {
         return when (this) {
             is Mqtt5PublishResult.Mqtt5Qos1Result -> MqttPublishResult.MqttQoS1Result(

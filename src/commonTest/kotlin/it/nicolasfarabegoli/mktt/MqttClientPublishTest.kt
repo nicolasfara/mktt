@@ -21,7 +21,7 @@ class MqttClientPublishTest : FreeSpec({
     coroutineTestScope = true
     "The client should publish successfully a message" {
         val dispatcher = StandardTestDispatcher(testCoroutineScheduler)
-        val mqttClient = MqttClient(MqttConfiguration(hostname = "test.mosquitto.org"), dispatcher)
+        val mqttClient = MqttClient(MqttConfiguration(hostname = "mqtt.eclipseprojects.io"), dispatcher)
         shouldNotThrow<Exception> {
             mqttClient.connect().reasonCode shouldBe MqttConnAckReasonCode.Success
             val messageResult = mqttClient.publish(
@@ -38,7 +38,7 @@ class MqttClientPublishTest : FreeSpec({
     }
     "When multiple messages will be sent, a flow containing the successfully sent message should be returned" {
         val dispatcher = StandardTestDispatcher(testCoroutineScheduler)
-        val mqttClient = MqttClient(MqttConfiguration(hostname = "test.mosquitto.org"), dispatcher)
+        val mqttClient = MqttClient(MqttConfiguration(hostname = "mqtt.eclipseprojects.io"), dispatcher)
         val messages = (0..9).map {
             MqttPublish(topic = "test/topic".asTopic(), payload = byteArrayOf(it.toByte()), qos = MqttQoS.ExactlyOnce)
         }.asFlow()
@@ -52,7 +52,7 @@ class MqttClientPublishTest : FreeSpec({
     }
     "The client should fail with an exception when publishing and the client is not connected" {
         val dispatcher = StandardTestDispatcher(testCoroutineScheduler)
-        val mqttClient = MqttClient(MqttConfiguration(hostname = "broker.hivemq.com"), dispatcher)
+        val mqttClient = MqttClient(MqttConfiguration(hostname = "mqtt.eclipseprojects.io"), dispatcher)
         shouldThrow<Exception> {
             mqttClient.publish(
                 byteArrayOf(0x00),
