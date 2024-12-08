@@ -1,6 +1,5 @@
 import org.danilopianini.gradle.mavencentral.DocStyle
 import org.danilopianini.gradle.mavencentral.JavadocJar
-import org.gradle.internal.os.OperatingSystem
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
@@ -94,32 +93,6 @@ kotlin {
     compilerOptions {
         allWarningsAsErrors = true
         freeCompilerArgs.add("-Xexpect-actual-classes")
-    }
-
-    val os = OperatingSystem.current()
-    val excludeTargets = when {
-        os.isLinux -> kotlin.targets.filterNot { "linux" in it.name }
-        os.isWindows -> kotlin.targets.filterNot { "mingw" in it.name }
-        os.isMacOsX -> kotlin.targets.filter { "linux" in it.name || "mingw" in it.name }
-        else -> emptyList()
-    }.mapNotNull { it as? KotlinNativeTarget }
-
-    configure(excludeTargets) {
-        compilations.configureEach {
-            cinterops.configureEach { tasks[interopProcessingTaskName].enabled = false }
-            compileTaskProvider.get().enabled = false
-            tasks[processResourcesTaskName].enabled = false
-        }
-        binaries.configureEach { linkTaskProvider.get().enabled = false }
-
-        mavenPublication {
-            tasks.withType<AbstractPublishToMaven>().configureEach {
-                onlyIf { publication != this@mavenPublication }
-            }
-            tasks.withType<GenerateModuleMetadata>().configureEach {
-                onlyIf { publication.get() != this@mavenPublication }
-            }
-        }
     }
 }
 
