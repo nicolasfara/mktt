@@ -140,6 +140,7 @@ jobs:
 
   drop-staging-repos:
     needs:
+      - build
       - success
     runs-on: ubuntu-24.04
     if: always()
