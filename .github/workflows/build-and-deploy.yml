@@ -73,7 +73,8 @@ jobs:
             echo "Staging repositories IDs:\n$REPO_IDS"
             echo $REPO_IDS >> $GITHUB_OUTPUT
             
-            ./gradlew $OVERRIDE_VERSION -PstagingRepositoryId=$REPO_IDS uploadAll close --parallel
+            MAVEN_CENTRAL_STAGING_ID=${REPO_IDS#MavenCentral=} 
+            ./gradlew $OVERRIDE_VERSION -PstagingRepositoryId=$MAVEN_CENTRAL_STAGING_ID uploadAll close --parallel
           should-run-codecov: ${{ runner.os == 'Linux' }}
           codecov-token: ${{ secrets.CODECOV_TOKEN }}
           maven-central-username: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
