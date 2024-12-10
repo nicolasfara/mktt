@@ -1,9 +1,7 @@
 import org.danilopianini.gradle.mavencentral.DocStyle
 import org.danilopianini.gradle.mavencentral.JavadocJar
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
-import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
@@ -24,19 +22,44 @@ repositories {
     mavenCentral()
 }
 
+fun projectFile(path: String): String = projectDir.resolve(path).absolutePath
+
+@OptIn(ExperimentalKotlinGradlePluginApi::class)
 kotlin {
     jvm {
         testRuns["test"].executionTask.configure {
             useJUnitPlatform()
+            filter {
+                isFailOnNoMatchingTests = false
+            }
+            testLogging {
+                showExceptions = true
+                showStandardStreams = true
+                events = setOf(
+                    org.gradle.api.tasks.testing.logging.TestLogEvent.FAILED,
+                    org.gradle.api.tasks.testing.logging.TestLogEvent.PASSED,
+                )
+                exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+            }
         }
     }
 
     sourceSets {
-        val commonMain by getting { }
+        val commonMain by getting {
+            dependencies {
+                implementation(libs.kotlinx.coroutines)
+            }
+        }
         val commonTest by getting {
             dependencies {
                 implementation(libs.bundles.kotlin.testing.common)
                 implementation(libs.bundles.kotest.common)
+            }
+        }
+        val jvmMain by getting {
+            dependencies {
+                implementation(libs.kotlinx.coroutines.rx2)
+                implementation(libs.hive.mqtt)
             }
         }
         val jvmTest by getting {
@@ -46,48 +69,46 @@ kotlin {
         }
     }
 
-    @OptIn(ExperimentalWasmDsl::class)
-    wasmJs {
+//    wasmJs {
 //        browser()
-        nodejs()
-        binaries.library()
-    }
+//        nodejs()
+//        binaries.library()
+//    }
 
-    js(IR) {
-//        browser()
-        nodejs()
-        binaries.library()
-    }
-
-    val nativeSetup: KotlinNativeTarget.() -> Unit = {
-        binaries {
-            sharedLib()
-            staticLib()
-        }
-    }
-
-    applyDefaultHierarchyTemplate()
-    /*
-     * Linux 64
-     */
-    linuxX64(nativeSetup)
-    linuxArm64(nativeSetup)
-    /*
-     * Win 64
-     */
-    mingwX64(nativeSetup)
-    /*
-     * Apple OSs
-     */
-    macosX64(nativeSetup)
-    macosArm64(nativeSetup)
-    iosArm64(nativeSetup)
-    iosSimulatorArm64(nativeSetup)
-    watchosArm32(nativeSetup)
-    watchosArm64(nativeSetup)
-    watchosSimulatorArm64(nativeSetup)
-    tvosArm64(nativeSetup)
-    tvosSimulatorArm64(nativeSetup)
+//    js(IR) {
+//        nodejs()
+//        binaries.library()
+//    }
+//
+//    val nativeSetup: KotlinNativeTarget.() -> Unit = {
+//        binaries {
+//            sharedLib()
+//            staticLib()
+//        }
+//    }
+//
+//    applyDefaultHierarchyTemplate()
+//    /*
+//     * Linux 64
+//     */
+//    linuxX64(nativeSetup)
+//    linuxArm64(nativeSetup)
+//    /*
+//     * Win 64
+//     */
+//    mingwX64(nativeSetup)
+//    /*
+//     * Apple OSs
+//     */
+//    macosX64(nativeSetup)
+//    macosArm64(nativeSetup)
+//    iosArm64(nativeSetup)
+//    iosSimulatorArm64(nativeSetup)
+//    watchosArm32(nativeSetup)
+//    watchosArm64(nativeSetup)
+//    watchosSimulatorArm64(nativeSetup)
+//    tvosArm64(nativeSetup)
+//    tvosSimulatorArm64(nativeSetup)
 
     @OptIn(ExperimentalKotlinGradlePluginApi::class)
     compilerOptions {
