@@ -1,49 +1,34 @@
 package it.nicolasfarabegoli.mktt.message
 
 /**
- * Represents the Quality of Service (QoS) level of an MQTT message.
+ * Represents the Quality of Service (QoS) level of an MQTT message with its [code].
  */
-sealed interface MqttQoS {
+enum class MqttQoS(val code: Int) {
     /**
-     * The code of the QoS level.
+     * TODO.
      */
-    val code: Int
+    AtMostOnce(0),
 
     /**
-     * The at most once QoS level.
+     * TODO.
+     */
+    AtLeastOnce(1),
+
+    /**
+     * TODO.
+     */
+    ExactlyOnce(2),
+    ;
+
+    /**
+     * Companion object for [MqttQoS].
      */
     companion object {
         /**
          * Returns the [MqttQoS] from the given [code].
+         *
+         * Trows an [IllegalArgumentException] if the [code] is invalid.
          */
-        fun fromCode(code: Int): MqttQoS {
-            return when (code) {
-                0 -> AtMostOnce
-                1 -> AtLeastOnce
-                2 -> ExactlyOnce
-                else -> throw IllegalArgumentException("Invalid QoS code: $code")
-            }
-        }
-    }
-
-    /**
-     * The at most once QoS level.
-     */
-    data object AtMostOnce : MqttQoS {
-        override val code: Int = 0
-    }
-
-    /**
-     * The at least once QoS level.
-     */
-    data object AtLeastOnce : MqttQoS {
-        override val code: Int = 1
-    }
-
-    /**
-     * The exactly once QoS level.
-     */
-    data object ExactlyOnce : MqttQoS {
-        override val code: Int = 2
+        fun from(code: Int): MqttQoS = MqttQoS.entries.first { it.code == code }
     }
 }

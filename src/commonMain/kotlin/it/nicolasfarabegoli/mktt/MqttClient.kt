@@ -7,7 +7,6 @@ import it.nicolasfarabegoli.mktt.message.publish.MqttPublish
 import it.nicolasfarabegoli.mktt.message.publish.MqttPublishResult
 import it.nicolasfarabegoli.mktt.subscribe.MqttRetainHandling
 import it.nicolasfarabegoli.mktt.subscribe.MqttSubscription
-import it.nicolasfarabegoli.mktt.subscribe.Send
 import it.nicolasfarabegoli.mktt.topic.MqttTopic
 import it.nicolasfarabegoli.mktt.topic.MqttTopicFilter
 import kotlinx.coroutines.CoroutineDispatcher
@@ -46,7 +45,7 @@ interface MqttClient {
         filter: MqttTopicFilter,
         qoS: MqttQoS = MqttQoS.ExactlyOnce,
         noLocal: Boolean = true,
-        retainHandling: MqttRetainHandling = Send,
+        retainHandling: MqttRetainHandling = MqttRetainHandling.SEND,
         retainAsPublished: Boolean = false,
     ): Flow<MqttPublish> = subscribe(MqttSubscription(filter, qoS, noLocal, retainHandling, retainAsPublished))
 

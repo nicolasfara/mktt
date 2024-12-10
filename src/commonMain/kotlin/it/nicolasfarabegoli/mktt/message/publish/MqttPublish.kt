@@ -19,5 +19,5 @@ data class MqttPublish(
     val responseTopic: MqttTopic? = null,
     val correlationData: ByteArray? = null,
 ) : MqttMessage {
-    override val type: MqttMessageType = MqttMessageType.Publish
+    override val type: MqttMessageType = MqttMessageType.PUBLISH
 }

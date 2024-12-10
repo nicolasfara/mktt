@@ -22,7 +22,7 @@ object HivemqPublishAdapter {
      */
     fun Mqtt5Publish.toMqtt(): MqttPublish {
         return MqttPublish(
-            qos = MqttQoS.fromCode(qos.code),
+            qos = MqttQoS.from(qos.code),
             topic = topic.toMqtt(),
             payload = payload.getOrNull()?.toByteArray(),
             isRetain = isRetain,

@@ -7,5 +7,5 @@ import it.nicolasfarabegoli.mktt.message.MqttMessageType
  * Represents a PUBREL message with a specific [reasonCode] and [reasonString].
  */
 data class MqttPubRel(val reasonCode: MqttPubRelReasonCode, val reasonString: String?) : MqttMessage {
-    override val type: MqttMessageType get() = MqttMessageType.PubRel
+    override val type: MqttMessageType get() = MqttMessageType.PUBREL
 }

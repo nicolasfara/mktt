@@ -13,6 +13,6 @@ data class MqttSubscription(
     val topicFilter: MqttTopicFilter,
     val qos: MqttQoS = MqttQoS.ExactlyOnce,
     val noLocal: Boolean = false,
-    val retainHandling: MqttRetainHandling = Send,
+    val retainHandling: MqttRetainHandling = MqttRetainHandling.SEND,
     val retainAsPublished: Boolean = false,
 )

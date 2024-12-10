@@ -1,139 +1,81 @@
 package it.nicolasfarabegoli.mktt.message
 
 /**
- * Represents an MQTT message type.
+ * Represents the type of MQTT message and its [code].
  */
-sealed interface MqttMessageType {
+enum class MqttMessageType(val code: Byte) {
     /**
-     * The byte code of the [MqttMessageType].
+     * TODO.
      */
-    val code: Byte
-
-    companion object {
-        /**
-         * Returns the [MqttMessageType] from the given [code].
-         */
-        fun values(): List<MqttMessageType> = listOf(
-            Connect,
-            ConnAck,
-            Publish,
-            PubAck,
-            PubRec,
-            PubRel,
-            PubComp,
-            Subscribe,
-            SubAck,
-            Unsubscribe,
-            UnsubAck,
-            PingReq,
-            PingResp,
-            Disconnect,
-            Auth,
-        )
-    }
+    CONNECT(0x01.toByte()),
 
     /**
-     * The CONNECT message type.
+     * TODO.
      */
-    data object Connect : MqttMessageType {
-        override val code: Byte = 0x01.toByte()
-    }
+    CONNACK(0x02.toByte()),
 
     /**
-     * The CONNACK message type.
+     * TODO.
      */
-    data object ConnAck : MqttMessageType {
-        override val code: Byte = 0x02.toByte()
-    }
+    PUBLISH(0x03.toByte()),
 
     /**
-     * The PUBLISH message type.
+     * TODO.
      */
-    data object Publish : MqttMessageType {
-        override val code: Byte = 0x03.toByte()
-    }
+    PUBACK(0x04.toByte()),
 
     /**
-     * The PUBACK message type.
+     * TODO.
      */
-    data object PubAck : MqttMessageType {
-        override val code: Byte = 0x04.toByte()
-    }
+    PUBREC(0x05.toByte()),
 
     /**
-     * The PUBREC message type.
+     * TODO.
      */
-    data object PubRec : MqttMessageType {
-        override val code: Byte = 0x05.toByte()
-    }
+    PUBREL(0x06.toByte()),
 
     /**
-     * The PUBREL message type.
+     * TODO.
      */
-    data object PubRel : MqttMessageType {
-        override val code: Byte = 0x06.toByte()
-    }
+    PUBCOMP(0x07.toByte()),
 
     /**
-     * The PUBCOMP message type.
+     * TODO.
      */
-    data object PubComp : MqttMessageType {
-        override val code: Byte = 0x07.toByte()
-    }
+    SUBSCRIBE(0x08.toByte()),
 
     /**
-     * The SUBSCRIBE message type.
+     * TODO.
      */
-    data object Subscribe : MqttMessageType {
-        override val code: Byte = 0x08.toByte()
-    }
+    SUBACK(0x09.toByte()),
 
     /**
-     * The SUBACK message type.
+     * TODO.
      */
-    data object SubAck : MqttMessageType {
-        override val code: Byte = 0x09.toByte()
-    }
+    UNSUBSCRIBE(0x0A.toByte()),
 
     /**
-     * The UNSUBSCRIBE message type.
+     * TODO.
      */
-    data object Unsubscribe : MqttMessageType {
-        override val code: Byte = 0x0A.toByte()
-    }
+    UNSUBACK(0x0B.toByte()),
 
     /**
-     * The UNSUBACK message type.
+     * TODO.
      */
-    data object UnsubAck : MqttMessageType {
-        override val code: Byte = 0x0B.toByte()
-    }
+    PINGREQ(0x0C.toByte()),
 
     /**
-     * The PINGREQ message type.
+     * TODO.
      */
-    data object PingReq : MqttMessageType {
-        override val code: Byte = 0x0C.toByte()
-    }
+    PINGRESP(0x0D.toByte()),
 
     /**
-     * The PINGRESP message type.
+     * TODO.
      */
-    data object PingResp : MqttMessageType {
-        override val code: Byte = 0x0D.toByte()
-    }
+    DISCONNECT(0x0E.toByte()),
 
     /**
-     * The DISCONNECT message type.
+     * TODO.
      */
-    data object Disconnect : MqttMessageType {
-        override val code: Byte = 0x0E.toByte()
-    }
-
-    /**
-     * The AUTH message type.
-     */
-    data object Auth : MqttMessageType {
-        override val code: Byte = 0x0F.toByte()
-    }
+    AUTH(0x0F.toByte()),
 }

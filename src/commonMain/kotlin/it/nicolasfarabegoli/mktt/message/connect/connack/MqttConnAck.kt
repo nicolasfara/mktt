@@ -14,5 +14,5 @@ data class MqttConnAck(
     val serverKeepAlive: Int? = null,
     val assignedClientIdentifier: String? = null,
 ) : MqttMessage {
-    override val type: MqttMessageType = MqttMessageType.ConnAck
+    override val type: MqttMessageType = MqttMessageType.CONNACK
 }

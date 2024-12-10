@@ -38,7 +38,6 @@ class HivemqMqttClient(
 
     override suspend fun connect(): MqttConnAck = withContext(defaultDispatcher) {
         val reasonCode = hiveMqClient.connect()
-            .doOnSuccess { println("Connected to the broker") }
             .await()
         fromHivemqMqttConnAck(reasonCode)
     }
@@ -49,7 +48,6 @@ class HivemqMqttClient(
 
     override fun subscribe(subscription: MqttSubscription): Flow<MqttPublish> = hiveMqClient
         .subscribePublishes(subscription.toHivemqMqtt())
-        .doOnNext { println("Received message: $it") }
         .asFlow()
         .map { it.toMqtt() }
         .flowOn(defaultDispatcher)
@@ -57,7 +55,6 @@ class HivemqMqttClient(
     override fun publish(messages: Flow<MqttPublish>): Flow<MqttPublishResult> {
         val mappedMessages = messages.map { it.toHivemqMqtt() }
         return hiveMqClient.publish(mappedMessages.asFlowable())
-            .doOnNext { println("Published message: $it") }
             .asFlow()
             .map { it.toMqtt() }
             .flowOn(defaultDispatcher)

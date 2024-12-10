@@ -7,11 +7,8 @@ import com.hivemq.client.mqtt.mqtt5.message.subscribe.Mqtt5Subscribe
 import it.nicolasfarabegoli.mktt.message.MqttQoS
 import it.nicolasfarabegoli.mktt.message.connect.connack.MqttConnAck
 import it.nicolasfarabegoli.mktt.message.connect.connack.MqttConnAckReasonCode
-import it.nicolasfarabegoli.mktt.subscribe.DoNotSend
 import it.nicolasfarabegoli.mktt.subscribe.MqttRetainHandling
 import it.nicolasfarabegoli.mktt.subscribe.MqttSubscription
-import it.nicolasfarabegoli.mktt.subscribe.Send
-import it.nicolasfarabegoli.mktt.subscribe.SendIfSubscriptionDoesNotExist
 import it.nicolasfarabegoli.mktt.utils.JavaKotlinUtils.toIntOrNull
 import it.nicolasfarabegoli.mktt.utils.JavaKotlinUtils.toLongOrNull
 import kotlin.jvm.optionals.getOrNull
@@ -19,7 +16,7 @@ import kotlin.jvm.optionals.getOrNull
 internal object HivemqAdapter {
     internal fun fromHivemqMqttConnAck(connAck: Mqtt5ConnAck): MqttConnAck {
         return MqttConnAck(
-            reasonCode = MqttConnAckReasonCode.fromCode(connAck.reasonCode.code.toByte()),
+            reasonCode = MqttConnAckReasonCode.from(connAck.reasonCode.code.toByte()),
             isSessionPresent = connAck.isSessionPresent,
             sessionExpiryInterval = connAck.sessionExpiryInterval.toLongOrNull(),
             serverKeepAlive = connAck.serverKeepAlive.toIntOrNull(),
@@ -37,9 +34,10 @@ internal object HivemqAdapter {
 
     private fun MqttRetainHandling.toHiveMqtt(): Mqtt5RetainHandling {
         return when (this) {
-            Send -> Mqtt5RetainHandling.SEND
-            SendIfSubscriptionDoesNotExist -> Mqtt5RetainHandling.SEND_IF_SUBSCRIPTION_DOES_NOT_EXIST
-            DoNotSend -> Mqtt5RetainHandling.DO_NOT_SEND
+            MqttRetainHandling.SEND -> Mqtt5RetainHandling.SEND
+            MqttRetainHandling.SEND_IF_SUBSCRIPTION_DOES_NOT_EXIST ->
+                Mqtt5RetainHandling.SEND_IF_SUBSCRIPTION_DOES_NOT_EXIST
+            MqttRetainHandling.DO_NOT_SEND -> Mqtt5RetainHandling.DO_NOT_SEND
         }
     }
 

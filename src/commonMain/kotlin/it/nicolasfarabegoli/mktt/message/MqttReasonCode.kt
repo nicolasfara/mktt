@@ -7,6 +7,7 @@ package it.nicolasfarabegoli.mktt.message
  * The [canBeSentByServer] property indicates if the reason code can be sent by the server.
  * The [canBeSentByClient] property indicates if the reason code can be sent by the client.
  * The [canBeSetByUser] property indicates if the reason code can be set by the user.
+ * The [userCodes] property contains the list of reason codes that can be set by the user.
  */
 interface MqttReasonCode {
     val code: Byte
@@ -14,7 +15,19 @@ interface MqttReasonCode {
     val canBeSentByServer: Boolean get() = true
     val canBeSentByClient: Boolean get() = false
     val canBeSetByUser: Boolean get() = false
+    val userCodes: List<Byte> get() = listOf(
+        MqttCommonReasonCode.Success.code,
+        MqttCommonReasonCode.UnspecifiedError.code,
+        MqttCommonReasonCode.ImplementationSpecificError.code,
+        MqttCommonReasonCode.NotAuthorized.code,
+        MqttCommonReasonCode.TopicNameInvalid.code,
+        MqttCommonReasonCode.QuotaExceeded.code,
+        MqttCommonReasonCode.PayloadFormatInvalid.code,
+    )
 
+    /**
+     * Companion object for [MqttReasonCode].
+     */
     companion object {
         private const val ERROR_CODE = 0x80.toByte()
     }

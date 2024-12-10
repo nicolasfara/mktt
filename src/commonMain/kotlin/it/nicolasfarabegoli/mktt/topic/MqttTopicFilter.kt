@@ -39,6 +39,9 @@ interface MqttTopicFilter {
      */
     fun matches(filter: MqttTopicFilter): Boolean
 
+    /**
+     * Companion object for [MqttTopicFilter].
+     */
     companion object {
         /**
          * Returns a [MqttTopicFilter] from the given [filter].

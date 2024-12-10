@@ -8,6 +8,9 @@ interface MqttTopic {
     val levels: List<String>
     val filter: MqttTopicFilter
 
+    /**
+     * Companion object for [MqttTopic].
+     */
     companion object {
         /**
          * Returns an [MqttTopic] from the given [topic] and [filter].
