@@ -50,7 +50,7 @@ jobs:
         os: [ windows-2022, macos-14, ubuntu-24.04 ]
     runs-on: ${{ matrix.os }}
     outputs:
-      staging-repo-id: ${{ steps.staging-repo.outputs.MavenCentral }}
+      staging-repo-id: ${{ steps.staging-repo.outputs.MavenCentral || '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4.2.2
@@ -70,7 +70,7 @@ jobs:
               exit 1
             )
             REPO_IDS=$(cat build/staging-repo-ids.properties)
-            echo "Staging repositories IDs:\n$REPO_IDS"
+            echo -e "Staging repositories IDs:\n$REPO_IDS"
             echo $REPO_IDS >> $GITHUB_OUTPUT
             
             MAVEN_CENTRAL_STAGING_ID=${REPO_IDS#MavenCentral=} 
@@ -103,6 +103,7 @@ jobs:
         uses: actions/setup-node@v4.1.0
         with:
           node-version-file: package.json
+      - run: echo ${{ toJson(needs.build.outputs) }}
       - uses: DanySK/build-check-deploy-gradle-action@3.5.25
         env:
           STAGING_REPO_ID: ${{ needs.build.outputs.staging-repo-id }}
