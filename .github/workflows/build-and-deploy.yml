@@ -157,6 +157,16 @@ jobs:
     runs-on: ubuntu-24.04
     if: always()
     steps:
+      - name: Restore staging repository ID
+        uses: actions/download-artifact@v4
+        with:
+          name: staging-repo-ids
+          path: build/
+      - run: |
+          REPO_IDS=$(cat build/staging-repo-ids.properties)
+          echo -e "Staging repositories IDs:\n$REPO_IDS"            
+          MAVEN_CENTRAL_STAGING_ID=${REPO_IDS#MavenCentral=}
+          echo "STAGING_REPO_ID=$MAVEN_CENTRAL_STAGING_ID" >> $GITHUB_ENV
       - env:
           MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
           MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
@@ -166,6 +176,6 @@ jobs:
           --url "https://s01.oss.sonatype.org/service/local/staging/bulk/drop"
           --header "Accept: application/json"
           --header "Content-Type: application/json"
-          --data '{"data":{"stagedRepositoryIds":["${{ needs.build.outputs.staging-repo-id }}"]}}'
+          --data '{"data":{"stagedRepositoryIds":["$STAGING_REPO_ID"]}}'
           --user "$MAVEN_CENTRAL_USERNAME:$MAVEN_CENTRAL_PASSWORD"
           --verbose
