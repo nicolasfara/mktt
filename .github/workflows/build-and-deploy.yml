@@ -176,6 +176,6 @@ jobs:
           --url "https://s01.oss.sonatype.org/service/local/staging/bulk/drop"
           --header "Accept: application/json"
           --header "Content-Type: application/json"
-          --data '{"data":{"stagedRepositoryIds":["$STAGING_REPO_ID"]}}'
+          --data '{"data":{"stagedRepositoryIds":["${{ env.STAGING_REPO_ID }}"]}}'
           --user "$MAVEN_CENTRAL_USERNAME:$MAVEN_CENTRAL_PASSWORD"
           --verbose
