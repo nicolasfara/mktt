@@ -6,5 +6,5 @@ import kotlinx.coroutines.CoroutineDispatcher
 /**
  * Creates a new [MqttClient] based on the given [configuration] and [dispatcher].
  */
-actual fun MqttClient(configuration: MqttConfiguration, dispatcher: CoroutineDispatcher): MqttClient =
-    HivemqMqttClient(configuration, dispatcher)
+actual fun MqttClient(configuration: MqttConfiguration, dispatcher: CoroutineDispatcher): MkttClient =
+    HivemqMkttClient(configuration, dispatcher)

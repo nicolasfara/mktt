@@ -18,10 +18,10 @@ import kotlinx.coroutines.flow.single
 /**
  * Represents an MQTT client.
  *
- * The [MqttClient] interface provides a way to connect and disconnect from an MQTT broker, subscribe to topics, and
+ * The [MkttClient] interface provides a way to connect and disconnect from an MQTT broker, subscribe to topics, and
  * publish messages.
  */
-interface MqttClient {
+interface MkttClient {
     /**
      * The default [CoroutineDispatcher] used by the client.
      */
@@ -81,4 +81,4 @@ interface MqttClient {
 expect fun MqttClient(
     configuration: MqttConfiguration,
     dispatcher: CoroutineDispatcher = Dispatchers.Default,
-): MqttClient
+): MkttClient

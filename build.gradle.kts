@@ -44,6 +44,16 @@ kotlin {
         }
     }
 
+    js(IR) {
+        nodejs()
+        binaries.library()
+    }
+    //    wasmJs {
+    //        browser()
+    //        nodejs()
+    //        binaries.library()
+    //    }
+
     sourceSets {
         val commonMain by getting {
             dependencies {
@@ -67,18 +77,13 @@ kotlin {
                 implementation(libs.kotest.runner.junit5)
             }
         }
+        val jsMain by getting {
+            dependencies {
+                implementation(npm("mqtt", "5.10.3"))
+            }
+        }
     }
 
-//    wasmJs {
-//        browser()
-//        nodejs()
-//        binaries.library()
-//    }
-
-//    js(IR) {
-//        nodejs()
-//        binaries.library()
-//    }
 //
 //    val nativeSetup: KotlinNativeTarget.() -> Unit = {
 //        binaries {
