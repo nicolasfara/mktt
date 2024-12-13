@@ -20,14 +20,14 @@ import kotlinx.coroutines.rx2.await
 import kotlinx.coroutines.withContext
 
 /**
- * An implementation of [MqttClient] using HiveMQ MQTT Client.
+ * An implementation of [MkttClient] using HiveMQ MQTT Client.
  *
  * Takes a [configuration] and a [defaultDispatcher] as parameters.
  */
-class HivemqMqttClient(
+class HivemqMkttClient(
     configuration: MqttConfiguration,
     override val defaultDispatcher: CoroutineDispatcher,
-) : MqttClient {
+) : MkttClient {
     private val hiveMqClient by lazy {
         Mqtt5Client.builder()
             .serverHost(configuration.hostname)
