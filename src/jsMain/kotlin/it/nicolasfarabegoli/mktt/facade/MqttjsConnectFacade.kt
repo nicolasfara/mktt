@@ -1,6 +1,5 @@
 @file:JsModule("mqtt")
 @file:JsNonModule
-@file:JsQualifier("connect")
 package it.nicolasfarabegoli.mktt.facade
 
 import kotlin.js.Promise
