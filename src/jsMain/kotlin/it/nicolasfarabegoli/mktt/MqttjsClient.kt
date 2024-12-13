@@ -19,7 +19,7 @@ internal class MqttjsClient(
 ) : MkttClient {
     private lateinit var mqttClient: MqttClient
     override suspend fun connect(): MqttConnAck = withContext(defaultDispatcher) {
-        mqttClient = connectAsync(configuration.hostname, configuration.toClientOptions(), true).await()
+        mqttClient = connectAsync("mqtt://${configuration.hostname}", configuration.toClientOptions(), true).await()
         TODO("Not yet implemented")
     }
 
