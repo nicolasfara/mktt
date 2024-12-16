@@ -62,7 +62,8 @@ kotlin {
         }
         val commonTest by getting {
             dependencies {
-                implementation(libs.bundles.kotlin.testing.common)
+                implementation(kotlin("test"))
+//                implementation(libs.bundles.kotlin.testing.common)
                 implementation(libs.bundles.kotest.common)
             }
         }
