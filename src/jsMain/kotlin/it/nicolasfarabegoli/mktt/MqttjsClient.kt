@@ -12,6 +12,8 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.await
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
+import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 
 internal class MqttjsClient(
     private val configuration: MqttConfiguration,
@@ -20,7 +22,11 @@ internal class MqttjsClient(
     private lateinit var mqttClient: MqttClient
     override suspend fun connect(): MqttConnAck = withContext(defaultDispatcher) {
         mqttClient = connectAsync("mqtt://${configuration.hostname}", configuration.toClientOptions(), true).await()
-        TODO("Not yet implemented")
+        suspendCoroutine<MqttConnAck> { continuation ->
+            mqttClient.on("connect") {
+                continuation.resume(TODO())
+            }
+        }
     }
 
     override suspend fun disconnect() {
