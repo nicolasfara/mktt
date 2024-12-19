@@ -50,7 +50,7 @@ jobs:
         uses: actions/checkout@v4.2.2
         with:
           fetch-depth: 0
-      - uses: DanySK/build-check-deploy-gradle-action@3.5.25
+      - uses: DanySK/build-check-deploy-gradle-action@3.5.28
         id: staging-repo
         with:
           should-deploy: ${{ runner.os == 'macOS' && needs.check-secrets.outputs.run-with-secrets == 'true' }} # Deploy from macOS since it supports all the platforms
@@ -107,7 +107,7 @@ jobs:
         uses: actions/setup-node@v4.1.0
         with:
           node-version-file: package.json
-      - uses: DanySK/build-check-deploy-gradle-action@3.5.25
+      - uses: DanySK/build-check-deploy-gradle-action@3.5.28
         env:
           STAGING_REPO_ID: ${{ needs.set-staging-repo-id.outputs.staging-repo-id }}
           ORG_GRADLE_PROJECT_releaseStage: true
