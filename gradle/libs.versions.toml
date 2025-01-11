@@ -27,7 +27,7 @@ kotlin-testing-common = [
 [plugins]
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotest-multiplatform = { id = "io.kotest.multiplatform", version.ref = "kotest" }
-dokka = "org.jetbrains.dokka:1.9.20"
+dokka = "org.jetbrains.dokka:2.0.0"
 gitSemVer = "org.danilopianini.git-sensitive-semantic-versioning-gradle-plugin:3.1.7"
 kotlin-qa = "org.danilopianini.gradle-kotlin-qa:0.70.2"
 multiJvmTesting = "org.danilopianini.multi-jvm-test-plugin:3.0.3"
