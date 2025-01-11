@@ -1,0 +1,33 @@
+name: Actualize Yarn Lock
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+  update-ancillary-files:
+    permissions:
+      contents: write
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: '0'
+          token: ${{ github.token }}
+      - uses: DanySK/build-check-deploy-gradle-action@3.7.0
+        with:
+          build-command: |
+            ./gradlew kotlinUpgradeYarnLock --parallel
+          check-command: |
+            git config user.name 'Danilo Pianini [bot]'
+            git config user.email 'danilo.pianini@gmail.com'
+            if git status | grep -P '^\s+modified:\s+kotlin-js-store\/yarn\.lock$'; then
+              git add kotlin-js-store/yarn.lock
+              git commit -m 'chore(build): actualize the `yarn.lock` file'
+              git pull --rebase
+              git push
+            fi
+          should-run-codecov: false
+          should-deploy: false
