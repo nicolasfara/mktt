@@ -3,7 +3,9 @@ package it.nicolasfarabegoli.mktt.message
 /**
  * Common reason [code]s for MQTT messages.
  */
-enum class MqttCommonReasonCode(val code: Byte) {
+enum class MqttCommonReasonCode(
+    val code: Byte,
+) {
     /**
      * TODO.
      */
@@ -134,8 +136,6 @@ enum class MqttCommonReasonCode(val code: Byte) {
          *
          * Throws an [IllegalArgumentException] if the [code] is unknown.
          */
-        fun fromCode(code: Byte): MqttCommonReasonCode {
-            return MqttCommonReasonCode.entries.first { it.code == code }
-        }
+        fun fromCode(code: Byte): MqttCommonReasonCode = MqttCommonReasonCode.entries.first { it.code == code }
     }
 }

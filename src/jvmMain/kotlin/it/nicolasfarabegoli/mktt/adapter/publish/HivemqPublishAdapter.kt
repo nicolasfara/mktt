@@ -20,28 +20,29 @@ object HivemqPublishAdapter {
     /**
      * Converts a HiveMQ's [Mqtt5Publish] to a MKTT's [MqttPublish].
      */
-    fun Mqtt5Publish.toMqtt(): MqttPublish {
-        return MqttPublish(
+    fun Mqtt5Publish.toMqtt(): MqttPublish =
+        MqttPublish(
             qos = MqttQoS.from(qos.code),
             topic = topic.toMqtt(),
             payload = payload.getOrNull()?.toByteArray(),
             isRetain = isRetain,
             expiryInterval = messageExpiryInterval.toLongOrNull(),
             contentType = contentType.getOrNull()?.toString(),
-            responseTopic = responseTopic.getOrNull()?.let {
-                val topic = it.toByteBuffer().toByteArray().decodeToString()
-                // Workaround for: https://github.com/hivemq/hivemq-mqtt-client/issues/632
-                if (topic != "null") it.toMqtt() else null
-            },
+            responseTopic =
+                responseTopic.getOrNull()?.let {
+                    val topic = it.toByteBuffer().toByteArray().decodeToString()
+                    // Workaround for: https://github.com/hivemq/hivemq-mqtt-client/issues/632
+                    if (topic != "null") it.toMqtt() else null
+                },
             correlationData = correlationData.getOrNull()?.array(),
         )
-    }
 
     /**
      * Converts a MKTT's [MqttPublish] to a HiveMQ's [Mqtt5Publish].
      */
-    fun MqttPublish.toHivemqMqtt(): Mqtt5Publish {
-        return Mqtt5Publish.builder()
+    fun MqttPublish.toHivemqMqtt(): Mqtt5Publish =
+        Mqtt5Publish
+            .builder()
             .topic(topic.topicName)
             .qos(qos.toHiveMqttQos())
             .payload(payload)
@@ -50,24 +51,24 @@ object HivemqPublishAdapter {
             .responseTopic(responseTopic.toString())
             .correlationData(correlationData)
             .build()
-    }
 
     /**
      * Converts a HiveMQ's [Mqtt5PublishResult] to a MKTT's [MqttPublishResult].
      */
-    fun Mqtt5PublishResult.toMqtt(): MqttPublishResult {
-        return when (this) {
-            is Mqtt5PublishResult.Mqtt5Qos1Result -> MqttPublishResult.MqttQoS1Result(
-                publish = this.publish.toMqtt(),
-                error = this.error.getOrNull(),
-                pubAck = this.pubAck.toMqtt(),
-            )
-            is Mqtt5PublishResult.Mqtt5Qos2Result -> MqttPublishResult.MqttQoS2hResult(
-                publish = this.publish.toMqtt(),
-                error = this.error.getOrNull(),
-                pubRec = this.pubRec.toMqtt(),
-            )
+    fun Mqtt5PublishResult.toMqtt(): MqttPublishResult =
+        when (this) {
+            is Mqtt5PublishResult.Mqtt5Qos1Result ->
+                MqttPublishResult.MqttQoS1Result(
+                    publish = this.publish.toMqtt(),
+                    error = this.error.getOrNull(),
+                    pubAck = this.pubAck.toMqtt(),
+                )
+            is Mqtt5PublishResult.Mqtt5Qos2Result ->
+                MqttPublishResult.MqttQoS2hResult(
+                    publish = this.publish.toMqtt(),
+                    error = this.error.getOrNull(),
+                    pubRec = this.pubRec.toMqtt(),
+                )
             else -> MqttPublishResult(this.publish.toMqtt(), this.error.getOrNull())
         }
-    }
 }

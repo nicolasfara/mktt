@@ -12,10 +12,9 @@ object HivemqPubRecAdapter {
     /**
      * Converts a HiveMQ's [Mqtt5PubRec] to a MKTT's [MqttPubRec].
      */
-    fun Mqtt5PubRec.toMqtt(): MqttPubRec {
-        return MqttPubRec(
+    fun Mqtt5PubRec.toMqtt(): MqttPubRec =
+        MqttPubRec(
             reasonCode = MqttPubRecReasonCode.from(reasonCode.code.toByte()),
             reasonString = reasonString.getOrNull()?.toString(),
         )
-    }
 }

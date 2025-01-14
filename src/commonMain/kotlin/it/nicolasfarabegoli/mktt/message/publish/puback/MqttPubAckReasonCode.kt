@@ -3,11 +3,14 @@ package it.nicolasfarabegoli.mktt.message.publish.puback
 import it.nicolasfarabegoli.mktt.message.MqttCommonReasonCode
 import it.nicolasfarabegoli.mktt.message.MqttReasonCode
 
+// CPD-OFF
+
 /**
  * Represents the Reason Code of a PUBACK message.
  */
-// CPD-OFF
-enum class MqttPubAckReasonCode(override val code: Byte) : MqttReasonCode {
+enum class MqttPubAckReasonCode(
+    override val code: Byte,
+) : MqttReasonCode {
     /**
      * TODO.
      */

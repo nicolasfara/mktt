@@ -6,7 +6,9 @@ import it.nicolasfarabegoli.mktt.message.MqttReasonCode
 /**
  * Represents the Reason Code of a PUBREL message.
  */
-enum class MqttPubRelReasonCode(override val code: Byte) : MqttReasonCode {
+enum class MqttPubRelReasonCode(
+    override val code: Byte,
+) : MqttReasonCode {
     /**
      * TODO.
      */

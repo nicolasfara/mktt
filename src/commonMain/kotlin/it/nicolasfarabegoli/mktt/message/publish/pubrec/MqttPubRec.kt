@@ -6,6 +6,9 @@ import it.nicolasfarabegoli.mktt.message.MqttMessageType
 /**
  * Represents a PUBREC message with a specific [reasonCode] and [reasonString].
  */
-data class MqttPubRec(val reasonCode: MqttPubRecReasonCode, val reasonString: String?) : MqttMessage {
+data class MqttPubRec(
+    val reasonCode: MqttPubRecReasonCode,
+    val reasonString: String?,
+) : MqttMessage {
     override val type: MqttMessageType get() = MqttMessageType.PUBREC
 }

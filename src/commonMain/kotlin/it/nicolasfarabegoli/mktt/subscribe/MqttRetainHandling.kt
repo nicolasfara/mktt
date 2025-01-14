@@ -3,7 +3,9 @@ package it.nicolasfarabegoli.mktt.subscribe
 /**
  * Retain handling options and its respective [code].
  */
-enum class MqttRetainHandling(val code: Byte) {
+enum class MqttRetainHandling(
+    val code: Byte,
+) {
     /**
      * TODO.
      */

@@ -3,7 +3,9 @@ package it.nicolasfarabegoli.mktt.message
 /**
  * Represents the type of MQTT message and its [code].
  */
-enum class MqttMessageType(val code: Byte) {
+enum class MqttMessageType(
+    val code: Byte,
+) {
     /**
      * TODO.
      */
