@@ -29,32 +29,39 @@ class HivemqMqttClient(
     override val defaultDispatcher: CoroutineDispatcher,
 ) : MqttClient {
     private val hiveMqClient by lazy {
-        Mqtt5Client.builder()
+        Mqtt5Client
+            .builder()
             .serverHost(configuration.hostname)
             .serverPort(configuration.port)
             .identifier(configuration.clientId)
             .buildRx()
     }
 
-    override suspend fun connect(): MqttConnAck = withContext(defaultDispatcher) {
-        val reasonCode = hiveMqClient.connect()
-            .await()
-        fromHivemqMqttConnAck(reasonCode)
-    }
+    override suspend fun connect(): MqttConnAck =
+        withContext(defaultDispatcher) {
+            val reasonCode =
+                hiveMqClient
+                    .connect()
+                    .await()
+            fromHivemqMqttConnAck(reasonCode)
+        }
 
-    override suspend fun disconnect(): Unit = withContext(defaultDispatcher) {
-        hiveMqClient.disconnect().await()
-    }
+    override suspend fun disconnect(): Unit =
+        withContext(defaultDispatcher) {
+            hiveMqClient.disconnect().await()
+        }
 
-    override fun subscribe(subscription: MqttSubscription): Flow<MqttPublish> = hiveMqClient
-        .subscribePublishes(subscription.toHivemqMqtt())
-        .asFlow()
-        .map { it.toMqtt() }
-        .flowOn(defaultDispatcher)
+    override fun subscribe(subscription: MqttSubscription): Flow<MqttPublish> =
+        hiveMqClient
+            .subscribePublishes(subscription.toHivemqMqtt())
+            .asFlow()
+            .map { it.toMqtt() }
+            .flowOn(defaultDispatcher)
 
     override fun publish(messages: Flow<MqttPublish>): Flow<MqttPublishResult> {
         val mappedMessages = messages.map { it.toHivemqMqtt() }
-        return hiveMqClient.publish(mappedMessages.asFlowable())
+        return hiveMqClient
+            .publish(mappedMessages.asFlowable())
             .asFlow()
             .map { it.toMqtt() }
             .flowOn(defaultDispatcher)

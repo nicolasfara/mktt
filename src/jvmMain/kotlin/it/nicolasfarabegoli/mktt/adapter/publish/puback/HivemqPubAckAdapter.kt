@@ -13,16 +13,17 @@ object HivemqPubAckAdapter {
     /**
      * Converts a HiveMQ's [Mqtt5PubAck] to a MKTT's [MqttPubAck].
      */
-    fun Mqtt5PubAck.toMqtt(): MqttPubAck = MqttPubAck(
-        reasonCode = reasonCode.toMqtt(),
-        reasonString = reasonString.getOrNull()?.toString(),
-    )
+    fun Mqtt5PubAck.toMqtt(): MqttPubAck =
+        MqttPubAck(
+            reasonCode = reasonCode.toMqtt(),
+            reasonString = reasonString.getOrNull()?.toString(),
+        )
 
     /**
      * Converts a MKTT's [MqttPubAck] to a HiveMQ's [Mqtt5PubAck].
      */
-    fun Mqtt5PubAckReasonCode.toMqtt(): MqttPubAckReasonCode {
-        return when (this) {
+    fun Mqtt5PubAckReasonCode.toMqtt(): MqttPubAckReasonCode =
+        when (this) {
             Mqtt5PubAckReasonCode.SUCCESS -> MqttPubAckReasonCode.Success
             Mqtt5PubAckReasonCode.NO_MATCHING_SUBSCRIBERS -> MqttPubAckReasonCode.NoMatchingSubscribers
             Mqtt5PubAckReasonCode.UNSPECIFIED_ERROR -> MqttPubAckReasonCode.UnspecifiedError
@@ -33,5 +34,4 @@ object HivemqPubAckAdapter {
             Mqtt5PubAckReasonCode.QUOTA_EXCEEDED -> MqttPubAckReasonCode.QuotaExceeded
             Mqtt5PubAckReasonCode.PAYLOAD_FORMAT_INVALID -> MqttPubAckReasonCode.PayloadFormatInvalid
         }
-    }
 }

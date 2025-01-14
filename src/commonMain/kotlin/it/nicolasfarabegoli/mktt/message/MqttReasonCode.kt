@@ -15,15 +15,16 @@ interface MqttReasonCode {
     val canBeSentByServer: Boolean get() = true
     val canBeSentByClient: Boolean get() = false
     val canBeSetByUser: Boolean get() = false
-    val userCodes: List<Byte> get() = listOf(
-        MqttCommonReasonCode.Success.code,
-        MqttCommonReasonCode.UnspecifiedError.code,
-        MqttCommonReasonCode.ImplementationSpecificError.code,
-        MqttCommonReasonCode.NotAuthorized.code,
-        MqttCommonReasonCode.TopicNameInvalid.code,
-        MqttCommonReasonCode.QuotaExceeded.code,
-        MqttCommonReasonCode.PayloadFormatInvalid.code,
-    )
+    val userCodes: List<Byte> get() =
+        listOf(
+            MqttCommonReasonCode.Success.code,
+            MqttCommonReasonCode.UnspecifiedError.code,
+            MqttCommonReasonCode.ImplementationSpecificError.code,
+            MqttCommonReasonCode.NotAuthorized.code,
+            MqttCommonReasonCode.TopicNameInvalid.code,
+            MqttCommonReasonCode.QuotaExceeded.code,
+            MqttCommonReasonCode.PayloadFormatInvalid.code,
+        )
 
     /**
      * Companion object for [MqttReasonCode].

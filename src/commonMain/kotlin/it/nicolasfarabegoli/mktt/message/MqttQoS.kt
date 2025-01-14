@@ -3,7 +3,9 @@ package it.nicolasfarabegoli.mktt.message
 /**
  * Represents the Quality of Service (QoS) level of an MQTT message with its [code].
  */
-enum class MqttQoS(val code: Int) {
+enum class MqttQoS(
+    val code: Int,
+) {
     /**
      * TODO.
      */

@@ -67,6 +67,7 @@ interface MqttTopicFilter {
                 filter == topic || filter == "#" || filter == "+"
             }
         }
+
         override fun matches(filter: MqttTopicFilter): Boolean = filter == this
     }
 }

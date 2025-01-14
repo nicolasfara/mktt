@@ -6,7 +6,9 @@ import it.nicolasfarabegoli.mktt.message.MqttReasonCode
 /**
  * Represents the reason codes of the CONNACK message.
  */
-enum class MqttConnAckReasonCode(override val code: Byte) : MqttReasonCode {
+enum class MqttConnAckReasonCode(
+    override val code: Byte,
+) : MqttReasonCode {
     /**
      * TODO.
      */
@@ -127,7 +129,6 @@ enum class MqttConnAckReasonCode(override val code: Byte) : MqttReasonCode {
         /**
          * Returns the [MqttConnAckReasonCode] from the given [code].
          */
-        fun from(code: Byte): MqttConnAckReasonCode =
-            MqttConnAckReasonCode.entries.first { it.code == code }
+        fun from(code: Byte): MqttConnAckReasonCode = MqttConnAckReasonCode.entries.first { it.code == code }
     }
 }

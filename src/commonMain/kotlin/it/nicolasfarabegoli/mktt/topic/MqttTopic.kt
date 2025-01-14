@@ -15,14 +15,15 @@ interface MqttTopic {
         /**
          * Returns an [MqttTopic] from the given [topic] and [filter].
          */
-        fun of(topic: String, filter: MqttTopicFilter = MqttTopicFilter.of(topic)): MqttTopic =
-            MqttTopicImpl(topic, filter)
+        fun of(
+            topic: String,
+            filter: MqttTopicFilter = MqttTopicFilter.of(topic),
+        ): MqttTopic = MqttTopicImpl(topic, filter)
 
         /**
          * Returns an [MqttTopic] from the given [topic].
          */
-        fun String.asTopic(filter: MqttTopicFilter = MqttTopicFilter.of(this)): MqttTopic =
-            MqttTopicImpl(this, filter)
+        fun String.asTopic(filter: MqttTopicFilter = MqttTopicFilter.of(this)): MqttTopic = MqttTopicImpl(this, filter)
     }
 
     private data class MqttTopicImpl(
