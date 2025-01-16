@@ -1,67 +1,93 @@
 package it.nicolasfarabegoli.mktt.topic
 
-import io.kotest.core.spec.style.FreeSpec
-import io.kotest.matchers.shouldBe
+import kotlin.test.Test
+import kotlin.test.assertEquals
 
-class MqttTopicFilterTest : FreeSpec({
-    "The topic filter should be created correctly" {
+class MqttTopicFilterTest {
+    @Test
+    fun `The topic filter should be created correctly`() {
         val filter = MqttTopicFilter.of("test/topic")
-        filter.filterName shouldBe "test/topic"
-        filter.levels shouldBe listOf("test", "topic")
-        filter.containsWildcards shouldBe false
-        filter.containsMultilevelWildcard shouldBe false
-        filter.containsSingleLevelWildcard shouldBe false
+        assertEquals("test/topic", filter.filterName)
+        assertEquals(listOf("test", "topic"), filter.levels)
+        assertEquals(false, filter.containsWildcards)
+        assertEquals(false, filter.containsMultilevelWildcard)
+        assertEquals(false, filter.containsSingleLevelWildcard)
     }
-    "The topic filter should be created correctly with wildcards" {
+    @Test
+    fun `The topic filter should be created correctly with wildcards`() {
         val filter = MqttTopicFilter.of("test/#")
-        filter.filterName shouldBe "test/#"
-        filter.levels shouldBe listOf("test", "#")
-        filter.containsWildcards shouldBe true
-        filter.containsMultilevelWildcard shouldBe true
-        filter.containsSingleLevelWildcard shouldBe false
+        assertEquals("test/#", filter.filterName)
+        assertEquals(listOf("test", "#"), filter.levels)
+        assertEquals(true, filter.containsWildcards)
+        assertEquals(true, filter.containsMultilevelWildcard)
+        assertEquals(false, filter.containsSingleLevelWildcard)
     }
-    "The topic filter should be created correctly with single level wildcard" {
+
+    @Test
+    fun `The topic filter should be created correctly with single level wildcard`(){
         val filter = MqttTopicFilter.of("test/+")
-        filter.filterName shouldBe "test/+"
-        filter.levels shouldBe listOf("test", "+")
-        filter.containsWildcards shouldBe true
-        filter.containsMultilevelWildcard shouldBe false
-        filter.containsSingleLevelWildcard shouldBe true
+        assertEquals("test/+", filter.filterName)
+        assertEquals(listOf("test", "+"), filter.levels)
+        assertEquals(true, filter.containsWildcards)
+        assertEquals(false, filter.containsMultilevelWildcard)
+        assertEquals(true, filter.containsSingleLevelWildcard)
     }
-    "The topic filter should be created correctly with multiple wildcards" {
+
+    @Test
+    fun `The topic filter should be created correctly with multiple wildcards`() {
         val filter = MqttTopicFilter.of("test/+/topic/#")
-        filter.filterName shouldBe "test/+/topic/#"
-        filter.levels shouldBe listOf("test", "+", "topic", "#")
-        filter.containsWildcards shouldBe true
-        filter.containsMultilevelWildcard shouldBe true
-        filter.containsSingleLevelWildcard shouldBe true
+        assertEquals("test/+/topic/#", filter.filterName)
+        assertEquals(listOf("test", "+", "topic", "#"), filter.levels)
+        assertEquals(true, filter.containsWildcards)
+        assertEquals(true, filter.containsMultilevelWildcard)
+        assertEquals(true, filter.containsSingleLevelWildcard)
     }
-    "The topic filter should match a topic" {
+
+    @Test
+    fun `The topic filter should match a topic`() {
         val filter = MqttTopicFilter.of("test/topic")
-        filter.matches(MqttTopic.of("test/topic")) shouldBe true
+        assertEquals(true, filter.matches(MqttTopic.of("test/topic")))
     }
-    "The topic filter should match a topic with a single level wildcard" {
-        val filter = MqttTopicFilter.of("test/+")
-        filter.matches(MqttTopic.of("test/topic")) shouldBe true
-    }
-    "The topic filter should match a topic with a multilevel wildcard" {
-        val filter = MqttTopicFilter.of("test/#")
-        filter.matches(MqttTopic.of("test/topic")) shouldBe true
-    }
-    "The topic filter should match a topic with multiple wildcards" {
+
+    @Test
+    fun `The topic filter should not match a topic with multiple wildcards`() {
         val filter = MqttTopicFilter.of("test/+/topic/#")
-        filter.matches(MqttTopic.of("test/1/topic/2")) shouldBe true
+        assertEquals(false, filter.matches(MqttTopic.of("test/1/topic/2/3")))
     }
-    "The topic filter should not match a topic" {
-        val filter = MqttTopicFilter.of("test/topic")
-        filter.matches(MqttTopic.of("test/topic/1")) shouldBe false
-    }
-    "The topic filter should not match a topic with a single level wildcard" {
+
+    @Test
+    fun `The topic filter should match a topic with a single level wildcard`() {
         val filter = MqttTopicFilter.of("test/+")
-        filter.matches(MqttTopic.of("test/topic/1")) shouldBe false
+        assertEquals(true, filter.matches(MqttTopic.of("test/topic")))
     }
-    "The topic filter should not match a topic with a multilevel wildcard" {
+
+    @Test
+    fun `The topic filter should match a topic with a multilevel wildcard`() {
         val filter = MqttTopicFilter.of("test/#")
-        filter.matches(MqttTopic.of("test/topic/1")) shouldBe false
+        assertEquals(true, filter.matches(MqttTopic.of("test/topic")))
     }
-})
+
+    @Test
+    fun `The topic filter should match a topic with multiple wildcards`() {
+        val filter = MqttTopicFilter.of("test/+/topic/#")
+        assertEquals(true, filter.matches(MqttTopic.of("test/1/topic/2")))
+    }
+
+    @Test
+    fun `The topic filter should not match a topic`() {
+        val filter = MqttTopicFilter.of("test/topic")
+        assertEquals(false, filter.matches(MqttTopic.of("test/topic/1")))
+    }
+
+    @Test
+    fun `The topic filter should not match a topic with a single level wildcard`() {
+        val filter = MqttTopicFilter.of("test/+")
+        assertEquals(false, filter.matches(MqttTopic.of("test/topic/1")))
+    }
+
+    @Test
+    fun `The topic filter should not match a topic with a multilevel wildcard`() {
+        val filter = MqttTopicFilter.of("test/#")
+        assertEquals(false, filter.matches(MqttTopic.of("test/topic/1")))
+    }
+}

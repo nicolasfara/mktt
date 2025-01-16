@@ -1,12 +1,11 @@
 import org.danilopianini.gradle.mavencentral.DocStyle
 import org.danilopianini.gradle.mavencentral.JavadocJar
-import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
-    alias(libs.plugins.kotest.multiplatform)
+//    alias(libs.plugins.kotest.multiplatform)
     alias(libs.plugins.dokka)
     alias(libs.plugins.gitSemVer)
     alias(libs.plugins.multiJvmTesting)
@@ -22,29 +21,10 @@ repositories {
     mavenCentral()
 }
 
-fun projectFile(path: String): String = projectDir.resolve(path).absolutePath
-
-@OptIn(ExperimentalKotlinGradlePluginApi::class)
 kotlin {
-    jvm {
-        testRuns["test"].executionTask.configure {
-            useJUnitPlatform()
-            filter {
-                isFailOnNoMatchingTests = false
-            }
-            testLogging {
-                showExceptions = true
-                showStandardStreams = true
-                events = setOf(
-                    org.gradle.api.tasks.testing.logging.TestLogEvent.FAILED,
-                    org.gradle.api.tasks.testing.logging.TestLogEvent.PASSED,
-                )
-                exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
-            }
-        }
-    }
+    jvm()
 
-    js(IR) {
+    js {
         nodejs()
         binaries.library()
     }
@@ -55,33 +35,19 @@ kotlin {
     //    }
 
     sourceSets {
-        val commonMain by getting {
-            dependencies {
-                implementation(libs.kotlinx.coroutines)
-            }
+        commonMain.dependencies {
+            implementation(libs.kotlinx.coroutines)
         }
-        val commonTest by getting {
-            dependencies {
-                implementation(kotlin("test"))
-//                implementation(libs.bundles.kotlin.testing.common)
-                implementation(libs.bundles.kotest.common)
-            }
+        commonTest.dependencies {
+            implementation(libs.kotlin.test)
+            implementation(libs.kotlinx.coroutines.test)
         }
-        val jvmMain by getting {
-            dependencies {
-                implementation(libs.kotlinx.coroutines.rx2)
-                implementation(libs.hive.mqtt)
-            }
+        jvmMain.dependencies {
+            implementation(libs.kotlinx.coroutines.rx2)
+            implementation(libs.hive.mqtt)
         }
-        val jvmTest by getting {
-            dependencies {
-                implementation(libs.kotest.runner.junit5)
-            }
-        }
-        val jsMain by getting {
-            dependencies {
-                implementation(npm("mqtt", "5.10.3"))
-            }
+        jsMain.dependencies {
+            implementation(npm("mqtt", "5.10.3"))
         }
     }
 
@@ -116,7 +82,6 @@ kotlin {
 //    tvosArm64(nativeSetup)
 //    tvosSimulatorArm64(nativeSetup)
 
-    @OptIn(ExperimentalKotlinGradlePluginApi::class)
     compilerOptions {
         allWarningsAsErrors = true
         freeCompilerArgs.add("-Xexpect-actual-classes")

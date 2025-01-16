@@ -1,31 +1,26 @@
 package it.nicolasfarabegoli.mktt
 
-import io.kotest.assertions.throwables.shouldNotThrow
-import io.kotest.assertions.throwables.shouldThrowUnit
-import io.kotest.matchers.shouldBe
 import it.nicolasfarabegoli.mktt.configuration.MqttConfiguration
 import it.nicolasfarabegoli.mktt.message.connect.connack.MqttConnAckReasonCode
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 
 class MqttClientTest {
     @Test
     fun `The client should be able to connect and disconnect from the broker`() = runTest {
         val testCoroutineScheduler = StandardTestDispatcher(testScheduler)
         val mqttClient = MqttClient(MqttConfiguration(hostname = "mqtt.eclipseprojects.io"), testCoroutineScheduler)
-        shouldNotThrow<Exception> {
-            mqttClient.connect().reasonCode shouldBe MqttConnAckReasonCode.Success
-            mqttClient.disconnect()
-        }
+        assertEquals(MqttConnAckReasonCode.Success, mqttClient.connect().reasonCode)
+        mqttClient.disconnect()
     }
     @Test
     fun `The client should fail with an exception when connecting to an invalid broker`() = runTest {
         val testCoroutineScheduler = StandardTestDispatcher(testScheduler)
         val mqttClient = MqttClient(MqttConfiguration(hostname = "invalid.broker"), testCoroutineScheduler)
-        shouldThrowUnit<Exception> {
-            mqttClient.connect()
-        }
+        assertFailsWith<Exception> { mqttClient.connect() }
     }
 }
 
