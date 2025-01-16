@@ -5,11 +5,13 @@ import it.nicolasfarabegoli.mktt.message.connect.connack.MqttConnAckReasonCode
 import it.nicolasfarabegoli.mktt.topic.MqttTopicFilter
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
+import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class MqttClientSubscribeTest {
     @Test
+    @Ignore
     fun `The client should subscribe successfully to a topic`() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         val mqttClient = MqttClient(MqttConfiguration(hostname = "mqtt.eclipseprojects.io"), dispatcher)

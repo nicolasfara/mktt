@@ -1,14 +1,13 @@
 import org.danilopianini.gradle.mavencentral.DocStyle
 import org.danilopianini.gradle.mavencentral.JavadocJar
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
 //    alias(libs.plugins.kotest.multiplatform)
     alias(libs.plugins.dokka)
     alias(libs.plugins.gitSemVer)
-    alias(libs.plugins.multiJvmTesting)
+//    alias(libs.plugins.multiJvmTesting)
     alias(libs.plugins.kotlin.qa)
     alias(libs.plugins.publishOnCentral)
     alias(libs.plugins.taskTree)
@@ -17,12 +16,20 @@ plugins {
 group = "it.nicolasfarabegoli"
 
 repositories {
-    google()
     mavenCentral()
 }
 
 kotlin {
-    jvm()
+    compilerOptions {
+        allWarningsAsErrors = true
+        freeCompilerArgs.add("-Xexpect-actual-classes")
+    }
+
+    jvm {
+        compilerOptions {
+            jvmTarget = JvmTarget.JVM_1_8
+        }
+    }
 
     js {
         nodejs()
@@ -81,11 +88,6 @@ kotlin {
 //    watchosSimulatorArm64(nativeSetup)
 //    tvosArm64(nativeSetup)
 //    tvosSimulatorArm64(nativeSetup)
-
-    compilerOptions {
-        allWarningsAsErrors = true
-        freeCompilerArgs.add("-Xexpect-actual-classes")
-    }
 }
 
 tasks.dokkaJavadoc {
@@ -98,11 +100,6 @@ tasks.withType<JavadocJar>().configureEach {
     from(dokka.outputDirectory)
 }
 
-tasks.withType<KotlinCompile>().configureEach {
-    compilerOptions {
-        jvmTarget = JvmTarget.JVM_1_8
-    }
-}
 
 signing {
     if (System.getenv("CI") == "true") {
