@@ -100,7 +100,6 @@ tasks.withType<JavadocJar>().configureEach {
     from(dokka.outputDirectory)
 }
 
-
 signing {
     if (System.getenv("CI") == "true") {
         val signingKey: String? by project

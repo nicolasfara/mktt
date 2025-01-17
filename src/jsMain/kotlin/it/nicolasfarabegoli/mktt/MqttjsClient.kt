@@ -17,7 +17,7 @@ import kotlin.coroutines.suspendCoroutine
 
 internal class MqttjsClient(
     private val configuration: MqttConfiguration,
-    override val defaultDispatcher: CoroutineDispatcher
+    override val defaultDispatcher: CoroutineDispatcher,
 ) : MkttClient {
     private lateinit var mqttClient: MqttClient
     override suspend fun connect(): MqttConnAck = withContext(defaultDispatcher) {

@@ -13,6 +13,7 @@ class MqttTopicFilterTest {
         assertEquals(false, filter.containsMultilevelWildcard)
         assertEquals(false, filter.containsSingleLevelWildcard)
     }
+
     @Test
     fun `The topic filter should be created correctly with wildcards`() {
         val filter = MqttTopicFilter.of("test/#")
@@ -24,7 +25,7 @@ class MqttTopicFilterTest {
     }
 
     @Test
-    fun `The topic filter should be created correctly with single level wildcard`(){
+    fun `The topic filter should be created correctly with single level wildcard`() {
         val filter = MqttTopicFilter.of("test/+")
         assertEquals("test/+", filter.filterName)
         assertEquals(listOf("test", "+"), filter.levels)

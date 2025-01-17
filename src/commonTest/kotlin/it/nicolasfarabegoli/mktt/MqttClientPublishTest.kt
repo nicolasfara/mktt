@@ -42,7 +42,11 @@ class MqttClientPublishTest {
             val dispatcher = StandardTestDispatcher(testScheduler)
             val mqttClient = MqttClient(MqttConfiguration(hostname = "mqtt.eclipseprojects.io"), dispatcher)
             val messages = (0..9).map {
-                MqttPublish(topic = "test/topic".asTopic(), payload = byteArrayOf(it.toByte()), qos = MqttQoS.ExactlyOnce)
+                MqttPublish(
+                    topic = "test/topic".asTopic(),
+                    payload = byteArrayOf(it.toByte()),
+                    qos = MqttQoS.ExactlyOnce,
+                )
             }.asFlow()
             assertEquals(mqttClient.connect().reasonCode, MqttConnAckReasonCode.Success)
             val responses = mqttClient.publish(messages).toList()
@@ -59,11 +63,7 @@ class MqttClientPublishTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         val mqttClient = MqttClient(MqttConfiguration(hostname = "mqtt.eclipseprojects.io"), dispatcher)
         assertFailsWith<Exception> {
-            mqttClient.publish(
-                byteArrayOf(0x00),
-                "test/topic".asTopic(),
-                qoS = MqttQoS.ExactlyOnce,
-            )
+            mqttClient.publish(byteArrayOf(0x00), "test/topic".asTopic(), qoS = MqttQoS.ExactlyOnce)
         }
     }
 }
