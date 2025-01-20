@@ -21,6 +21,20 @@ data class MqttConfiguration(
     val password: String = "password",
     val cleanSession: Boolean = true,
     val keepAliveInterval: Int = 60,
-    val connectionTimeout: Int = 30,
+    val connectionTimeout: Int = 30000,
     val maxInFlight: Int = 10,
+    val protocol: MqttProtocol = MqttProtocol.MQTT,
 )
+
+/**
+ * Available protocols for the MQTT client.
+ * Each protocol has a specific [representation].
+ */
+enum class MqttProtocol(val representation: String) {
+    WSS("wss"),
+    WS("ws"),
+    MQTT("mqtt"),
+    MQTTS("mqtts"),
+    TCP("tcp"),
+    SSL("ssl"),
+}
