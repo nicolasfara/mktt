@@ -3,12 +3,13 @@ package it.nicolasfarabegoli.mktt
 import it.nicolasfarabegoli.mktt.configuration.MqttConfiguration
 import it.nicolasfarabegoli.mktt.errors.ClientAlreadyConnectedError
 import it.nicolasfarabegoli.mktt.errors.ClientNotConnectedError
+import it.nicolasfarabegoli.mktt.errors.ConnectionError
 import it.nicolasfarabegoli.mktt.errors.InvalidBrokerError
 import it.nicolasfarabegoli.mktt.message.connect.connack.MqttConnAckReasonCode
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
-import kotlin.test.Ignore
 import kotlin.test.Test
+import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
@@ -29,15 +30,14 @@ class MqttClientTest {
     }
 
     @Test
-    @Ignore
     fun `The client should fail with an exception when connecting to a valid broker using an invalid port`() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         val mqttClient = MqttClient(MqttConfiguration(hostname = "test.mosquitto.org", port = 1234), dispatcher)
-        assertFailsWith<Exception> { mqttClient.connect() }
+        val error = assertFailsWith<ConnectionError> { mqttClient.connect() }
+        assertContains(error.message, "ECONNREFUSED")
     }
 
     @Test
-    @Ignore
     fun `The client should fail with an exception when disconnecting without connecting`() = runTest {
         val testCoroutineScheduler = StandardTestDispatcher(testScheduler)
         val mqttClient = MqttClient(MqttConfiguration(hostname = "mqtt.eclipseprojects.io"), testCoroutineScheduler)
@@ -45,7 +45,6 @@ class MqttClientTest {
     }
 
     @Test
-    @Ignore
     fun `The client should fail with an exception when disconnecting twice`() = runTest {
         val testCoroutineScheduler = StandardTestDispatcher(testScheduler)
         val mqttClient = MqttClient(MqttConfiguration(hostname = "mqtt.eclipseprojects.io"), testCoroutineScheduler)
@@ -55,11 +54,11 @@ class MqttClientTest {
     }
 
     @Test
-    @Ignore
     fun `The client should fail with an exception when connecting twice`() = runTest {
         val testCoroutineScheduler = StandardTestDispatcher(testScheduler)
         val mqttClient = MqttClient(MqttConfiguration(hostname = "mqtt.eclipseprojects.io"), testCoroutineScheduler)
         assertEquals(MqttConnAckReasonCode.Success, mqttClient.connect().reasonCode)
         assertFailsWith<ClientAlreadyConnectedError> { mqttClient.connect() }
+        mqttClient.disconnect()
     }
 }
