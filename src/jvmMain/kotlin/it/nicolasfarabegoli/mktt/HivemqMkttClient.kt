@@ -8,7 +8,6 @@ import it.nicolasfarabegoli.mktt.adapter.publish.HivemqPublishAdapter.toMqtt
 import it.nicolasfarabegoli.mktt.configuration.MqttConfiguration
 import it.nicolasfarabegoli.mktt.message.connect.connack.MqttConnAck
 import it.nicolasfarabegoli.mktt.message.publish.MqttPublish
-import it.nicolasfarabegoli.mktt.message.publish.MqttPublishResult
 import it.nicolasfarabegoli.mktt.subscribe.MqttSubscription
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
@@ -52,9 +51,9 @@ class HivemqMkttClient(
         .map { it.toMqtt() }
         .flowOn(defaultDispatcher)
 
-    override fun publish(messages: Flow<MqttPublish>): Flow<MqttPublishResult> {
+    override suspend fun publish(messages: Flow<MqttPublish>) {
         val mappedMessages = messages.map { it.toHivemqMqtt() }
-        return hiveMqClient.publish(mappedMessages.asFlowable())
+        hiveMqClient.publish(mappedMessages.asFlowable())
             .asFlow()
             .map { it.toMqtt() }
             .flowOn(defaultDispatcher)

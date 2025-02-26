@@ -6,21 +6,16 @@ import it.nicolasfarabegoli.mktt.errors.ClientNotConnectedError
 import it.nicolasfarabegoli.mktt.errors.ConnectionError
 import it.nicolasfarabegoli.mktt.errors.GenericClientError
 import it.nicolasfarabegoli.mktt.errors.InvalidBrokerError
+import it.nicolasfarabegoli.mktt.facade.IClientPublishOptions
 import it.nicolasfarabegoli.mktt.facade.MqttClient
 import it.nicolasfarabegoli.mktt.facade.connectAsync
-import it.nicolasfarabegoli.mktt.facade.toClientOptions
-import it.nicolasfarabegoli.mktt.facade.toISubscriptionMap
 import it.nicolasfarabegoli.mktt.message.connect.connack.MqttConnAck
 import it.nicolasfarabegoli.mktt.message.connect.connack.MqttConnAckReasonCode
 import it.nicolasfarabegoli.mktt.message.publish.MqttPublish
-import it.nicolasfarabegoli.mktt.message.publish.MqttPublishResult
 import it.nicolasfarabegoli.mktt.subscribe.MqttSubscription
-import it.nicolasfarabegoli.mktt.topic.MqttTopic
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.await
-import kotlinx.coroutines.channels.onFailure
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.withContext
 
 internal class MqttJsClient(
@@ -35,7 +30,7 @@ internal class MqttJsClient(
             throw ClientAlreadyConnectedError()
         }
         try {
-            mqttClient = connectAsync(configuration.toClientOptions()).await()
+            mqttClient = connectAsync("mqtt://${configuration.hostname}:${configuration.port}").await()
             connected = true
         } catch (error: Throwable) {
             when {
@@ -63,25 +58,37 @@ internal class MqttJsClient(
     }
 
     override fun subscribe(subscription: MqttSubscription): Flow<MqttPublish> {
-        require(connected) { "The client is not connected" }
-        return callbackFlow<MqttPublish> {
-            val subscriptionResult = mqttClient.subscribeAsync(subscription.toISubscriptionMap()).await()
-            require(subscriptionResult.isNotEmpty()) { "The subscription failed, empty answer" }
-            mqttClient.on("message") { topic, message ->
-                println("topic: $topic")
-                println("message: $message")
-                val mqttPublish = MqttPublish(
-                    topic = MqttTopic.of(topic),
-                )
-                trySend(mqttPublish)
-                    .onFailure { error ->
-                        close(error)
-                    }
-            }
-        }
+        TODO()
+//        require(connected) { "The client is not connected" }
+//        return callbackFlow<MqttPublish> {
+//            val subscriptionResult = mqttClient.subscribeAsync(subscription.toISubscriptionMap()).await()
+//            require(subscriptionResult.isNotEmpty()) { "The subscription failed, empty answer" }
+//            mqttClient.on("message") { topic, message ->
+//                println("topic: $topic")
+//                println("message: $message")
+//                val mqttPublish = MqttPublish(
+//                    topic = MqttTopic.of(topic),
+//                )
+//                trySend(mqttPublish)
+//                    .onFailure { error ->
+//                        close(error)
+//                    }
+//            }
+//        }
     }
 
-    override fun publish(messages: Flow<MqttPublish>): Flow<MqttPublishResult> {
-        TODO("Not yet implemented")
+    override suspend fun publish(messages: Flow<MqttPublish>) {
+        messages.collect { message ->
+            val options = object : IClientPublishOptions {
+                override var qos: Number? = message.qos.code
+                override var retain: Boolean? = message.isRetain
+                override var dup: Boolean? = null
+                override var properties: Any? = null
+                override var cbStorePut: ((it.nicolasfarabegoli.mktt.facade.Error?) -> Unit)? = null
+
+            }
+            mqttClient.publishAsync(message.topic.topicName, message.payload?.decodeToString() ?: "", options)
+                    .await()
+        }
     }
 }

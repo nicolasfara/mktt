@@ -17,7 +17,7 @@ class MqttClientTest {
     @Test
     fun `The client should be able to connect and disconnect from the broker`() = runTest {
         val testCoroutineScheduler = StandardTestDispatcher(testScheduler)
-        val mqttClient = MqttClient(MqttConfiguration(hostname = "mqtt.eclipseprojects.io"), testCoroutineScheduler)
+        val mqttClient = MqttClient(MqttConfiguration(hostname = "test.mosquitto.org"), testCoroutineScheduler)
         assertEquals(MqttConnAckReasonCode.Success, mqttClient.connect().reasonCode)
         mqttClient.disconnect()
     }

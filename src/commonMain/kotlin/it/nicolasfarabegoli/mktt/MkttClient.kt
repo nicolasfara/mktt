@@ -4,7 +4,6 @@ import it.nicolasfarabegoli.mktt.configuration.MqttConfiguration
 import it.nicolasfarabegoli.mktt.message.MqttQoS
 import it.nicolasfarabegoli.mktt.message.connect.connack.MqttConnAck
 import it.nicolasfarabegoli.mktt.message.publish.MqttPublish
-import it.nicolasfarabegoli.mktt.message.publish.MqttPublishResult
 import it.nicolasfarabegoli.mktt.subscribe.MqttRetainHandling
 import it.nicolasfarabegoli.mktt.subscribe.MqttSubscription
 import it.nicolasfarabegoli.mktt.topic.MqttTopic
@@ -13,7 +12,6 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.single
 
 /**
  * Represents an MQTT client.
@@ -57,12 +55,12 @@ interface MkttClient {
     /**
      * Publishes [messages] to the MQTT broker.
      */
-    fun publish(messages: Flow<MqttPublish>): Flow<MqttPublishResult>
+    suspend fun publish(messages: Flow<MqttPublish>)
 
     /**
      * Publishes a single [message] to the MQTT broker.
      */
-    suspend fun publish(message: MqttPublish): MqttPublishResult = publish(flowOf(message)).single()
+    suspend fun publish(message: MqttPublish) = publish(flowOf(message))
 
     /**
      * Publishes a single message to the MQTT broker.
@@ -72,7 +70,7 @@ interface MkttClient {
         topic: MqttTopic,
         qoS: MqttQoS = MqttQoS.ExactlyOnce,
         retain: Boolean = false,
-    ): MqttPublishResult = publish(MqttPublish(topic = topic, payload = message, qos = qoS, isRetain = retain))
+    ): Unit = publish(MqttPublish(topic = topic, payload = message, qos = qoS, isRetain = retain))
 }
 
 /**

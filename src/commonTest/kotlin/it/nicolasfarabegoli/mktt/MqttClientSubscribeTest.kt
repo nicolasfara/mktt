@@ -13,7 +13,6 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNull
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -46,7 +45,7 @@ class MqttClientSubscribeTest {
                     payload = "test message $index".encodeToByteArray(),
                     qos = MqttQoS.ExactlyOnce,
                 )
-                assertNull(sendClient.publish(message).error)
+                sendClient.publish(message)
             }
         }
         receiveClient.subscribe(filterTopic).take(1).collect {
