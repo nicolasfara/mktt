@@ -85,10 +85,9 @@ internal class MqttJsClient(
                 override var dup: Boolean? = null
                 override var properties: Any? = null
                 override var cbStorePut: ((it.nicolasfarabegoli.mktt.facade.Error?) -> Unit)? = null
-
             }
             mqttClient.publishAsync(message.topic.topicName, message.payload?.decodeToString() ?: "", options)
-                    .await()
+                .await()
         }
     }
 }

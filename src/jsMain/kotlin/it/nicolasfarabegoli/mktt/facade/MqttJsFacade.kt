@@ -65,10 +65,27 @@ external interface IClientUnsubscribeProperties {
 
 external interface MqttClient {
     fun connect()
-    fun publish(topic: String, message: String, opts: IClientPublishOptions? = definedExternally, callback: ((error: Error?, packet: dynamic) -> Unit)? = definedExternally)
-    fun subscribe(topic: String, opts: IClientSubscribeOptions? = definedExternally, callback: ((error: Error?, granted: Array<ISubscriptionGrant>?) -> Unit)? = definedExternally)
-    fun unsubscribe(topic: String, opts: IClientUnsubscribeProperties? = definedExternally, callback: ((error: Error?, packet: dynamic) -> Unit)? = definedExternally)
-    fun end(force: Boolean? = definedExternally, opts: dynamic = definedExternally, callback: ((error: Error?) -> Unit)? = definedExternally)
+    fun publish(
+        topic: String,
+        message: String,
+        opts: IClientPublishOptions? = definedExternally,
+        callback: ((error: Error?, packet: dynamic) -> Unit)? = definedExternally,
+    )
+    fun subscribe(
+        topic: String,
+        opts: IClientSubscribeOptions? = definedExternally,
+        callback: ((error: Error?, granted: Array<ISubscriptionGrant>?) -> Unit)? = definedExternally,
+    )
+    fun unsubscribe(
+        topic: String,
+        opts: IClientUnsubscribeProperties? = definedExternally,
+        callback: ((error: Error?, packet: dynamic) -> Unit)? = definedExternally,
+    )
+    fun end(
+        force: Boolean? = definedExternally,
+        opts: dynamic = definedExternally,
+        callback: ((error: Error?) -> Unit)? = definedExternally,
+    )
 
     fun publishAsync(topic: String, message: String): Promise<dynamic>
     fun publishAsync(topic: String, message: String, options: IClientPublishOptions): Promise<dynamic>
