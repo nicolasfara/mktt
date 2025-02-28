@@ -1,7 +1,15 @@
 package it.nicolasfarabegoli.mktt
 
+import it.nicolasfarabegoli.mktt.facade.Error
+import it.nicolasfarabegoli.mktt.facade.IClientPublishOptions
+import it.nicolasfarabegoli.mktt.facade.IClientSubscribeOptions
+import it.nicolasfarabegoli.mktt.facade.ISubscriptionRequest
+import it.nicolasfarabegoli.mktt.facade.MqttClient
+import it.nicolasfarabegoli.mktt.facade.connectAsync
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.await
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 
 // internal class MqttJsClient(
 //    private val configuration: MqttConfiguration,
@@ -81,15 +89,22 @@ internal class MqttJsClient(
     override val dispatcher: CoroutineDispatcher,
     private val configuration: MqttClientConfiguration,
 ) : MkttClient {
+    private lateinit var client: MqttClient
+
     override val connectionState: Flow<MqttConnectionState>
         get() = TODO("Not yet implemented")
 
     override suspend fun connect() {
-        TODO("Not yet implemented")
+        val brokerString = "mqtt://${configuration.brokerUrl}:${configuration.port}"
+        client = connectAsync(brokerString).await()
     }
 
     override suspend fun disconnect() {
-        TODO("Not yet implemented")
+        if (::client.isInitialized) {
+            client.endAsync().await()
+        } else {
+            throw Exception("Client not initialized")
+        }
     }
 
     override suspend fun publish(
@@ -97,17 +112,35 @@ internal class MqttJsClient(
         message: ByteArray,
         qos: MqttQoS,
     ) {
-        TODO("Not yet implemented")
+        val publishOption = object : IClientPublishOptions {
+            override var qos: Number? = qos.code
+            override var retain: Boolean? = true
+            override var dup: Boolean? = null
+            override var properties: Any? = null
+            override var cbStorePut: ((Error?) -> Unit)? = null
+        }
+        client.publishAsync(topic, message.decodeToString(), publishOption).await()
     }
 
     override fun subscribe(
         topic: String,
         qos: MqttQoS,
     ): Flow<MqttMessage> {
-        TODO("Not yet implemented")
+        require(::client.isInitialized) { "Client not initialized" }
+        return callbackFlow {
+            val subscription = object : IClientSubscribeOptions {
+                override var qos: Number = qos.code
+                override var nl: Boolean? = null
+                override var rap: Boolean? = null
+                override var rh: Number? = null
+                override var properties: Any? = null
+            }
+            client.subscribeAsync(topic, subscription).await()
+            TODO()
+        }
     }
 
     override suspend fun unsubscribe(topic: String) {
-        TODO("Not yet implemented")
+        client.unsubscribeAsync(topic).await()
     }
 }
