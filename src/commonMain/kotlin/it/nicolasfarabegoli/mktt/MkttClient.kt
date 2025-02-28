@@ -1,17 +1,8 @@
 package it.nicolasfarabegoli.mktt
 
-import it.nicolasfarabegoli.mktt.configuration.MqttConfiguration
-import it.nicolasfarabegoli.mktt.message.MqttQoS
-import it.nicolasfarabegoli.mktt.message.connect.connack.MqttConnAck
-import it.nicolasfarabegoli.mktt.message.publish.MqttPublish
-import it.nicolasfarabegoli.mktt.subscribe.MqttRetainHandling
-import it.nicolasfarabegoli.mktt.subscribe.MqttSubscription
-import it.nicolasfarabegoli.mktt.topic.MqttTopic
-import it.nicolasfarabegoli.mktt.topic.MqttTopicFilter
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOf
 
 /**
  * Represents an MQTT client.
@@ -21,14 +12,22 @@ import kotlinx.coroutines.flow.flowOf
  */
 interface MkttClient {
     /**
-     * The default [CoroutineDispatcher] used by the client.
+     * The [CoroutineDispatcher] used by the client to run the operations.
      */
-    val defaultDispatcher: CoroutineDispatcher
+    val dispatcher: CoroutineDispatcher
 
     /**
-     * Connects to the MQTT broker.
+     * Observes the current connection state.
+     * The [Flow] will emit the current connection state of the client.
      */
-    suspend fun connect(): MqttConnAck
+    val connectionState: Flow<MqttConnectionState>
+
+    /**
+     * Connects to the MQTT broker with the configuration built with [MqttClient] smart constructor.
+     *
+     * Throw an [Exception] if the connection fails.
+     */
+    suspend fun connect()
 
     /**
      * Disconnects from the MQTT broker.
@@ -36,47 +35,39 @@ interface MkttClient {
     suspend fun disconnect()
 
     /**
-     * Subscribes to a topic with a specific [filter], [qoS] level, [noLocal] flag, [retainHandling] and
-     * [retainAsPublished] flags.
-     */
-    fun subscribe(
-        filter: MqttTopicFilter,
-        qoS: MqttQoS = MqttQoS.ExactlyOnce,
-        noLocal: Boolean = true,
-        retainHandling: MqttRetainHandling = MqttRetainHandling.SEND,
-        retainAsPublished: Boolean = false,
-    ): Flow<MqttPublish> = subscribe(MqttSubscription(filter, qoS, noLocal, retainHandling, retainAsPublished))
-
-    /**
-     * Subscribes to a topic with a specific [subscription].
-     */
-    fun subscribe(subscription: MqttSubscription): Flow<MqttPublish>
-
-    /**
-     * Publishes [messages] to the MQTT broker.
-     */
-    suspend fun publish(messages: Flow<MqttPublish>)
-
-    /**
-     * Publishes a single [message] to the MQTT broker.
-     */
-    suspend fun publish(message: MqttPublish) = publish(flowOf(message))
-
-    /**
-     * Publishes a single message to the MQTT broker.
+     * Publishes the given [message] to the given [topic] using the given [qos] level.
      */
     suspend fun publish(
+        topic: String,
         message: ByteArray,
-        topic: MqttTopic,
-        qoS: MqttQoS = MqttQoS.ExactlyOnce,
-        retain: Boolean = false,
-    ): Unit = publish(MqttPublish(topic = topic, payload = message, qos = qoS, isRetain = retain))
+        qos: MqttQoS = MqttQoS.AtMostOnce,
+    )
+
+    /**
+     * Subscribes to a topic with a specific [topic] and [qos] level.
+     *
+     * Returns a [Flow] that emits the received messages based on the subscription.
+     */
+    fun subscribe(
+        topic: String,
+        qos: MqttQoS = MqttQoS.AtMostOnce,
+    ): Flow<MqttMessage>
+
+    /**
+     * Unsubscribes from a topic.
+     */
+    suspend fun unsubscribe(topic: String)
 }
 
 /**
- * Creates an MQTT client with the given [configuration] and [dispatcher].
+ * Creates an MQTT client by optionally specifying a [dispatcher] to run the async operations.
  */
-expect fun MqttClient(
-    configuration: MqttConfiguration,
+fun MqttClient(
     dispatcher: CoroutineDispatcher = Dispatchers.Default,
-): MkttClient
+    clientConfig: MqttClientConfigurationScope.() -> Unit,
+): MkttClient {
+    val configuration = MqttClientConfigurationScope().apply(clientConfig).build()
+    return createMqttClient(dispatcher, configuration)
+}
+
+internal expect fun createMqttClient(dispatcher: CoroutineDispatcher, clientConfig: MqttClientConfiguration): MkttClient

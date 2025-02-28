@@ -1,6 +1,7 @@
 @file:Suppress("UndocumentedPublicClass", "UndocumentedPublicProperty", "UndocumentedPublicFunction")
 @file:JsModule("mqtt")
 @file:JsNonModule
+
 package it.nicolasfarabegoli.mktt.facade
 
 import kotlin.js.Promise

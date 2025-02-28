@@ -1,55 +1,47 @@
+@file:OptIn(ExperimentalUuidApi::class)
+
 package it.nicolasfarabegoli.mktt
 
-import it.nicolasfarabegoli.mktt.configuration.MqttConfiguration
-import it.nicolasfarabegoli.mktt.message.MqttQoS
-import it.nicolasfarabegoli.mktt.message.connect.connack.MqttConnAckReasonCode
-import it.nicolasfarabegoli.mktt.message.publish.MqttPublish
-import it.nicolasfarabegoli.mktt.topic.MqttTopic.Companion.asTopic
-import it.nicolasfarabegoli.mktt.topic.MqttTopicFilter
+import it.nicolasfarabegoli.mktt.configuration.MqttTestConfiguration.connectionConfiguration
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
-import kotlin.test.Ignore
 import kotlin.test.Test
-import kotlin.test.assertEquals
+import kotlin.test.assertContains
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 class MqttClientSubscribeTest {
     @Test
-    @Ignore
     fun `The client should subscribe successfully to a topic`() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
-        val mqttClient = MqttClient(MqttConfiguration(hostname = "mqtt.eclipseprojects.io"), dispatcher)
-        assertEquals(MqttConnAckReasonCode.Success, mqttClient.connect().reasonCode)
-        val filterTopic = MqttTopicFilter.of("test/topic")
-        mqttClient.subscribe(filterTopic)
+        val mqttClient = MqttClient(dispatcher, connectionConfiguration)
+        mqttClient.connect()
+        mqttClient.subscribe("test/topic")
+        mqttClient.disconnect()
     }
 
     @Test
-    @Ignore
-    @OptIn(ExperimentalUuidApi::class)
     fun `The client should subscribe to a topic and start collecting the messages`() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
-        val sendClient = MqttClient(MqttConfiguration(hostname = "mqtt.eclipseprojects.io"), dispatcher)
-        val receiveClient = MqttClient(MqttConfiguration(hostname = "mqtt.eclipseprojects.io"), dispatcher)
-        assertEquals(MqttConnAckReasonCode.Success, sendClient.connect().reasonCode)
-        assertEquals(MqttConnAckReasonCode.Success, receiveClient.connect().reasonCode)
+        val sendClient = MqttClient(dispatcher, connectionConfiguration)
+        val receiveClient = MqttClient(dispatcher, connectionConfiguration)
+        sendClient.connect()
+        receiveClient.connect()
         val topicName = Uuid.random().toString()
-        val filterTopic = MqttTopicFilter.of(topicName)
         backgroundScope.launch {
-            for (index in 0..100) {
-                val message = MqttPublish(
-                    topic = topicName.asTopic(),
-                    payload = "test message $index".encodeToByteArray(),
-                    qos = MqttQoS.ExactlyOnce,
+            for (index in 0 until 100) {
+                sendClient.publish(
+                    topic = topicName,
+                    message = "test message $index".encodeToByteArray(),
+                    qos = MqttQoS.AtMostOnce,
                 )
-                sendClient.publish(message)
             }
         }
-        receiveClient.subscribe(filterTopic).take(1).collect {
-            assertEquals("test message 0", it.payload?.decodeToString())
+        val flow = receiveClient.subscribe(topicName)
+        flow.take(100).collect {
+            assertContains(it.payload.decodeToString(), "test message")
         }
     }
 }
