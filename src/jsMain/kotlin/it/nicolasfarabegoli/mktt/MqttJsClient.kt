@@ -21,6 +21,7 @@ internal class MqttJsClient(
     private val configuration: MqttClientConfiguration,
 ) : MkttClient {
     private lateinit var client: MqttClient
+
 //    private val messageFlow = MutableSharedFlow<MqttMessage>(replay = 1)
     private val messageFlow by lazy {
         callbackFlow {
@@ -45,13 +46,12 @@ internal class MqttJsClient(
     override suspend fun connect(): Unit = withContext(dispatcher) {
         val brokerString = "mqtt://${configuration.brokerUrl}:${configuration.port}"
         client = connectAsync(brokerString).await()
-
     }
 
     override suspend fun disconnect() = withContext(dispatcher) {
         if (::client.isInitialized) {
             client.endAsync().await()
-            client.off("message") {  }
+            client.off("message") { }
         } else {
             throw Exception("Client not initialized")
         }
@@ -90,9 +90,9 @@ internal class MqttJsClient(
     private fun matchesTopicFilter(topic: String, filter: String): Boolean {
         // Convert the topic filter into a regex pattern
         val regexPattern = filter
-            .replace("+", "[^/]+")  // `+` matches a single level (anything except `/`)
-            .replace("#", ".*")     // `#` matches everything beyond this point
-            .let { "^$it$" }        // Ensure the pattern matches the whole topic
+            .replace("+", "[^/]+") // `+` matches a single level (anything except `/`)
+            .replace("#", ".*") // `#` matches everything beyond this point
+            .let { "^$it$" } // Ensure the pattern matches the whole topic
 
         return Regex(regexPattern).matches(topic)
     }
