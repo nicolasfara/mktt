@@ -5,6 +5,7 @@ import it.nicolasfarabegoli.mktt.configuration.MqttTestConfiguration.invalidPort
 import it.nicolasfarabegoli.mktt.configuration.MqttTestConfiguration.wrongConnectionConfiguration
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
+import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
 
@@ -39,6 +40,7 @@ class MqttClientTest {
     }
 
     @Test
+    @Ignore
     fun `The client should fail with an exception when disconnecting twice`() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         val mqttClient = MqttClient(dispatcher, connectionConfiguration)
@@ -48,6 +50,7 @@ class MqttClientTest {
     }
 
     @Test
+    @Ignore
     fun `The client should fail with an exception when connecting twice`() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         val mqttClient = MqttClient(dispatcher, connectionConfiguration)

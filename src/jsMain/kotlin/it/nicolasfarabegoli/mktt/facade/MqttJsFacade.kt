@@ -88,6 +88,13 @@ external interface MqttClient {
         callback: ((error: Error?) -> Unit)? = definedExternally,
     )
 
+    fun on(event: String, callback: (topic: String, message: ByteArray) -> Unit)
+    fun on(event: String, callback: (error: Error) -> Unit)
+
+    fun off(event: String, callback: (dynamic) -> Unit)
+
+    fun removeListener(event: String, callback: (dynamic) -> Unit)
+
     fun publishAsync(topic: String, message: String): Promise<dynamic>
     fun publishAsync(topic: String, message: String, options: IClientPublishOptions): Promise<dynamic>
     fun subscribeAsync(topicObject: String): Promise<Array<ISubscriptionGrant>>

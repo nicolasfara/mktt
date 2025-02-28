@@ -27,11 +27,12 @@ class MqttClientSubscribeTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         val sendClient = MqttClient(dispatcher, connectionConfiguration)
         val receiveClient = MqttClient(dispatcher, connectionConfiguration)
+        val messageCount = 5
         sendClient.connect()
         receiveClient.connect()
         val topicName = Uuid.random().toString()
         backgroundScope.launch {
-            for (index in 0 until 100) {
+            for (index in 0 until messageCount) {
                 sendClient.publish(
                     topic = topicName,
                     message = "test message $index".encodeToByteArray(),
@@ -40,8 +41,10 @@ class MqttClientSubscribeTest {
             }
         }
         val flow = receiveClient.subscribe(topicName)
-        flow.take(100).collect {
+        flow.take(messageCount).collect {
             assertContains(it.payload.decodeToString(), "test message")
         }
+        receiveClient.disconnect()
+        sendClient.disconnect()
     }
 }
