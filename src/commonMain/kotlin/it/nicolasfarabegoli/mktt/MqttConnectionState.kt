@@ -22,5 +22,7 @@ sealed interface MqttConnectionState {
     /**
      * The client encountered an [error] while is connected or is connecting to the MQTT broker.
      */
-    data class ConnectionError(val error: Throwable) : MqttConnectionState
+    data class ConnectionError(
+        val error: Throwable,
+    ) : MqttConnectionState
 }

@@ -11,9 +11,10 @@ class MqttClientTestJvm {
     fun `The client should raise an ConnectionFailedException exception when connecting to an invalid broker in JVM`() =
         runTest {
             val dispatcher = StandardTestDispatcher(testScheduler)
-            val mqttClient = MqttClient(dispatcher) {
-                brokerUrl = "invalid.broker.com"
-            }
+            val mqttClient =
+                MkttClient(dispatcher) {
+                    brokerUrl = "invalid.broker.com"
+                }
             assertFailsWith<ConnectionFailedException> {
                 mqttClient.connect()
             }

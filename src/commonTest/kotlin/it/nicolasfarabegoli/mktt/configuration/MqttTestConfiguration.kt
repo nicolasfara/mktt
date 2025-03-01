@@ -1,6 +1,7 @@
 package it.nicolasfarabegoli.mktt.configuration
 
 import it.nicolasfarabegoli.mktt.MqttClientConfigurationScope
+import kotlin.random.Random
 
 /**
  * Represents the test configuration for the MQTT client.
@@ -18,6 +19,7 @@ object MqttTestConfiguration {
 
     val connectionConfiguration: MqttClientConfigurationScope.() -> Unit = {
         brokerUrl = BROKER
+        clientId = "mktt-test-client${Random.nextInt()}"
     }
     val wrongConnectionConfiguration: MqttClientConfigurationScope.() -> Unit = {
         brokerUrl = "invalid.broker.com"

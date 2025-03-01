@@ -23,7 +23,7 @@ interface MkttClient {
     val connectionState: Flow<MqttConnectionState>
 
     /**
-     * Connects to the MQTT broker with the configuration built with [MqttClient] smart constructor.
+     * Connects to the MQTT broker with the configuration built with [MkttClient] smart constructor.
      *
      * Throw an [Exception] if the connection fails.
      */
@@ -63,7 +63,7 @@ interface MkttClient {
  * Creates an MQTT client by optionally specifying a [dispatcher] to run the async operations.
  */
 @Suppress("FunctionNaming")
-fun MqttClient(
+fun MkttClient(
     dispatcher: CoroutineDispatcher = Dispatchers.Default,
     clientConfig: MqttClientConfigurationScope.() -> Unit,
 ): MkttClient {
@@ -71,4 +71,7 @@ fun MqttClient(
     return createMqttClient(dispatcher, configuration)
 }
 
-internal expect fun createMqttClient(dispatcher: CoroutineDispatcher, clientConfig: MqttClientConfiguration): MkttClient
+internal expect fun createMqttClient(
+    dispatcher: CoroutineDispatcher,
+    clientConfig: MqttClientConfiguration,
+): MkttClient
