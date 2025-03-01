@@ -1,3 +1,71 @@
+## [1.2.0](https://github.com/nicolasfara/mktt/compare/1.1.0...1.2.0) (2025-03-01)
+
+### Features
+
+* new API and JS implementation ([#187](https://github.com/nicolasfara/mktt/issues/187)) ([31e702c](https://github.com/nicolasfara/mktt/commit/31e702c8c633fa614a954cb4d3401ce37f30eda9))
+
+### Dependency updates
+
+* **deps:** update dependency com.hivemq:hivemq-mqtt-client to v1.3.5 ([8a3e9df](https://github.com/nicolasfara/mktt/commit/8a3e9df1464a8badedbe22b52ee2f47935aa24cf))
+* **deps:** update dependency gradle to v8.12 ([283bdd0](https://github.com/nicolasfara/mktt/commit/283bdd0820aa74b5f973a469f3289ee87f00573c))
+* **deps:** update dependency gradle to v8.12.1 ([f1de117](https://github.com/nicolasfara/mktt/commit/f1de1172b435ae2ad188f7a5852dc0a9c01dd6c8))
+* **deps:** update dependency gradle to v8.13 ([32db3d7](https://github.com/nicolasfara/mktt/commit/32db3d7c035adb72573db18b9d785e137c1d989b))
+* **deps:** update dependency semantic-release-preconfigured-conventional-commits to v1.1.118 ([929ed92](https://github.com/nicolasfara/mktt/commit/929ed92e275a54c85053fcd5c63d762c2a82a997))
+* **deps:** update dependency semantic-release-preconfigured-conventional-commits to v1.1.119 ([7504fcc](https://github.com/nicolasfara/mktt/commit/7504fccb114c10245b87e20ce89270bca48db1f7))
+* **deps:** update dependency semantic-release-preconfigured-conventional-commits to v1.1.120 ([3c5c1ca](https://github.com/nicolasfara/mktt/commit/3c5c1ca3c1cfe4d7106e324a3b7dea30f1a7e8bb))
+* **deps:** update dependency semantic-release-preconfigured-conventional-commits to v1.1.122 ([7d4dbf4](https://github.com/nicolasfara/mktt/commit/7d4dbf43702869bfb744fa2cebb4f82519bc98b0))
+* **deps:** update dependency semantic-release-preconfigured-conventional-commits to v1.1.123 ([7d21cbb](https://github.com/nicolasfara/mktt/commit/7d21cbbda4f6fa81d481f662d0e19edd0b44bd94))
+* **deps:** update dependency semantic-release-preconfigured-conventional-commits to v1.1.124 ([9b5f45e](https://github.com/nicolasfara/mktt/commit/9b5f45ee2519cf7a1a8334e432c8f8ec3ca212bc))
+* **deps:** update dependency semantic-release-preconfigured-conventional-commits to v1.1.125 ([9db2e7f](https://github.com/nicolasfara/mktt/commit/9db2e7f9b09b84f7678d8b517a64cf412b924d2c))
+* **deps:** update kotlin monorepo to v2.1.10 ([cc75412](https://github.com/nicolasfara/mktt/commit/cc75412025f6fac0da425bb7517b4ba3c0379c7a))
+* **deps:** update kotlinx-coroutines monorepo to v1.10.1 ([59b709c](https://github.com/nicolasfara/mktt/commit/59b709cb37af51a96fd4f1510b18824c9c515357))
+* **deps:** update node.js to 22.13 ([67b9f2b](https://github.com/nicolasfara/mktt/commit/67b9f2b02ae09ba20be5edd7c63e459e8f9e250f))
+* **deps:** update node.js to 22.14 ([c0c31e7](https://github.com/nicolasfara/mktt/commit/c0c31e7e1fdc8ce51295664ce34e6cec8c40bcd5))
+* **deps:** update node.js to v22 ([b86d238](https://github.com/nicolasfara/mktt/commit/b86d2385c764f1ae19bd5a9e27eeb01a20f5b270))
+* **deps:** update plugin com.gradle.develocity to v3.19 ([0c41225](https://github.com/nicolasfara/mktt/commit/0c4122544c596e98c5f4150ca478e6adaa4049ab))
+* **deps:** update plugin com.gradle.develocity to v3.19.2 ([2c81f00](https://github.com/nicolasfara/mktt/commit/2c81f00ed4695d2722585927c32a8315d4a26d7b))
+* **deps:** update plugin dokka to v2 ([4be8315](https://github.com/nicolasfara/mktt/commit/4be8315a3694f7e3bbd75a6008741fa52e402f57))
+* **deps:** update plugin gitsemver to v4 ([6ccdc47](https://github.com/nicolasfara/mktt/commit/6ccdc47bfd8b4493a0724ccd241ddb198be279f5))
+* **deps:** update plugin kotlin-qa to v0.78.0 ([a03645d](https://github.com/nicolasfara/mktt/commit/a03645deae03d735e4b2d24202e6a3e26d04554b))
+* **deps:** update plugin multijvmtesting to v3.0.3 ([4de2404](https://github.com/nicolasfara/mktt/commit/4de24042fb2cace25102c03234d6fdbe3aeb8261))
+* **deps:** update plugin multijvmtesting to v3.1.2 ([22969c4](https://github.com/nicolasfara/mktt/commit/22969c441ea9ce07327405f6154148a1188a9fd1))
+* **deps:** update plugin multijvmtesting to v3.2.1 ([33ab69d](https://github.com/nicolasfara/mktt/commit/33ab69d8630caf8c2f26e6f3dae39d9cb260b346))
+* **deps:** update plugin multijvmtesting to v3.2.2 ([3bcff7d](https://github.com/nicolasfara/mktt/commit/3bcff7dc94e77be051219c0c1378d211dc30b6b2))
+* **deps:** update plugin org.danilopianini.gradle-pre-commit-git-hooks to v2.0.16 ([0a5729d](https://github.com/nicolasfara/mktt/commit/0a5729d707a15993e7c6e0e85a5dbb759297199b))
+* **deps:** update plugin org.danilopianini.gradle-pre-commit-git-hooks to v2.0.18 ([d50e689](https://github.com/nicolasfara/mktt/commit/d50e689e7a8bfadb6dad0c8d013ffbe8ddb05d2d))
+* **deps:** update plugin org.danilopianini.gradle-pre-commit-git-hooks to v2.0.20 ([c54c516](https://github.com/nicolasfara/mktt/commit/c54c516a47b3e331b43527599a6395692cea6847))
+* **deps:** update plugin publishoncentral to v7 ([531eee8](https://github.com/nicolasfara/mktt/commit/531eee888f54525a0766b14b2217108f40723996))
+* **deps:** update plugin publishoncentral to v7.0.4 ([7929ec3](https://github.com/nicolasfara/mktt/commit/7929ec36639ee1a4b08e98be9144fe49ec396839))
+
+### Build and continuous integration
+
+* adapt .mjs to node 22 ([f794319](https://github.com/nicolasfara/mktt/commit/f79431928c1b2510b6c90b7e4b69a4d78a0e0ebb))
+* **deps:** update actions/setup-node action to v4.2.0 ([23d8493](https://github.com/nicolasfara/mktt/commit/23d84930d00843f27523da55938742f3aa42f530))
+* **deps:** update danysk/build-check-deploy-gradle-action action to v3.7.1 ([7b39bf5](https://github.com/nicolasfara/mktt/commit/7b39bf55662e98d520e8fec3aec734d5d9b2ea00))
+* **deps:** update danysk/build-check-deploy-gradle-action action to v3.7.10 ([dc82d1b](https://github.com/nicolasfara/mktt/commit/dc82d1be5994771b1c4bc47ecf6d9578c6ca7d91))
+* **deps:** update danysk/build-check-deploy-gradle-action action to v3.7.11 ([d691f85](https://github.com/nicolasfara/mktt/commit/d691f85013004617cc263b194aac4cddb9272679))
+* **deps:** update danysk/build-check-deploy-gradle-action action to v3.7.12 ([6799544](https://github.com/nicolasfara/mktt/commit/67995443c20d081b52ccceb061c3988519a881ec))
+* **deps:** update danysk/build-check-deploy-gradle-action action to v3.7.2 ([9a24d5f](https://github.com/nicolasfara/mktt/commit/9a24d5fd3c785c86ea4e7aa4f6e7e862ade5ddf6))
+* **deps:** update danysk/build-check-deploy-gradle-action action to v3.7.3 ([408156b](https://github.com/nicolasfara/mktt/commit/408156b3af53b9dcba175ef33849440cfb721c49))
+* **deps:** update danysk/build-check-deploy-gradle-action action to v3.7.6 ([8681e05](https://github.com/nicolasfara/mktt/commit/8681e058a6ade0a70bc742b7438d459ab31c77cd))
+* **deps:** update danysk/build-check-deploy-gradle-action action to v3.7.7 ([f14c1d7](https://github.com/nicolasfara/mktt/commit/f14c1d73cf3cb0465924de969b3f908c40e05b87))
+* **deps:** update danysk/build-check-deploy-gradle-action action to v3.7.8 ([7fbef72](https://github.com/nicolasfara/mktt/commit/7fbef72f952147705bfa47c8f18b3599f6c993fa))
+* **deps:** update danysk/build-check-deploy-gradle-action action to v3.7.9 ([bf08b9e](https://github.com/nicolasfara/mktt/commit/bf08b9e4fe663c6b336a83031cb10abcc7ac7b9c))
+* fix environmental variable for staging repo ([50aead2](https://github.com/nicolasfara/mktt/commit/50aead2354b71dba7fac5d7994c2f6f31be438ba))
+* improve CI with upload artfacts ([3cb337a](https://github.com/nicolasfara/mktt/commit/3cb337a89b5b2347eb5bb8a06097afde07a07fb1))
+* new ci workflow ([dfdcce6](https://github.com/nicolasfara/mktt/commit/dfdcce64c9df22b3b6b20f64d8c097c29b11aec4))
+* remove npm publishing ([122b15a](https://github.com/nicolasfara/mktt/commit/122b15a0b7848866cffb47335e8eacb65a3750d1))
+* use correct env ([98e2ff9](https://github.com/nicolasfara/mktt/commit/98e2ff92a454d043975d95fa9ee85a7b53fef814))
+
+### General maintenance
+
+* **release:** 1.1.0 [skip ci] ([3face59](https://github.com/nicolasfara/mktt/commit/3face595a74047d84b39b60f640d92ac3184039e)), closes [#136](https://github.com/nicolasfara/mktt/issues/136) [#136](https://github.com/nicolasfara/mktt/issues/136)
+* **release:** 1.1.0 [skip ci] ([c928c4b](https://github.com/nicolasfara/mktt/commit/c928c4bce4ef4d964793ecff95ee21981edda5ab)), closes [#136](https://github.com/nicolasfara/mktt/issues/136)
+
+### Refactoring
+
+* code style refactoring according to new styling rule ([f751d4c](https://github.com/nicolasfara/mktt/commit/f751d4c68eeca1c137a302f8ec8c6acdb9e13d2e))
+
 ## [1.1.0](https://github.com/nicolasfara/mktt/compare/1.0.0...1.1.0) (2024-12-10)
 
 ### Features
