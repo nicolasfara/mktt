@@ -86,12 +86,12 @@ internal class HivemqMkttClient(
         message: ByteArray,
         qos: MqttQoS,
     ): Unit = withContext(dispatcher) {
-        val message = Mqtt5Publish.builder()
+        val publishMessage = Mqtt5Publish.builder()
             .topic(topic)
             .qos(MqttQos.fromCode(qos.code) ?: error("Invalid QoS"))
             .payload(message)
             .build()
-        client.publish(Flowable.just<Mqtt5Publish>(message)).awaitFirst()
+        client.publish(Flowable.just<Mqtt5Publish>(publishMessage)).awaitFirst()
     }
 
     override fun subscribe(

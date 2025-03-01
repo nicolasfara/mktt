@@ -3,12 +3,14 @@
 package it.nicolasfarabegoli.mktt
 
 import it.nicolasfarabegoli.mktt.configuration.MqttTestConfiguration.connectionConfiguration
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertContains
+import kotlin.time.Duration.Companion.seconds
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -32,6 +34,7 @@ class MqttClientSubscribeTest {
         receiveClient.connect()
         val topicName = Uuid.random().toString()
         backgroundScope.launch {
+            delay(1.seconds)
             for (index in 0 until messageCount) {
                 sendClient.publish(
                     topic = topicName,

@@ -51,7 +51,7 @@ internal class MqttJsClient(
             client.endAsync().await()
             client.off("message") { }
         } else {
-            throw Exception("Client not initialized")
+            error("Client not initialized")
         }
     }
 

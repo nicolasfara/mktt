@@ -62,6 +62,7 @@ interface MkttClient {
 /**
  * Creates an MQTT client by optionally specifying a [dispatcher] to run the async operations.
  */
+@Suppress("FunctionNaming")
 fun MqttClient(
     dispatcher: CoroutineDispatcher = Dispatchers.Default,
     clientConfig: MqttClientConfigurationScope.() -> Unit,

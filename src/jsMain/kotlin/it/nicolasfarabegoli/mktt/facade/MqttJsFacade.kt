@@ -1,4 +1,9 @@
-@file:Suppress("UndocumentedPublicClass", "UndocumentedPublicProperty", "UndocumentedPublicFunction")
+@file:Suppress(
+    "UndocumentedPublicClass",
+    "UndocumentedPublicProperty",
+    "UndocumentedPublicFunction",
+    "TooManyFunctions",
+)
 @file:JsModule("mqtt")
 @file:JsNonModule
 
@@ -21,7 +26,7 @@ external interface IClientOptions {
     var clean: Boolean?
     var keepalive: Number?
     var username: String?
-    var password: dynamic /* Buffer | String */
+    var password: dynamic // Buffer | String
     var will: dynamic
     var properties: dynamic
     var timerVariant: dynamic
