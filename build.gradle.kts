@@ -1,6 +1,7 @@
 import org.danilopianini.gradle.mavencentral.DocStyle
 import org.danilopianini.gradle.mavencentral.JavadocJar
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.targets.js.dsl.KotlinJsSubTargetDsl
 
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
@@ -32,7 +33,19 @@ kotlin {
     }
 
     js {
-        nodejs()
+        fun KotlinJsSubTargetDsl.configureTimeout(timeout: String) {
+            testTask {
+                useMocha {
+                    this.timeout = timeout
+                }
+            }
+        }
+        nodejs {
+            configureTimeout("1m")
+        }
+        browser {
+            configureTimeout("1m")
+        }
         binaries.library()
     }
     //    wasmJs {
