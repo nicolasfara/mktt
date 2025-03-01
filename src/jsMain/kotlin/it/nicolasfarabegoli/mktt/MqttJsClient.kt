@@ -21,8 +21,6 @@ internal class MqttJsClient(
     private val configuration: MqttClientConfiguration,
 ) : MkttClient {
     private lateinit var client: MqttClient
-
-//    private val messageFlow = MutableSharedFlow<MqttMessage>(replay = 1)
     private val messageFlow by lazy {
         callbackFlow {
             client.on("message") { topic, message ->
