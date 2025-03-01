@@ -1,15 +1,14 @@
 import org.danilopianini.gradle.mavencentral.DocStyle
 import org.danilopianini.gradle.mavencentral.JavadocJar
-import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.jetbrains.kotlin.gradle.targets.js.dsl.KotlinJsSubTargetDsl
 
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
-    alias(libs.plugins.kotest.multiplatform)
+//    alias(libs.plugins.kotest.multiplatform)
     alias(libs.plugins.dokka)
     alias(libs.plugins.gitSemVer)
-    alias(libs.plugins.multiJvmTesting)
+//    alias(libs.plugins.multiJvmTesting)
     alias(libs.plugins.kotlin.qa)
     alias(libs.plugins.publishOnCentral)
     alias(libs.plugins.taskTree)
@@ -18,68 +17,60 @@ plugins {
 group = "it.nicolasfarabegoli"
 
 repositories {
-    google()
     mavenCentral()
 }
 
-fun projectFile(path: String): String = projectDir.resolve(path).absolutePath
-
-@OptIn(ExperimentalKotlinGradlePluginApi::class)
 kotlin {
+    compilerOptions {
+        allWarningsAsErrors = true
+        freeCompilerArgs.add("-Xexpect-actual-classes")
+    }
+
     jvm {
-        testRuns["test"].executionTask.configure {
-            useJUnitPlatform()
-            filter {
-                isFailOnNoMatchingTests = false
-            }
-            testLogging {
-                showExceptions = true
-                showStandardStreams = true
-                events =
-                    setOf(
-                        org.gradle.api.tasks.testing.logging.TestLogEvent.FAILED,
-                        org.gradle.api.tasks.testing.logging.TestLogEvent.PASSED,
-                    )
-                exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
-            }
+        compilerOptions {
+            jvmTarget = JvmTarget.JVM_1_8
         }
     }
+
+    js {
+        fun KotlinJsSubTargetDsl.configureTimeout(timeout: String) {
+            testTask {
+                useMocha {
+                    this.timeout = timeout
+                }
+            }
+        }
+        nodejs {
+            configureTimeout("1m")
+        }
+        browser {
+            configureTimeout("1m")
+        }
+        binaries.library()
+    }
+    //    wasmJs {
+    //        browser()
+    //        nodejs()
+    //        binaries.library()
+    //    }
 
     sourceSets {
-        val commonMain by getting {
-            dependencies {
-                implementation(libs.kotlinx.coroutines)
-            }
+        commonMain.dependencies {
+            implementation(libs.kotlinx.coroutines)
         }
-        val commonTest by getting {
-            dependencies {
-                implementation(libs.bundles.kotlin.testing.common)
-                implementation(libs.bundles.kotest.common)
-            }
+        commonTest.dependencies {
+            implementation(libs.kotlin.test)
+            implementation(libs.kotlinx.coroutines.test)
         }
-        val jvmMain by getting {
-            dependencies {
-                implementation(libs.kotlinx.coroutines.rx2)
-                implementation(libs.hive.mqtt)
-            }
+        jvmMain.dependencies {
+            implementation(libs.kotlinx.coroutines.rx2)
+            implementation(libs.hive.mqtt)
         }
-        val jvmTest by getting {
-            dependencies {
-                implementation(libs.kotest.runner.junit5)
-            }
+        jsMain.dependencies {
+            implementation(npm("mqtt", "5.10.3"))
         }
     }
 
-//    wasmJs {
-//        browser()
-//        nodejs()
-//        binaries.library()
-//    }
-
-//    js(IR) {
-//        nodejs()
-//        binaries.library()
-//    }
 //
 //    val nativeSetup: KotlinNativeTarget.() -> Unit = {
 //        binaries {
@@ -110,12 +101,6 @@ kotlin {
 //    watchosSimulatorArm64(nativeSetup)
 //    tvosArm64(nativeSetup)
 //    tvosSimulatorArm64(nativeSetup)
-
-    @OptIn(ExperimentalKotlinGradlePluginApi::class)
-    compilerOptions {
-        allWarningsAsErrors = true
-        freeCompilerArgs.add("-Xexpect-actual-classes")
-    }
 }
 
 tasks.dokkaJavadoc {
@@ -126,12 +111,6 @@ tasks.withType<JavadocJar>().configureEach {
     val dokka = tasks.dokkaHtml.get()
     dependsOn(dokka)
     from(dokka.outputDirectory)
-}
-
-tasks.withType<KotlinCompile>().configureEach {
-    compilerOptions {
-        jvmTarget = JvmTarget.JVM_1_8
-    }
 }
 
 signing {

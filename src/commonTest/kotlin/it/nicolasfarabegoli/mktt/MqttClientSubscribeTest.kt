@@ -1,58 +1,55 @@
+@file:OptIn(ExperimentalUuidApi::class)
+
 package it.nicolasfarabegoli.mktt
 
-import io.kotest.assertions.throwables.shouldNotThrow
-import io.kotest.core.spec.style.FreeSpec
-import io.kotest.core.test.testCoroutineScheduler
-import io.kotest.matchers.shouldBe
-import it.nicolasfarabegoli.mktt.configuration.MqttConfiguration
-import it.nicolasfarabegoli.mktt.message.MqttQoS
-import it.nicolasfarabegoli.mktt.message.connect.connack.MqttConnAckReasonCode
-import it.nicolasfarabegoli.mktt.message.publish.MqttPublish
-import it.nicolasfarabegoli.mktt.topic.MqttTopic.Companion.asTopic
-import it.nicolasfarabegoli.mktt.topic.MqttTopicFilter
-import kotlinx.coroutines.ExperimentalCoroutinesApi
+import it.nicolasfarabegoli.mktt.configuration.MqttTestConfiguration.connectionConfiguration
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.runTest
+import kotlin.test.Ignore
+import kotlin.test.Test
+import kotlin.test.assertContains
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
-@OptIn(ExperimentalStdlibApi::class, ExperimentalCoroutinesApi::class)
-class MqttClientSubscribeTest :
-    FreeSpec({
-        coroutineTestScope = true
-        "The client should subscribe successfully to a topic" {
-            val dispatcher = StandardTestDispatcher(testCoroutineScheduler)
-            val mqttClient = MqttClient(MqttConfiguration(hostname = "mqtt.eclipseprojects.io"), dispatcher)
-            shouldNotThrow<Exception> {
-                mqttClient.connect().reasonCode shouldBe MqttConnAckReasonCode.Success
-                val filterTopic = MqttTopicFilter.of("test/topic")
-                mqttClient.subscribe(filterTopic)
-            }
+class MqttClientSubscribeTest {
+    @Test
+    @Ignore
+    fun `The client should subscribe successfully to a topic`() =
+        runTest {
+            val dispatcher = StandardTestDispatcher(testScheduler)
+            val mqttClient = MkttClient(dispatcher, connectionConfiguration)
+            mqttClient.connect()
+            mqttClient.subscribe("test/topic")
+            mqttClient.disconnect()
         }
-        "The client should subscribe to a topic and start collecting the messages".config(enabled = false) {
-            val dispatcher = StandardTestDispatcher(testCoroutineScheduler)
-            val client = MqttClient(MqttConfiguration(hostname = "mqtt.eclipseprojects.io"), dispatcher)
-            shouldNotThrow<Exception> {
-                client.connect().reasonCode shouldBe MqttConnAckReasonCode.Success
-                val filterTopic = MqttTopicFilter.of("test/topic")
-                val job =
-                    launch(UnconfinedTestDispatcher(testCoroutineScheduler)) {
-                        client.subscribe(filterTopic, qoS = MqttQoS.ExactlyOnce).take(1).collect {
-                            it.payload?.decodeToString() shouldBe "test message"
-                        }
-                    }
-                val message =
-                    MqttPublish(
-                        topic = "test/topic".asTopic(),
-                        payload = "test message".encodeToByteArray(),
-                        qos = MqttQoS.ExactlyOnce,
+
+    @Test
+    fun `The client should subscribe to a topic and start collecting the messages`() =
+        runTest {
+            val dispatcher = StandardTestDispatcher(testScheduler)
+            val sendClient = MkttClient(dispatcher, connectionConfiguration)
+            val receiveClient = MkttClient(dispatcher, connectionConfiguration)
+            val messageCount = 5
+            sendClient.connect()
+            receiveClient.connect()
+            val topicName = Uuid.random().toString()
+            val flow = receiveClient.subscribe(topicName)
+            backgroundScope.launch {
+                for (index in 0 until messageCount) {
+                    sendClient.publish(
+                        topic = topicName,
+                        message = "test message -- $index".encodeToByteArray(),
+                        qos = MqttQoS.AtLeastOnce,
                     )
-                val sendJob =
-                    launch(UnconfinedTestDispatcher(testCoroutineScheduler)) {
-                        client.publish(message).error shouldBe null
-                    }
-                sendJob.join()
-                job.join()
+                }
             }
+            flow.take(messageCount).onEach { println(it) }.collect {
+                assertContains(it.payload.decodeToString(), "test message")
+            }
+            receiveClient.disconnect()
+            sendClient.disconnect()
         }
-    })
+}

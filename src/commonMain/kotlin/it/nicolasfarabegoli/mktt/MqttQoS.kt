@@ -1,4 +1,4 @@
-package it.nicolasfarabegoli.mktt.message
+package it.nicolasfarabegoli.mktt
 
 /**
  * Represents the Quality of Service (QoS) level of an MQTT message with its [code].
@@ -7,17 +7,17 @@ enum class MqttQoS(
     val code: Int,
 ) {
     /**
-     * TODO.
+     * Delivers the message at most once.
      */
     AtMostOnce(0),
 
     /**
-     * TODO.
+     * Delivers the message at least once.
      */
     AtLeastOnce(1),
 
     /**
-     * TODO.
+     * Delivers the message exactly once.
      */
     ExactlyOnce(2),
     ;
@@ -31,6 +31,6 @@ enum class MqttQoS(
          *
          * Trows an [IllegalArgumentException] if the [code] is invalid.
          */
-        fun from(code: Int): MqttQoS = MqttQoS.entries.first { it.code == code }
+        fun from(code: Int): MqttQoS = entries.first { it.code == code }
     }
 }

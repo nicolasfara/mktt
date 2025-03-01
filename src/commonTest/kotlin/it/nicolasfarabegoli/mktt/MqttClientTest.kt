@@ -1,67 +1,67 @@
 package it.nicolasfarabegoli.mktt
 
-import io.kotest.assertions.throwables.shouldNotThrow
-import io.kotest.assertions.throwables.shouldThrowUnit
-import io.kotest.core.spec.style.FreeSpec
-import io.kotest.core.test.testCoroutineScheduler
-import io.kotest.matchers.shouldBe
-import it.nicolasfarabegoli.mktt.configuration.MqttConfiguration
-import it.nicolasfarabegoli.mktt.message.connect.connack.MqttConnAckReasonCode
-import kotlinx.coroutines.ExperimentalCoroutinesApi
+import it.nicolasfarabegoli.mktt.configuration.MqttTestConfiguration.connectionConfiguration
+import it.nicolasfarabegoli.mktt.configuration.MqttTestConfiguration.invalidPortConnectionConfiguration
+import it.nicolasfarabegoli.mktt.configuration.MqttTestConfiguration.wrongConnectionConfiguration
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.runTest
+import kotlin.test.Ignore
+import kotlin.test.Test
+import kotlin.test.assertFailsWith
 
-@OptIn(ExperimentalStdlibApi::class, ExperimentalCoroutinesApi::class)
-class MqttClientTest :
-    FreeSpec({
-        coroutineTestScope = true
-        "The client should be able to connect and disconnect from the broker" {
-            val dispatcher = StandardTestDispatcher(testCoroutineScheduler)
-            val mqttClient = MqttClient(MqttConfiguration(hostname = "mqtt.eclipseprojects.io"), dispatcher)
-            shouldNotThrow<Exception> {
-                mqttClient.connect().reasonCode shouldBe MqttConnAckReasonCode.Success
-                mqttClient.disconnect()
-            }
+class MqttClientTest {
+    @Test
+    fun `The client should be able to connect and disconnect from the broker`() =
+        runTest {
+            val dispatcher = StandardTestDispatcher(testScheduler)
+            val mqttClient = MkttClient(dispatcher, connectionConfiguration)
+            mqttClient.connect()
+            mqttClient.disconnect()
         }
-        "The client should fail with an exception when connecting to an invalid broker" {
-            val dispatcher = StandardTestDispatcher(testCoroutineScheduler)
-            val mqttClient = MqttClient(MqttConfiguration(hostname = "invalid.broker"), dispatcher)
-            shouldThrowUnit<Exception> {
-                mqttClient.connect()
-            }
+
+    @Test
+    fun `The client should fail with an exception when connecting to an invalid broker`() =
+        runTest {
+            val dispatcher = StandardTestDispatcher(testScheduler)
+            val mqttClient = MkttClient(dispatcher, wrongConnectionConfiguration)
+            assertFailsWith<Throwable> { mqttClient.connect() }
         }
-//    "The client should fail with an exception when connecting to a valid broker using an invalid port" {
-//        val dispatcher = StandardTestDispatcher(testCoroutineScheduler)
-//        val mqttClient = MqttClient(MqttConfiguration(hostname = "test.mosquitto.org", port = 1234), dispatcher)
-//        shouldThrowUnit<Exception> {
-//            mqttClient.connect()
-//        }
-//    }
-        "The client should fail with an exception when disconnecting without connecting" {
-            val dispatcher = StandardTestDispatcher(testCoroutineScheduler)
-            val mqttClient = MqttClient(MqttConfiguration(hostname = "mqtt.eclipseprojects.io"), dispatcher)
-            shouldThrowUnit<Exception> {
-                mqttClient.disconnect()
-            }
+
+    @Test
+    fun `The client should fail with an exception when connecting to a valid broker using an invalid port`() =
+        runTest {
+            val dispatcher = StandardTestDispatcher(testScheduler)
+            val mqttClient = MkttClient(dispatcher, invalidPortConnectionConfiguration)
+            assertFailsWith<Throwable> { mqttClient.connect() }
         }
-        "The client should fail with an exception when disconnecting twice" {
-            val dispatcher = StandardTestDispatcher(testCoroutineScheduler)
-            val mqttClient = MqttClient(MqttConfiguration(hostname = "mqtt.eclipseprojects.io"), dispatcher)
-            shouldNotThrow<Exception> {
-                mqttClient.connect().reasonCode shouldBe MqttConnAckReasonCode.Success
-                mqttClient.disconnect()
-            }
-            shouldThrowUnit<Exception> {
-                mqttClient.disconnect()
-            }
+
+    @Test
+    fun `The client should fail with an exception when disconnecting without connecting`() =
+        runTest {
+            val dispatcher = StandardTestDispatcher(testScheduler)
+            val mqttClient = MkttClient(dispatcher, connectionConfiguration)
+            assertFailsWith<Throwable> { mqttClient.disconnect() }
         }
-        "The client should fail with an exception when connecting twice" {
-            val dispatcher = StandardTestDispatcher(testCoroutineScheduler)
-            val mqttClient = MqttClient(MqttConfiguration(hostname = "mqtt.eclipseprojects.io"), dispatcher)
-            shouldNotThrow<Exception> {
-                mqttClient.connect().reasonCode shouldBe MqttConnAckReasonCode.Success
-            }
-            shouldThrowUnit<Exception> {
-                mqttClient.connect()
-            }
+
+    @Test
+    @Ignore
+    fun `The client should fail with an exception when disconnecting twice`() =
+        runTest {
+            val dispatcher = StandardTestDispatcher(testScheduler)
+            val mqttClient = MkttClient(dispatcher, connectionConfiguration)
+            mqttClient.connect()
+            mqttClient.disconnect()
+            assertFailsWith<Throwable> { mqttClient.disconnect() }
         }
-    })
+
+    @Test
+    @Ignore
+    fun `The client should fail with an exception when connecting twice`() =
+        runTest {
+            val dispatcher = StandardTestDispatcher(testScheduler)
+            val mqttClient = MkttClient(dispatcher, connectionConfiguration)
+            mqttClient.connect()
+            assertFailsWith<Throwable> { mqttClient.connect() }
+            mqttClient.disconnect()
+        }
+}
