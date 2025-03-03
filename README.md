@@ -39,6 +39,21 @@ mqttClient.publish(
 mqttClient.disconnect()
 ```
 
+## Subscribing
+
+```kotlin
+val mqttClient = MkttClient(Diaptchers.IO) {
+    brokerUrl = "localhost"
+    port = 1883
+    clientId = "mktt-client"
+}
+mqttClient.connect()
+mqttClient.subscribe("test/topic", MqttQoS.ExactlyOnce).collect {
+    println("Received message: ${it.payload.decodeToString()}")
+}
+mqttClient.disconnect()
+```
+
 # Supported Platforms
 
 | Platform    | Target                                                      | Description                                  | Supported          |
