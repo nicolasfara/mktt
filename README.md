@@ -20,6 +20,25 @@ mktt-version = "<version>"
 mktt = { module = "it.nicolasfarabegoli:mktt", version.ref = mktt-version }
 ```
 
+# Examples
+
+## Publishing
+
+```kotlin
+val mqttClient = MkttClient(Diaptchers.IO) {
+    brokerUrl = "localhost"
+    port = 1883
+    clientId = "mktt-client"
+}
+mqttClient.connect()
+mqttClient.publish(
+    topic = "test/topic",
+    qos = MqttQoS.ExactlyOnce,
+    "hello world".encodeToByteArray(),
+)
+mqttClient.disconnect()
+```
+
 # Supported Platforms
 
 | Platform    | Target                                                      | Description                                  | Supported          |
