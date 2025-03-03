@@ -104,7 +104,7 @@ external interface MqttClient {
 
     fun on(
         event: String,
-        callback: (error: Error) -> Unit,
+        callback: (dynamic) -> Unit,
     )
 
     fun off(

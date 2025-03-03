@@ -10,6 +10,7 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.channels.onFailure
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.onStart
@@ -34,12 +35,30 @@ internal class MqttJsClient(
                     close(error)
                 }
             }
+            client.on("error") { error: Error ->
+                close(Throwable(error.message))
+            }
             awaitClose()
         }
     }
 
-    override val connectionState: Flow<MqttConnectionState>
-        get() = TODO("Not yet implemented")
+    override val connectionState: Flow<MqttConnectionState> =
+        callbackFlow {
+            val connectCallback: (dynamic) -> Unit = { _: dynamic -> trySend(MqttConnectionState.Connected) }
+            val disconnectCallback: (dynamic) -> Unit = { _: dynamic -> trySend(MqttConnectionState.Disconnected) }
+            val errorCallback: (Error) -> Unit =
+                { error: Error -> trySend(MqttConnectionState.ConnectionError(Throwable(error.message))) }
+
+            client.on("connect", connectCallback)
+            client.on("disconnect", disconnectCallback)
+            client.on("error", errorCallback)
+
+            awaitClose {
+                client.off("connect", connectCallback)
+                client.off("disconnect", disconnectCallback)
+                client.off("error", errorCallback)
+            }
+        }
 
     override suspend fun connect(): Unit =
         withContext(dispatcher) {
@@ -79,7 +98,10 @@ internal class MqttJsClient(
     ): Flow<MqttMessage> =
         flow {
             require(::client.isInitialized) { "Client not initialized" }
-            messageFlow.filter { matchesTopicFilter(it.topic, topic) }.onStart { client.subscribeAsync(topic).await() }
+            emitAll(messageFlow
+                .onStart { client.subscribeAsync(topic).await() }
+                .filter { matchesTopicFilter(it.topic, topic) }
+            )
         }
 
     override suspend fun unsubscribe(topic: String) =

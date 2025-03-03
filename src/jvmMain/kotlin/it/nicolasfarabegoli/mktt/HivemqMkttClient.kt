@@ -29,13 +29,13 @@ internal class HivemqMkttClient(
     configuration: MqttClientConfiguration,
 ) : MkttClient {
     private val client by lazy {
-        Mqtt5Client
-            .builder()
-            .serverHost(configuration.brokerUrl)
-            .serverPort(configuration.port)
-            .identifier(configuration.clientId)
-            .willPublish(configuration.will?.toHivemq())
-            .buildRx()
+        Mqtt5Client.builder().apply {
+            serverHost(configuration.brokerUrl)
+            serverPort(configuration.port)
+            identifier(configuration.clientId)
+            willPublish(configuration.will?.toHivemq())
+            automaticReconnectWithDefaultConfig()
+        }.buildRx()
     }
     override val connectionState: Flow<MqttConnectionState>
         get() = TODO("Not yet implemented")
