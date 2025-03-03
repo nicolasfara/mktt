@@ -125,8 +125,8 @@ publishOnCentral {
     projectLongName.set("MKTT")
     projectDescription.set("A Kotlin multiplatform MQTT client library.")
     projectUrl.set("https://github.com/nicolasfara/${rootProject.name}")
-    licenseName.set("MIT License")
-    licenseUrl.set("https://opensource.org/license/mit/")
+    licenseName.set("Apache-2.0")
+    licenseUrl.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
     docStyle.set(DocStyle.HTML)
     publishing {
         publications {

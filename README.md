@@ -20,7 +20,7 @@ mktt-version = "<version>"
 mktt = { module = "it.nicolasfarabegoli:mktt", version.ref = mktt-version }
 ```
 
-## Supported Platforms
+# Supported Platforms
 
 | Platform    | Target                                                      | Description                                  | Supported          |
 |-------------|-------------------------------------------------------------|----------------------------------------------|--------------------|
