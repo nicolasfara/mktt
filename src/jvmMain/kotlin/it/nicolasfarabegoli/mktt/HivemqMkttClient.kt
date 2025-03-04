@@ -10,9 +10,9 @@ import io.reactivex.Flowable
 import it.nicolasfarabegoli.mktt.adapter.MqttWillAdapter.toHivemq
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.future.await
 import kotlinx.coroutines.reactive.asFlow
 import kotlinx.coroutines.reactive.awaitFirst
@@ -29,13 +29,18 @@ internal class HivemqMkttClient(
     configuration: MqttClientConfiguration,
 ) : MkttClient {
     private val client by lazy {
-        Mqtt5Client.builder().apply {
-            serverHost(configuration.brokerUrl)
-            serverPort(configuration.port)
-            identifier(configuration.clientId)
-            willPublish(configuration.will?.toHivemq())
-            automaticReconnectWithDefaultConfig()
-        }.buildRx()
+        @Suppress("IgnoredReturnValue")
+        Mqtt5Client
+            .builder()
+            .apply {
+                serverHost(configuration.brokerUrl)
+                serverPort(configuration.port)
+                identifier(configuration.clientId)
+                willPublish(configuration.will?.toHivemq())
+                if (configuration.automaticReconnect) {
+                    automaticReconnectWithDefaultConfig()
+                }
+            }.buildRx()
     }
     override val connectionState: Flow<MqttConnectionState>
         get() = TODO("Not yet implemented")
@@ -70,28 +75,32 @@ internal class HivemqMkttClient(
     override fun subscribe(
         topic: String,
         qos: MqttQoS,
-    ): Flow<MqttMessage> {
-        val subscription =
-            Mqtt5Subscribe
-                .builder()
-                .topicFilter(topic)
-                .qos(MqttQos.fromCode(qos.code) ?: error("Invalid QoS"))
-                .build()
-        val result = client.subscribePublishes(subscription)
-        return result
-            .asFlow()
-            .onStart {
-                val subAck = result.subscribeSingleFuture().await()
-                require(subAck.type == Mqtt5MessageType.SUBACK) { "Subscription failed: $subAck" }
-            }.map {
-                MqttMessage(
-                    topic = it.topic.toString(),
-                    payload = it.payloadAsBytes,
-                    qos = MqttQoS.from(it.qos.code),
-                    retained = it.isRetain,
-                )
-            }.flowOn(dispatcher)
-    }
+    ): Flow<MqttMessage> =
+        flow {
+            val subscription =
+                Mqtt5Subscribe
+                    .builder()
+                    .topicFilter(topic)
+                    .qos(MqttQos.fromCode(qos.code) ?: error("Invalid QoS"))
+                    .build()
+            val result = client.subscribePublishes(subscription)
+            val subAckResult = result.subscribeSingleFuture().await()
+            require(subAckResult.type == Mqtt5MessageType.SUBACK) {
+                "Subscription failed: $subAckResult"
+            }
+            emitAll(
+                result
+                    .asFlow()
+                    .map {
+                        MqttMessage(
+                            topic = it.topic.toString(),
+                            payload = it.payloadAsBytes,
+                            qos = MqttQoS.from(it.qos.code),
+                            retained = it.isRetain,
+                        )
+                    },
+            )
+        }
 
     override suspend fun unsubscribe(topic: String) {
         val unsubscribe =

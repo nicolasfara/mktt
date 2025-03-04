@@ -14,6 +14,7 @@ class MqttClientTestJvm {
             val mqttClient =
                 MkttClient(dispatcher) {
                     brokerUrl = "invalid.broker.com"
+                    automaticReconnect = false
                 }
             assertFailsWith<ConnectionFailedException> {
                 mqttClient.connect()

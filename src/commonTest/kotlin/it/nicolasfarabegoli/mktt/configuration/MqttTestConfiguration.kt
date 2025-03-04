@@ -23,9 +23,11 @@ object MqttTestConfiguration {
     }
     val wrongConnectionConfiguration: MqttClientConfigurationScope.() -> Unit = {
         brokerUrl = "invalid.broker.com"
+        automaticReconnect = false
     }
     val invalidPortConnectionConfiguration: MqttClientConfigurationScope.() -> Unit = {
         brokerUrl = BROKER
         port = WRONG_PORT
+        automaticReconnect = false
     }
 }

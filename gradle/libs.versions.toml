@@ -5,6 +5,8 @@ kotest = "5.9.1"
 kotlin = "2.1.10"
 
 [libraries]
+arrow = { module = "io.arrow-kt:arrow-core", version = "2.0.1" }
+arrow-coroutines = { module = "io.arrow-kt:arrow-fx-coroutines", version = "2.0.1" }
 hive-mqtt = { module = "com.hivemq:hivemq-mqtt-client", version.ref = "hiveMqtt" }
 kotest-assertions-core = { module = "io.kotest:kotest-assertions-core", version.ref = "kotest" }
 kotest-framework-engine = { module = "io.kotest:kotest-framework-engine", version.ref = "kotest" }

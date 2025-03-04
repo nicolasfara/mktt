@@ -1,5 +1,7 @@
 import org.danilopianini.gradle.mavencentral.DocStyle
 import org.danilopianini.gradle.mavencentral.JavadocJar
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat
+import org.gradle.api.tasks.testing.logging.TestLogEvent
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.targets.js.dsl.KotlinJsSubTargetDsl
 
@@ -14,10 +16,19 @@ plugins {
     alias(libs.plugins.taskTree)
 }
 
-group = "it.nicolasfarabegoli"
+val Provider<PluginDependency>.id: String get() = get().pluginId
 
-repositories {
-    mavenCentral()
+allprojects {
+    group = "it.nicolasfarabegoli"
+
+    repositories {
+        mavenCentral()
+    }
+
+    with(rootProject.libs.plugins) {
+        apply(plugin = kotlin.multiplatform.id)
+        apply(plugin = kotlin.qa.id)
+    }
 }
 
 kotlin {
@@ -59,6 +70,8 @@ kotlin {
             implementation(libs.kotlinx.coroutines)
         }
         commonTest.dependencies {
+            implementation(libs.arrow)
+            implementation(libs.arrow.coroutines)
             implementation(libs.kotlin.test)
             implementation(libs.kotlinx.coroutines.test)
         }
@@ -105,6 +118,16 @@ kotlin {
 
 tasks.dokkaJavadoc {
     enabled = false
+}
+
+tasks.withType<Test>().configureEach {
+    testLogging {
+        events = setOf(TestLogEvent.PASSED, TestLogEvent.FAILED, TestLogEvent.SKIPPED)
+        exceptionFormat = TestExceptionFormat.FULL
+        showExceptions = true
+        showCauses = true
+        showStackTraces = true
+    }
 }
 
 tasks.withType<JavadocJar>().configureEach {
