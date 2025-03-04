@@ -25,7 +25,7 @@ mktt = { module = "it.nicolasfarabegoli:mktt", version.ref = mktt-version }
 ## Publishing
 
 ```kotlin
-val mqttClient = MkttClient(Diaptchers.IO) {
+val mqttClient = MkttClient(Dispatchers.IO) {
     brokerUrl = "localhost"
     port = 1883
     clientId = "mktt-client"
@@ -42,7 +42,7 @@ mqttClient.disconnect()
 ## Subscribing
 
 ```kotlin
-val mqttClient = MkttClient(Diaptchers.IO) {
+val mqttClient = MkttClient(Dispatchers.IO) {
     brokerUrl = "localhost"
     port = 1883
     clientId = "mktt-client"
