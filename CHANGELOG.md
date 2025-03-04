@@ -1,3 +1,29 @@
+## [1.2.1](https://github.com/nicolasfara/mktt/compare/1.2.0...1.2.1) (2025-03-04)
+
+### Dependency updates
+
+* **deps:** update plugin org.danilopianini.gradle-pre-commit-git-hooks to v2.0.21 ([126335c](https://github.com/nicolasfara/mktt/commit/126335c70c66a4cd46df18bbef090f25fca5b509))
+
+### Bug Fixes
+
+* fix a subscription problem preventing the flow emitting received messages ([557f498](https://github.com/nicolasfara/mktt/commit/557f498d2190af499bf92d0407cb50548a6dd525))
+
+### Documentation
+
+* fix typo in readme ([#189](https://github.com/nicolasfara/mktt/issues/189)) ([a98b5af](https://github.com/nicolasfara/mktt/commit/a98b5afb9713c37d9b607ef6a9a84af3a36bcdcc))
+
+### Build and continuous integration
+
+* fix license type ([568b336](https://github.com/nicolasfara/mktt/commit/568b336e786182d3a03ad56e897e5c2dfba149c1))
+
+### General maintenance
+
+* add license ([e330e98](https://github.com/nicolasfara/mktt/commit/e330e9836dcbd340cdc62ca3dfd1213e8f323dd2))
+* **readme:** add compatibility table and dependencies ([2eb08f6](https://github.com/nicolasfara/mktt/commit/2eb08f6e07c0de79f0562b85ab79173d0bc4975d))
+* **readme:** add license footer ([90afd84](https://github.com/nicolasfara/mktt/commit/90afd846df04d020e6f788898a449097aaaeabae))
+* **readme:** publish example ([f211e33](https://github.com/nicolasfara/mktt/commit/f211e33fa5c378fc430b1e2ea311a1a0e4f8d517))
+* **readme:** subscribing example ([ac74d92](https://github.com/nicolasfara/mktt/commit/ac74d9292506b6a2ca2a3196c08ac77a681c187e))
+
 ## [1.2.0](https://github.com/nicolasfara/mktt/compare/1.1.0...1.2.0) (2025-03-01)
 
 ### Features
