@@ -6,12 +6,11 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.targets.js.dsl.KotlinJsSubTargetDsl
 
 plugins {
-    alias(libs.plugins.kotlin.multiplatform)
-//    alias(libs.plugins.kotest.multiplatform)
     alias(libs.plugins.dokka)
     alias(libs.plugins.gitSemVer)
-//    alias(libs.plugins.multiJvmTesting)
+    alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.kotlin.qa)
+    alias(libs.plugins.multiJvmTesting)
     alias(libs.plugins.publishOnCentral)
     alias(libs.plugins.taskTree)
 }
@@ -29,6 +28,11 @@ allprojects {
         apply(plugin = kotlin.multiplatform.id)
         apply(plugin = kotlin.qa.id)
     }
+}
+
+multiJvm {
+    jvmVersionForCompilation = latestJavaSupportedByGradle
+    testByDefaultWith(supportedLtsVersionsAndLatest)
 }
 
 kotlin {
