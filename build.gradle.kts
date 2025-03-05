@@ -1,5 +1,3 @@
-import org.danilopianini.gradle.mavencentral.DocStyle
-import org.danilopianini.gradle.mavencentral.JavadocJar
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
@@ -10,7 +8,6 @@ plugins {
     alias(libs.plugins.gitSemVer)
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.kotlin.qa)
-    alias(libs.plugins.multiJvmTesting)
     alias(libs.plugins.publishOnCentral)
     alias(libs.plugins.taskTree)
 }
@@ -28,11 +25,6 @@ allprojects {
         apply(plugin = kotlin.multiplatform.id)
         apply(plugin = kotlin.qa.id)
     }
-}
-
-multiJvm {
-    jvmVersionForCompilation = latestJavaSupportedByGradle
-    testByDefaultWith(supportedLtsVersionsAndLatest)
 }
 
 kotlin {
@@ -120,10 +112,6 @@ kotlin {
 //    tvosSimulatorArm64(nativeSetup)
 }
 
-tasks.dokkaJavadoc {
-    enabled = false
-}
-
 tasks.withType<Test>().configureEach {
     testLogging {
         events = setOf(TestLogEvent.PASSED, TestLogEvent.FAILED, TestLogEvent.SKIPPED)
@@ -132,12 +120,6 @@ tasks.withType<Test>().configureEach {
         showCauses = true
         showStackTraces = true
     }
-}
-
-tasks.withType<JavadocJar>().configureEach {
-    val dokka = tasks.dokkaHtml.get()
-    dependsOn(dokka)
-    from(dokka.outputDirectory)
 }
 
 signing {
@@ -154,7 +136,6 @@ publishOnCentral {
     projectUrl.set("https://github.com/nicolasfara/${rootProject.name}")
     licenseName.set("Apache-2.0")
     licenseUrl.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
-    docStyle.set(DocStyle.HTML)
     publishing {
         publications {
             withType<MavenPublication> {
@@ -169,16 +150,6 @@ publishOnCentral {
                         }
                     }
                 }
-            }
-        }
-    }
-}
-
-publishing {
-    publications {
-        publications.withType<MavenPublication>().configureEach {
-            if ("OSSRH" !in name) {
-                artifact(tasks.javadocJar)
             }
         }
     }
