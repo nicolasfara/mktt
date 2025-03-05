@@ -37,21 +37,14 @@ interface MkttClient {
     /**
      * Publishes the given [message] to the given [topic] using the given [qos] level.
      */
-    suspend fun publish(
-        topic: String,
-        message: ByteArray,
-        qos: MqttQoS = MqttQoS.AtMostOnce,
-    )
+    suspend fun publish(topic: String, message: ByteArray, qos: MqttQoS = MqttQoS.AtMostOnce)
 
     /**
      * Subscribes to a topic with a specific [topic] and [qos] level.
      *
      * Returns a [Flow] that emits the received messages based on the subscription.
      */
-    fun subscribe(
-        topic: String,
-        qos: MqttQoS = MqttQoS.AtMostOnce,
-    ): Flow<MqttMessage>
+    fun subscribe(topic: String, qos: MqttQoS = MqttQoS.AtMostOnce): Flow<MqttMessage>
 
     /**
      * Unsubscribes from a topic.

@@ -3,12 +3,7 @@ package it.nicolasfarabegoli.mktt
 /**
  * An MQTT message with its [topic], [payload], [qos] and [retained] flag.
  */
-data class MqttMessage(
-    val topic: String,
-    val payload: ByteArray,
-    val qos: MqttQoS,
-    val retained: Boolean,
-) {
+data class MqttMessage(val topic: String, val payload: ByteArray, val qos: MqttQoS, val retained: Boolean) {
     /**
      * Returns the payload as a string.
      */

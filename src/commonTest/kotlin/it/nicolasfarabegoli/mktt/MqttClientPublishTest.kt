@@ -8,18 +8,17 @@ import kotlin.test.assertFailsWith
 
 class MqttClientPublishTest {
     @Test
-    fun `The client should publish successfully a message`() =
-        runTest {
-            val dispatcher = StandardTestDispatcher(testScheduler)
-            val mqttClient = MkttClient(dispatcher, connectionConfiguration)
-            mqttClient.connect()
-            mqttClient.publish(
-                "test/topic",
-                "hello world".encodeToByteArray(),
-                MqttQoS.ExactlyOnce,
-            )
-            mqttClient.disconnect()
-        }
+    fun `The client should publish successfully a message`() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val mqttClient = MkttClient(dispatcher, connectionConfiguration)
+        mqttClient.connect()
+        mqttClient.publish(
+            "test/topic",
+            "hello world".encodeToByteArray(),
+            MqttQoS.ExactlyOnce,
+        )
+        mqttClient.disconnect()
+    }
 
 //    @Test
 //    fun `When multiple messages will be sent, a flow containing the successfully sent message should be returned`() =
@@ -39,12 +38,11 @@ class MqttClientPublishTest {
 //        }
 
     @Test
-    fun `The client should fail with an exception when publishing and the client is not connected`() =
-        runTest {
-            val dispatcher = StandardTestDispatcher(testScheduler)
-            val mqttClient = MkttClient(dispatcher, connectionConfiguration)
-            assertFailsWith<Throwable> {
-                mqttClient.publish("test/topic", "hello world".encodeToByteArray())
-            }
+    fun `The client should fail with an exception when publishing and the client is not connected`() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val mqttClient = MkttClient(dispatcher, connectionConfiguration)
+        assertFailsWith<Throwable> {
+            mqttClient.publish("test/topic", "hello world".encodeToByteArray())
         }
+    }
 }

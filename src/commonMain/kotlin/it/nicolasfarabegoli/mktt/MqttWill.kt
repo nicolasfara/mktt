@@ -6,12 +6,7 @@ package it.nicolasfarabegoli.mktt
  * If the client disconnects unexpectedly, the broker will publish this message containing the [message] to the [topic].
  * The [qos] level and the [retained] flag can be set.
  */
-data class MqttWill(
-    val topic: String,
-    val message: ByteArray,
-    val qos: MqttQoS,
-    val retained: Boolean = false,
-) {
+data class MqttWill(val topic: String, val message: ByteArray, val qos: MqttQoS, val retained: Boolean = false) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other == null || this::class != other::class) return false

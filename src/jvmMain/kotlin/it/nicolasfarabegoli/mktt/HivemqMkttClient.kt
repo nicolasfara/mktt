@@ -24,10 +24,8 @@ import kotlinx.coroutines.withContext
  *
  * Takes a [configuration] and a [dispatcher] as parameters.
  */
-internal class HivemqMkttClient(
-    override val dispatcher: CoroutineDispatcher,
-    configuration: MqttClientConfiguration,
-) : MkttClient {
+internal class HivemqMkttClient(override val dispatcher: CoroutineDispatcher, configuration: MqttClientConfiguration) :
+    MkttClient {
     private val client by lazy {
         @Suppress("IgnoredReturnValue")
         Mqtt5Client
@@ -45,62 +43,51 @@ internal class HivemqMkttClient(
     override val connectionState: Flow<MqttConnectionState>
         get() = TODO("Not yet implemented")
 
-    override suspend fun connect(): Unit =
-        withContext(dispatcher) {
-            client.connect().await()
-        }
+    override suspend fun connect(): Unit = withContext(dispatcher) {
+        client.connect().await()
+    }
 
-    override suspend fun disconnect(): Unit =
-        withContext(dispatcher) {
-            client.disconnect().await()
-        }
+    override suspend fun disconnect(): Unit = withContext(dispatcher) {
+        client.disconnect().await()
+    }
 
-    override suspend fun publish(
-        topic: String,
-        message: ByteArray,
-        qos: MqttQoS,
-    ): Unit =
-        withContext(dispatcher) {
-            val publishMessage =
-                Mqtt5Publish
-                    .builder()
-                    .topic(topic)
-                    .qos(MqttQos.fromCode(qos.code) ?: error("Invalid QoS"))
-                    .retain(true)
-                    .payload(message)
-                    .build()
-            client.publish(Flowable.just<Mqtt5Publish>(publishMessage)).awaitFirst()
-        }
+    override suspend fun publish(topic: String, message: ByteArray, qos: MqttQoS): Unit = withContext(dispatcher) {
+        val publishMessage =
+            Mqtt5Publish
+                .builder()
+                .topic(topic)
+                .qos(MqttQos.fromCode(qos.code) ?: error("Invalid QoS"))
+                .retain(true)
+                .payload(message)
+                .build()
+        client.publish(Flowable.just<Mqtt5Publish>(publishMessage)).awaitFirst()
+    }
 
-    override fun subscribe(
-        topic: String,
-        qos: MqttQoS,
-    ): Flow<MqttMessage> =
-        flow {
-            val subscription =
-                Mqtt5Subscribe
-                    .builder()
-                    .topicFilter(topic)
-                    .qos(MqttQos.fromCode(qos.code) ?: error("Invalid QoS"))
-                    .build()
-            val result = client.subscribePublishes(subscription)
-            val subAckResult = result.subscribeSingleFuture().await()
-            require(subAckResult.type == Mqtt5MessageType.SUBACK) {
-                "Subscription failed: $subAckResult"
-            }
-            emitAll(
-                result
-                    .asFlow()
-                    .map {
-                        MqttMessage(
-                            topic = it.topic.toString(),
-                            payload = it.payloadAsBytes,
-                            qos = MqttQoS.from(it.qos.code),
-                            retained = it.isRetain,
-                        )
-                    },
-            )
+    override fun subscribe(topic: String, qos: MqttQoS): Flow<MqttMessage> = flow {
+        val subscription =
+            Mqtt5Subscribe
+                .builder()
+                .topicFilter(topic)
+                .qos(MqttQos.fromCode(qos.code) ?: error("Invalid QoS"))
+                .build()
+        val result = client.subscribePublishes(subscription)
+        val subAckResult = result.subscribeSingleFuture().await()
+        require(subAckResult.type == Mqtt5MessageType.SUBACK) {
+            "Subscription failed: $subAckResult"
         }
+        emitAll(
+            result
+                .asFlow()
+                .map {
+                    MqttMessage(
+                        topic = it.topic.toString(),
+                        payload = it.payloadAsBytes,
+                        qos = MqttQoS.from(it.qos.code),
+                        retained = it.isRetain,
+                    )
+                },
+        )
+    }
 
     override suspend fun unsubscribe(topic: String) {
         val unsubscribe =

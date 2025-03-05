@@ -97,54 +97,29 @@ external interface MqttClient {
         callback: ((error: Error?) -> Unit)? = definedExternally,
     )
 
-    fun on(
-        event: String,
-        callback: (topic: String, message: ByteArray) -> Unit,
-    )
+    fun on(event: String, callback: (topic: String, message: ByteArray) -> Unit)
 
-    fun on(
-        event: String,
-        callback: (dynamic) -> Unit,
-    )
+    fun on(event: String, callback: (dynamic) -> Unit)
 
-    fun off(
-        event: String,
-        callback: (dynamic) -> Unit,
-    )
+    fun off(event: String, callback: (dynamic) -> Unit)
 
-    fun removeListener(
-        event: String,
-        callback: (dynamic) -> Unit,
-    )
+    fun removeListener(event: String, callback: (dynamic) -> Unit)
 
-    fun publishAsync(
-        topic: String,
-        message: String,
-    ): Promise<dynamic>
+    fun publishAsync(topic: String, message: String): Promise<dynamic>
 
-    fun publishAsync(
-        topic: String,
-        message: String,
-        options: IClientPublishOptions,
-    ): Promise<dynamic>
+    fun publishAsync(topic: String, message: String, options: IClientPublishOptions): Promise<dynamic>
 
     fun subscribeAsync(topicObject: String): Promise<Array<ISubscriptionGrant>>
 
     fun subscribeAsync(topicObject: Array<String>): Promise<Array<ISubscriptionGrant>>
 
-    fun subscribeAsync(
-        topic: String,
-        options: IClientSubscribeOptions?,
-    ): Promise<Array<ISubscriptionGrant>>
+    fun subscribeAsync(topic: String, options: IClientSubscribeOptions?): Promise<Array<ISubscriptionGrant>>
 
     fun unsubscribeAsync(topic: String): Promise<dynamic>
 
     fun unsubscribeAsync(topic: Array<String>): Promise<dynamic>
 
-    fun unsubscribeAsync(
-        topic: String,
-        options: IClientUnsubscribeProperties,
-    ): Promise<dynamic>
+    fun unsubscribeAsync(topic: String, options: IClientUnsubscribeProperties): Promise<dynamic>
 
     fun endAsync(): Promise<Unit>
 
@@ -152,17 +127,11 @@ external interface MqttClient {
 
     fun endAsync(options: dynamic): Promise<Unit>
 
-    fun endAsync(
-        force: Boolean,
-        options: dynamic,
-    ): Promise<Unit>
+    fun endAsync(force: Boolean, options: dynamic): Promise<Unit>
 }
 
 external interface Error {
     var message: String
 }
 
-external fun connectAsync(
-    brokerUrl: String,
-    options: dynamic = definedExternally,
-): Promise<MqttClient>
+external fun connectAsync(brokerUrl: String, options: dynamic = definedExternally): Promise<MqttClient>

@@ -60,27 +60,21 @@ internal class MqttJsClient(
             }
         }
 
-    override suspend fun connect(): Unit =
-        withContext(dispatcher) {
-            val brokerString = "mqtt://${configuration.brokerUrl}:${configuration.port}"
-            client = connectAsync(brokerString).await()
-        }
+    override suspend fun connect(): Unit = withContext(dispatcher) {
+        val brokerString = "mqtt://${configuration.brokerUrl}:${configuration.port}"
+        client = connectAsync(brokerString).await()
+    }
 
-    override suspend fun disconnect() =
-        withContext(dispatcher) {
-            if (::client.isInitialized) {
-                client.endAsync().await()
-                client.off("message") { }
-            } else {
-                error("Client not initialized")
-            }
+    override suspend fun disconnect() = withContext(dispatcher) {
+        if (::client.isInitialized) {
+            client.endAsync().await()
+            client.off("message") { }
+        } else {
+            error("Client not initialized")
         }
+    }
 
-    override suspend fun publish(
-        topic: String,
-        message: ByteArray,
-        qos: MqttQoS,
-    ) = withContext(dispatcher) {
+    override suspend fun publish(topic: String, message: ByteArray, qos: MqttQoS) = withContext(dispatcher) {
         val publishOption =
             object : IClientPublishOptions {
                 override var qos: Number? = qos.code
@@ -92,25 +86,17 @@ internal class MqttJsClient(
         client.publishAsync(topic, message.decodeToString(), publishOption).await()
     }
 
-    override fun subscribe(
-        topic: String,
-        qos: MqttQoS,
-    ): Flow<MqttMessage> =
-        flow {
-            require(::client.isInitialized) { "Client not initialized" }
-            client.subscribeAsync(topic).await()
-            emitAll(messageFlow.filter { matchesTopicFilter(it.topic, topic) })
-        }
+    override fun subscribe(topic: String, qos: MqttQoS): Flow<MqttMessage> = flow {
+        require(::client.isInitialized) { "Client not initialized" }
+        client.subscribeAsync(topic).await()
+        emitAll(messageFlow.filter { matchesTopicFilter(it.topic, topic) })
+    }
 
-    override suspend fun unsubscribe(topic: String) =
-        withContext(dispatcher) {
-            client.unsubscribeAsync(topic).await()
-        }
+    override suspend fun unsubscribe(topic: String) = withContext(dispatcher) {
+        client.unsubscribeAsync(topic).await()
+    }
 
-    private fun matchesTopicFilter(
-        topic: String,
-        filter: String,
-    ): Boolean {
+    private fun matchesTopicFilter(topic: String, filter: String): Boolean {
         // Convert the topic filter into a regex pattern
         val regexPattern =
             filter
