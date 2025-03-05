@@ -17,7 +17,7 @@ or using [Gradle catalogs](https://docs.gradle.org/current/userguide/version_cat
 mktt-version = "<version>"
 
 [dependencies]
-mktt = { module = "it.nicolasfarabegoli:mktt", version.ref = mktt-version }
+mktt = { module = "it.nicolasfarabegoli:mktt", version.ref = "mktt-version" }
 ```
 
 # Examples
