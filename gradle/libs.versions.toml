@@ -1,11 +1,12 @@
 [versions]
+arrow = "2.0.1"
 coroutines = "1.10.1"
 hive-mqtt = "1.3.5"
 kotlin = "2.1.10"
 
 [libraries]
-arrow = { module = "io.arrow-kt:arrow-core", version = "2.0.1" }
-arrow-coroutines = { module = "io.arrow-kt:arrow-fx-coroutines", version = "2.0.1" }
+arrow = { module = "io.arrow-kt:arrow-core", version.ref = "arrow" }
+arrow-coroutines = { module = "io.arrow-kt:arrow-fx-coroutines", version.ref = "arrow" }
 hive-mqtt = { module = "com.hivemq:hivemq-mqtt-client", version.ref = "hive-mqtt" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlinx-coroutines = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
