@@ -90,7 +90,7 @@ internal class HivemqMkttClient(override val dispatcher: CoroutineDispatcher, co
         )
     }.flowOn(dispatcher)
 
-    override suspend fun unsubscribe(topic: String) {
+    override suspend fun unsubscribe(topic: String): Unit = withContext(dispatcher) {
         val unsubscribe =
             Mqtt5Unsubscribe
                 .builder()
