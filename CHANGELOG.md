@@ -1,3 +1,24 @@
+## [1.2.3](https://github.com/nicolasfara/mktt/compare/1.2.2...1.2.3) (2025-03-08)
+
+### Bug Fixes
+
+* collect flows on the given dispatchers ([4ea1c79](https://github.com/nicolasfara/mktt/commit/4ea1c79776e68a4c26c2d561dac41ab298ad99b2))
+* prevent raising exception when cancel a publishing ([7cec9b4](https://github.com/nicolasfara/mktt/commit/7cec9b44c0bba87a828aea1c9a9aef69cd66e160))
+* properly manage unsubscribe ([82f8bb5](https://github.com/nicolasfara/mktt/commit/82f8bb5e2308b48c4c57660d517c06c3792d77cb))
+* use configuration passed to connect in js api ([54866ae](https://github.com/nicolasfara/mktt/commit/54866ae333cf1086a240a0823a7d46a272d94506))
+
+### Performance improvements
+
+* cache already subscribed topics ([5e78b21](https://github.com/nicolasfara/mktt/commit/5e78b214890581bcb43fb36c343d632c3de3114e))
+
+### Build and continuous integration
+
+* enable dokkav2 ([13516a3](https://github.com/nicolasfara/mktt/commit/13516a3dc5631a79899f2664e9076a55244b8acb))
+
+### Style improvements
+
+* reformat code ([8c54379](https://github.com/nicolasfara/mktt/commit/8c54379a98f89b63a0455471ba05baded16f1911))
+
 ## [1.2.2](https://github.com/nicolasfara/mktt/compare/1.2.1...1.2.2) (2025-03-08)
 
 ### Dependency updates
