@@ -1,6 +1,10 @@
 package it.nicolasfarabegoli.mktt
 
+import arrow.fx.coroutines.CountDownLatch
 import com.hivemq.client.mqtt.exceptions.ConnectionFailedException
+import it.nicolasfarabegoli.mktt.configuration.MqttTestConfiguration.connectionConfiguration
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
@@ -20,4 +24,22 @@ class MqttClientTestJvm {
                 mqttClient.connect()
             }
         }
+
+    @Test
+    fun `No exception should be thrown when cancel a publishing`() = runTest {
+        val latch = CountDownLatch(5)
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val mqttClient = MkttClient(dispatcher, connectionConfiguration)
+        mqttClient.connect()
+        val topicName = "test/topic"
+        val job = backgroundScope.launch {
+            for (i in 0..10) {
+                mqttClient.publish(topicName, "test message $i".encodeToByteArray())
+                latch.countDown()
+            }
+        }
+        latch.await()
+        job.cancelAndJoin()
+        mqttClient.disconnect()
+    }
 }
