@@ -10,6 +10,7 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertContains
+import kotlin.test.assertSame
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -46,6 +47,18 @@ class MqttClientSubscribeTest {
         flow.take(messageCount / 2).collect {
             assertContains(it.payload.decodeToString(), "test message")
         }
+        client.disconnect()
+    }
+
+    @Test
+    fun `Two subscriptions to the same topic should return the same flow instance`() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val client = MkttClient(dispatcher, connectionConfiguration)
+        client.connect()
+        val topicName = Uuid.random().toString()
+        val flow1 = client.subscribe(topicName)
+        val flow2 = client.subscribe(topicName)
+        assertSame(flow1, flow2)
         client.disconnect()
     }
 }

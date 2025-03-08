@@ -99,6 +99,8 @@ external interface MqttClient {
 
     fun on(event: String, callback: (topic: String, message: ByteArray) -> Unit)
 
+    fun on(event: String, callback: (topic: String, message: ByteArray, packet: dynamic) -> Unit)
+
     fun on(event: String, callback: (dynamic) -> Unit)
 
     fun off(event: String, callback: (dynamic) -> Unit)

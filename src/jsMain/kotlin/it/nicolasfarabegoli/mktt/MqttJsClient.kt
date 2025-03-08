@@ -1,15 +1,18 @@
 package it.nicolasfarabegoli.mktt
 
+import it.nicolasfarabegoli.mktt.adapter.MkttJsAdapter.toMqttjs
 import it.nicolasfarabegoli.mktt.facade.Error
 import it.nicolasfarabegoli.mktt.facade.IClientPublishOptions
 import it.nicolasfarabegoli.mktt.facade.MqttClient
 import it.nicolasfarabegoli.mktt.facade.connectAsync
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.await
+import kotlinx.coroutines.channels.ProducerScope
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.channels.onFailure
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.cancellable
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flow
@@ -21,27 +24,8 @@ internal class MqttJsClient(
     private val configuration: MqttClientConfiguration,
 ) : MkttClient {
     private lateinit var client: MqttClient
-    private val messageFlow by lazy {
-        callbackFlow {
-            client.on("message") { topic, message ->
-                val msg =
-                    MqttMessage(
-                        topic = topic,
-                        payload = message,
-                        qos = MqttQoS.ExactlyOnce,
-                        retained = false,
-                    )
-                trySend(msg).onFailure { error ->
-                    close(error)
-                }
-            }
-            client.on("error") { error: Error ->
-                close(Throwable(error.message))
-            }
-            awaitClose {
-            }
-        }
-    }
+    private lateinit var messageFlow: Flow<MqttMessage>
+    private val subscribedTopics = mutableMapOf<String, Flow<MqttMessage>>()
 
     override val connectionState: Flow<MqttConnectionState> =
         callbackFlow {
@@ -63,7 +47,11 @@ internal class MqttJsClient(
 
     override suspend fun connect(): Unit = withContext(dispatcher) {
         val brokerString = "mqtt://${configuration.brokerUrl}:${configuration.port}"
-        client = connectAsync(brokerString).await()
+        client = connectAsync(brokerString, configuration.toMqttjs()).await()
+        messageFlow = callbackFlow {
+            client.on("message") { topic, message, packet -> onMessageCallback(topic, message, packet, this) }
+            awaitClose()
+        }
     }
 
     override suspend fun disconnect() = withContext(dispatcher) {
@@ -87,14 +75,18 @@ internal class MqttJsClient(
         client.publishAsync(topic, message.decodeToString(), publishOption).await()
     }
 
-    override fun subscribe(topic: String, qos: MqttQoS): Flow<MqttMessage> = flow {
-        require(::client.isInitialized) { "Client not initialized" }
-        client.subscribeAsync(topic).await()
-        emitAll(messageFlow.filter { matchesTopicFilter(it.topic, topic) })
-    }.flowOn(dispatcher)
+    override fun subscribe(topic: String, qos: MqttQoS): Flow<MqttMessage> =
+        subscribedTopics.getOrPut(topic) {
+            flow {
+                require(::client.isInitialized) { "Client not initialized" }
+                client.subscribeAsync(topic).await()
+                emitAll(messageFlow.filter { matchesTopicFilter(it.topic, topic) })
+            }.cancellable().flowOn(dispatcher)
+        }
 
-    override suspend fun unsubscribe(topic: String) = withContext(dispatcher) {
+    override suspend fun unsubscribe(topic: String): Unit = withContext(dispatcher) {
         client.unsubscribeAsync(topic).await()
+        subscribedTopics.remove(topic)
     }
 
     private fun matchesTopicFilter(topic: String, filter: String): Boolean {
@@ -106,5 +98,17 @@ internal class MqttJsClient(
                 .let { "^$it$" } // Ensure the pattern matches the whole topic
 
         return Regex(regexPattern).matches(topic)
+    }
+
+    private fun onMessageCallback(
+        topic: String,
+        message: ByteArray,
+        packet: dynamic,
+        flowScope: ProducerScope<MqttMessage>
+    ) = with(flowScope) {
+        if (packet.cmd == "publish") {
+            val msg = MqttMessage(topic, message, MqttQoS.from(packet.qos), packet.retain)
+            trySend(msg).onFailure { error -> close(error) }
+        }
     }
 }
