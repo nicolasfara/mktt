@@ -1,3 +1,26 @@
+## [1.2.2](https://github.com/nicolasfara/mktt/compare/1.2.1...1.2.2) (2025-03-08)
+
+### Dependency updates
+
+* **deps:** update plugin multijvmtesting to v3.2.3 ([1f1bd22](https://github.com/nicolasfara/mktt/commit/1f1bd22190a1cbe80a1299d834ea9f2f9e3f22b0))
+* **deps:** update plugin publishoncentral to v8 ([#166](https://github.com/nicolasfara/mktt/issues/166)) ([51aa532](https://github.com/nicolasfara/mktt/commit/51aa532bbbe88bdc70add52a18711a1539708c80))
+
+### Bug Fixes
+
+* execute flow on the given dispatcher ([b3cf56f](https://github.com/nicolasfara/mktt/commit/b3cf56fe4610f7f6dc59128d34f6523d6da0f165))
+
+### Build and continuous integration
+
+* sort dependencies and enable multi-jvm plugin ([e09cae9](https://github.com/nicolasfara/mktt/commit/e09cae9b49edd00ff4b39a4359d5f3604f3a869f))
+
+### General maintenance
+
+* **readme:** add missing apex ([9e394a9](https://github.com/nicolasfara/mktt/commit/9e394a948046ea7a1110911451869ab385986c56))
+
+### Style improvements
+
+* adopt intellij_idea fomatting style ([e630c3d](https://github.com/nicolasfara/mktt/commit/e630c3d1f5d752ebacc0bbb3d58ddc1356c4b715))
+
 ## [1.2.1](https://github.com/nicolasfara/mktt/compare/1.2.0...1.2.1) (2025-03-04)
 
 ### Dependency updates
