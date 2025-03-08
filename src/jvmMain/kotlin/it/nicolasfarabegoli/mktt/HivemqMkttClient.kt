@@ -6,17 +6,18 @@ import com.hivemq.client.mqtt.mqtt5.message.Mqtt5MessageType
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish
 import com.hivemq.client.mqtt.mqtt5.message.subscribe.Mqtt5Subscribe
 import com.hivemq.client.mqtt.mqtt5.message.unsubscribe.Mqtt5Unsubscribe
-import io.reactivex.Flowable
 import it.nicolasfarabegoli.mktt.adapter.MqttWillAdapter.toHivemq
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.future.await
 import kotlinx.coroutines.reactive.asFlow
 import kotlinx.coroutines.reactive.awaitFirst
+import kotlinx.coroutines.rx2.asFlowable
 import kotlinx.coroutines.rx2.await
 import kotlinx.coroutines.withContext
 
@@ -63,7 +64,7 @@ internal class HivemqMkttClient(override val dispatcher: CoroutineDispatcher, co
                 .retain(true)
                 .payload(message)
                 .build()
-        client.publish(Flowable.just<Mqtt5Publish>(publishMessage)).awaitFirst()
+        client.publish(flowOf(publishMessage).asFlowable()).awaitFirst()
     }
 
     override fun subscribe(topic: String, qos: MqttQoS): Flow<MqttMessage> =
@@ -76,7 +77,8 @@ internal class HivemqMkttClient(override val dispatcher: CoroutineDispatcher, co
                         .qos(MqttQos.fromCode(qos.code) ?: error("Invalid QoS"))
                         .build()
                 val result = client.subscribePublishes(subscription)
-                val subAckResult = result.subscribeSingleFuture().await()
+                val subAckResult = result.subscribeSingleFuture()
+                    .await()
                 require(subAckResult.type == Mqtt5MessageType.SUBACK) {
                     "Subscription failed: $subAckResult"
                 }
