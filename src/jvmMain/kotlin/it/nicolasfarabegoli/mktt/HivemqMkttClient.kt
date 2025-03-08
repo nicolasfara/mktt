@@ -41,6 +41,8 @@ internal class HivemqMkttClient(override val dispatcher: CoroutineDispatcher, co
                 }
             }.buildRx()
     }
+    private val messageFlows = mutableMapOf<String, Flow<MqttMessage>>()
+
     override val connectionState: Flow<MqttConnectionState>
         get() = TODO("Not yet implemented")
 
@@ -64,31 +66,35 @@ internal class HivemqMkttClient(override val dispatcher: CoroutineDispatcher, co
         client.publish(Flowable.just<Mqtt5Publish>(publishMessage)).awaitFirst()
     }
 
-    override fun subscribe(topic: String, qos: MqttQoS): Flow<MqttMessage> = flow {
-        val subscription =
-            Mqtt5Subscribe
-                .builder()
-                .topicFilter(topic)
-                .qos(MqttQos.fromCode(qos.code) ?: error("Invalid QoS"))
-                .build()
-        val result = client.subscribePublishes(subscription)
-        val subAckResult = result.subscribeSingleFuture().await()
-        require(subAckResult.type == Mqtt5MessageType.SUBACK) {
-            "Subscription failed: $subAckResult"
+    override fun subscribe(topic: String, qos: MqttQoS): Flow<MqttMessage> =
+        messageFlows.getOrPut(topic) {
+            flow {
+                val subscription =
+                    Mqtt5Subscribe
+                        .builder()
+                        .topicFilter(topic)
+                        .qos(MqttQos.fromCode(qos.code) ?: error("Invalid QoS"))
+                        .build()
+                val result = client.subscribePublishes(subscription)
+                val subAckResult = result.subscribeSingleFuture().await()
+                require(subAckResult.type == Mqtt5MessageType.SUBACK) {
+                    "Subscription failed: $subAckResult"
+                }
+                emitAll(
+                    result
+                        .asFlow()
+                        .map {
+                            MqttMessage(
+                                topic = it.topic.toString(),
+                                payload = it.payloadAsBytes,
+                                qos = MqttQoS.from(it.qos.code),
+                                retained = it.isRetain,
+                            )
+                        },
+                )
+            }.flowOn(dispatcher)
         }
-        emitAll(
-            result
-                .asFlow()
-                .map {
-                    MqttMessage(
-                        topic = it.topic.toString(),
-                        payload = it.payloadAsBytes,
-                        qos = MqttQoS.from(it.qos.code),
-                        retained = it.isRetain,
-                    )
-                },
-        )
-    }.flowOn(dispatcher)
+
 
     override suspend fun unsubscribe(topic: String): Unit = withContext(dispatcher) {
         val unsubscribe =
@@ -97,5 +103,6 @@ internal class HivemqMkttClient(override val dispatcher: CoroutineDispatcher, co
                 .topicFilter(topic)
                 .build()
         client.unsubscribe(unsubscribe).await()
+        messageFlows.remove(topic)
     }
 }
