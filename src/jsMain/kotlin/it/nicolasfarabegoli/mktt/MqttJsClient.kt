@@ -75,14 +75,13 @@ internal class MqttJsClient(
         client.publishAsync(topic, message.decodeToString(), publishOption).await()
     }
 
-    override fun subscribe(topic: String, qos: MqttQoS): Flow<MqttMessage> =
-        subscribedTopics.getOrPut(topic) {
-            flow {
-                require(::client.isInitialized) { "Client not initialized" }
-                client.subscribeAsync(topic).await()
-                emitAll(messageFlow.filter { matchesTopicFilter(it.topic, topic) })
-            }.cancellable().flowOn(dispatcher)
-        }
+    override fun subscribe(topic: String, qos: MqttQoS): Flow<MqttMessage> = subscribedTopics.getOrPut(topic) {
+        flow {
+            require(::client.isInitialized) { "Client not initialized" }
+            client.subscribeAsync(topic).await()
+            emitAll(messageFlow.filter { matchesTopicFilter(it.topic, topic) })
+        }.cancellable().flowOn(dispatcher)
+    }
 
     override suspend fun unsubscribe(topic: String): Unit = withContext(dispatcher) {
         client.unsubscribeAsync(topic).await()
@@ -104,7 +103,7 @@ internal class MqttJsClient(
         topic: String,
         message: ByteArray,
         packet: dynamic,
-        flowScope: ProducerScope<MqttMessage>
+        flowScope: ProducerScope<MqttMessage>,
     ) = with(flowScope) {
         if (packet.cmd == "publish") {
             val msg = MqttMessage(topic, message, MqttQoS.from(packet.qos), packet.retain)
