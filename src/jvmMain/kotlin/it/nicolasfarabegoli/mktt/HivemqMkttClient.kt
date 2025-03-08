@@ -102,7 +102,8 @@ internal class HivemqMkttClient(override val dispatcher: CoroutineDispatcher, co
                 .builder()
                 .topicFilter(topic)
                 .build()
-        client.unsubscribe(unsubscribe).await()
-        messageFlows.remove(topic)
+        val result = client.unsubscribe(unsubscribe).await()
+        require(result.type == Mqtt5MessageType.UNSUBACK) { "Unsubscription failed: $result" }
+        messageFlows.remove(topic) ?: error("Topic not subscribed")
     }
 }
