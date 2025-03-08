@@ -12,6 +12,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.future.await
 import kotlinx.coroutines.reactive.asFlow
@@ -87,7 +88,7 @@ internal class HivemqMkttClient(override val dispatcher: CoroutineDispatcher, co
                     )
                 },
         )
-    }
+    }.flowOn(dispatcher)
 
     override suspend fun unsubscribe(topic: String) {
         val unsubscribe =

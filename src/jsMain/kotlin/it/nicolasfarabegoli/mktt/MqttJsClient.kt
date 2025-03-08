@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
 
 internal class MqttJsClient(
@@ -90,7 +91,7 @@ internal class MqttJsClient(
         require(::client.isInitialized) { "Client not initialized" }
         client.subscribeAsync(topic).await()
         emitAll(messageFlow.filter { matchesTopicFilter(it.topic, topic) })
-    }
+    }.flowOn(dispatcher)
 
     override suspend fun unsubscribe(topic: String) = withContext(dispatcher) {
         client.unsubscribeAsync(topic).await()
