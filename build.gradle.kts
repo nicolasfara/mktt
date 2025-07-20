@@ -76,7 +76,7 @@ kotlin {
             implementation(libs.hive.mqtt)
         }
         jsMain.dependencies {
-            implementation(npm("mqtt", "5.10.3"))
+            implementation(npm("mqtt", "5.13.3"))
         }
     }
 
