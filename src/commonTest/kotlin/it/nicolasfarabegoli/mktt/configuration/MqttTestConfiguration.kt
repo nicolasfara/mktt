@@ -10,7 +10,7 @@ object MqttTestConfiguration {
     /**
      * The URL of the broker to connect to.
      */
-    const val BROKER = "test.mosquitto.org"
+    const val BROKER = "broker.emqx.io"
 
     /**
      * The wrong port to connect to the broker.
