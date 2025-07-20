@@ -15,7 +15,7 @@ plugins {
 val Provider<PluginDependency>.id: String get() = get().pluginId
 
 allprojects {
-    group = "it.nicolasfarabegoli"
+    group = "io.github.nicolasfara"
 
     repositories {
         mavenCentral()
