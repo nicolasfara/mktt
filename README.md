@@ -7,7 +7,7 @@
 # Dependencies
 
 ```kotlin
-implementation("it.nicolasfarabegoli:mktt:<version>")
+implementation("io.github.nicolasfara:mktt:<version>")
 ```
 
 or using [Gradle catalogs](https://docs.gradle.org/current/userguide/version_catalogs.html):
@@ -17,7 +17,7 @@ or using [Gradle catalogs](https://docs.gradle.org/current/userguide/version_cat
 mktt-version = "<version>"
 
 [dependencies]
-mktt = { module = "it.nicolasfarabegoli:mktt", version.ref = "mktt-version" }
+mktt = { module = "io.github.nicolasfara:mktt", version.ref = "mktt-version" }
 ```
 
 # Examples
