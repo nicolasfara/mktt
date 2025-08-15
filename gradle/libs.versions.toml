@@ -16,7 +16,7 @@ kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-t
 [plugins]
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 dokka = "org.jetbrains.dokka:2.0.0"
-gitSemVer = "org.danilopianini.git-sensitive-semantic-versioning-gradle-plugin:6.0.0"
+gitSemVer = "org.danilopianini.git-sensitive-semantic-versioning-gradle-plugin:6.0.1"
 kotlin-qa = "org.danilopianini.gradle-kotlin-qa:0.93.1"
 multiJvmTesting = "org.danilopianini.multi-jvm-test-plugin:4.0.3"
 publishOnCentral = "org.danilopianini.publish-on-central:9.1.2"
