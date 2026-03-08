@@ -27,7 +27,7 @@ internal class MqttJsClient(
     private lateinit var client: MqttClient
     private val subscribedTopics = mutableMapOf<String, Flow<MqttMessage>>()
     private val _connectionState = MutableStateFlow<MqttConnectionState>(MqttConnectionState.Disconnected)
-    private val messageSharedFlow = MutableSharedFlow<MqttMessage>(extraBufferCapacity = 64)
+    private val messageSharedFlow = MutableSharedFlow<MqttMessage>(extraBufferCapacity = MESSAGE_BUFFER_CAPACITY)
 
     override val connectionState: StateFlow<MqttConnectionState> = _connectionState.asStateFlow()
 
@@ -103,5 +103,12 @@ internal class MqttJsClient(
                 .replace("#", ".*")
                 .let { "^$it$" }
         return Regex(regexPattern).matches(topic)
+    }
+
+    private companion object {
+        // Buffer capacity for the shared incoming-message flow. Provides headroom
+        // for messages that arrive in the brief window between a subscription's
+        // SUBACK reception and the subscriber's flow collection starting.
+        const val MESSAGE_BUFFER_CAPACITY = 64
     }
 }

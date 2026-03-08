@@ -89,8 +89,9 @@ jobs:
             "keyfile $certDir\server.key",
             "require_certificate false"
           ) | Set-Content -Path $confPath -Encoding ASCII
-          Start-Process -NoNewWindow -FilePath (Get-Command mosquitto.exe).Source -ArgumentList "-c", $confPath
+          Start-Process -NoNewWindow -FilePath (Get-Command mosquitto.exe).Source -ArgumentList "-c", $confPath -PassThru | Tee-Object -Variable proc
           Start-Sleep -Seconds 3
+          if ($proc.HasExited) { Write-Error "Mosquitto failed to start"; exit 1 }
       - uses: DanySK/build-check-deploy-gradle-action@4.0.24
         with:
           deploy-command: >-
