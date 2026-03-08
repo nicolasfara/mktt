@@ -36,6 +36,9 @@ jobs:
             dry = keywords.any? { |kw| branch.include?(kw) } ? '' : '--dry-run'
             puts "dry_run=#{dry}"
           RUBY
+      - name: Generate TLS certificates for local Mosquitto broker
+        shell: bash
+        run: bash mosquitto/generate-certs.sh
       - name: Install and start Mosquitto broker (Linux)
         if: runner.os == 'Linux'
         run: |
