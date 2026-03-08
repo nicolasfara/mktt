@@ -1,5 +1,5 @@
 @file:OptIn(ExperimentalWasmJsInterop::class)
-@file:Suppress("UNCHECKED_CAST")
+@file:Suppress("UNCHECKED_CAST", "MatchingDeclarationName")
 
 package io.github.nicolasfara
 
@@ -84,13 +84,17 @@ private fun jsBufferAtByte(buf: JsAny, index: Int): Byte =
 // In Kotlin/Wasm js() must be the SOLE expression in a top-level function
 // body.  These functions return JsAny? so that callers can cast/convert
 // the result without violating the restriction.
+// Parameters are intentionally referenced inside the js("...") string literal
+// so they appear unused to static analysis tools.
 // ---------------------------------------------------------------------------
 
+@Suppress("UnusedParameter")
 private fun jsBufferLengthRaw(buf: JsAny): JsAny? = js("buf.length")
 
+@Suppress("UnusedParameter")
 private fun jsBufferAtRaw(buf: JsAny, index: Int): JsAny? = js("buf[index]")
 
-@Suppress("LongParameterList")
+@Suppress("LongParameterList", "UnusedParameter", "MaxLineLength")
 private fun jsCreateConnectOptionsRaw(
     clientId: JsString,
     clean: Boolean,
@@ -100,8 +104,10 @@ private fun jsCreateConnectOptionsRaw(
     will: JsAny?,
 ): JsAny? = js("({ clientId: clientId, protocolVersion: 5, protocolId: 'MQTT', clean: clean, keepalive: keepAlive, username: username, password: password, will: will, timerVariant: 'auto', resubscribe: true })")
 
+@Suppress("UnusedParameter")
 private fun jsCreateWillRaw(topic: JsString, payload: JsString, qos: Int, retain: Boolean): JsAny? =
     js("({ topic: topic, payload: payload, qos: qos, retain: retain })")
 
+@Suppress("UnusedParameter")
 private fun jsCreatePublishOptionsRaw(qos: Int): JsAny? =
     js("({ qos: qos, retain: true, dup: false, properties: null })")

@@ -75,12 +75,12 @@ internal actual class MqttClientWrapper actual constructor() {
             override var username: String? = this@toMqttJs.username
             override var password: Any? = this@toMqttJs.password
             override var will: Any? =
-                this@toMqttJs.will?.let { w ->
+                this@toMqttJs.will?.let { willConfig ->
                     val willObj: dynamic = js("{}")
-                    willObj.topic = w.topic
-                    willObj.payload = w.message
-                    willObj.qos = w.qos.code
-                    willObj.retain = w.retained
+                    willObj.topic = willConfig.topic
+                    willObj.payload = willConfig.message
+                    willObj.qos = willConfig.qos.code
+                    willObj.retain = willConfig.retained
                     willObj
                 }
             override var properties: Any? = null
