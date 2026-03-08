@@ -56,8 +56,20 @@ kotlin {
         binaries.library()
     }
     wasmJs {
-        browser()
-        nodejs()
+        browser {
+            testTask {
+                useMocha {
+                    timeout = "1m"
+                }
+            }
+        }
+        nodejs {
+            testTask {
+                useMocha {
+                    timeout = "1m"
+                }
+            }
+        }
         binaries.library()
     }
 
