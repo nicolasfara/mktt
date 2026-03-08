@@ -55,11 +55,11 @@ kotlin {
         }
         binaries.library()
     }
-    //    wasmJs {
-    //        browser()
-    //        nodejs()
-    //        binaries.library()
-    //    }
+    wasmJs {
+        browser()
+        nodejs()
+        binaries.library()
+    }
 
     sourceSets {
         commonMain.dependencies {
@@ -76,6 +76,9 @@ kotlin {
             implementation(libs.hive.mqtt)
         }
         jsMain.dependencies {
+            implementation(npm("mqtt", "5.13.3"))
+        }
+        wasmJsMain.dependencies {
             implementation(npm("mqtt", "5.13.3"))
         }
     }
