@@ -3,6 +3,7 @@ package io.github.nicolasfara
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
 
 /**
  * Represents an MQTT client.
@@ -18,9 +19,10 @@ interface MkttClient {
 
     /**
      * Observes the current connection state.
-     * The [Flow] will emit the current connection state of the client.
+     * The [StateFlow] always holds the latest [MqttConnectionState] and emits every subsequent change.
+     * The initial state is [MqttConnectionState.Disconnected].
      */
-    val connectionState: Flow<MqttConnectionState>
+    val connectionState: StateFlow<MqttConnectionState>
 
     /**
      * Connects to the MQTT broker with the configuration built with [MkttClient] smart constructor.

@@ -1,7 +1,6 @@
 package io.github.nicolasfara
 
 import io.github.nicolasfara.adapter.MkttJsAdapter.toMqttjs
-import io.github.nicolasfara.facade.Error
 import io.github.nicolasfara.facade.IClientPublishOptions
 import io.github.nicolasfara.facade.MqttClient
 import io.github.nicolasfara.facade.connectAsync
@@ -11,6 +10,9 @@ import kotlinx.coroutines.channels.ProducerScope
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.channels.onFailure
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.cancellable
 import kotlinx.coroutines.flow.emitAll
@@ -26,41 +28,38 @@ internal class MqttJsClient(
     private lateinit var client: MqttClient
     private lateinit var messageFlow: Flow<MqttMessage>
     private val subscribedTopics = mutableMapOf<String, Flow<MqttMessage>>()
+    private val _connectionState = MutableStateFlow<MqttConnectionState>(MqttConnectionState.Disconnected)
 
-    override val connectionState: Flow<MqttConnectionState> =
-        callbackFlow {
-            val connectCallback: (dynamic) -> Unit = { _: dynamic -> trySend(MqttConnectionState.Connected) }
-            val disconnectCallback: (dynamic) -> Unit = { _: dynamic -> trySend(MqttConnectionState.Disconnected) }
-            val errorCallback: (Error) -> Unit =
-                { error: Error -> trySend(MqttConnectionState.ConnectionError(Throwable(error.message))) }
-
-            client.on("connect", connectCallback)
-            client.on("disconnect", disconnectCallback)
-            client.on("error", errorCallback)
-
-            awaitClose {
-                client.off("connect", connectCallback)
-                client.off("disconnect", disconnectCallback)
-                client.off("error", errorCallback)
-            }
-        }
+    override val connectionState: StateFlow<MqttConnectionState> = _connectionState.asStateFlow()
 
     override suspend fun connect(): Unit = withContext(dispatcher) {
-        val brokerString = "mqtt://${configuration.brokerUrl}:${configuration.port}"
-        client = connectAsync(brokerString, configuration.toMqttjs()).await()
-        messageFlow = callbackFlow {
-            client.on("message") { topic, message, packet -> onMessageCallback(topic, message, packet, this) }
-            awaitClose()
+        check(_connectionState.value is MqttConnectionState.Disconnected) {
+            "Client is already connected or connecting"
+        }
+        _connectionState.value = MqttConnectionState.Connecting
+        val scheme = if (configuration.ssl) "mqtts" else "mqtt"
+        val brokerString = "$scheme://${configuration.brokerUrl}:${configuration.port}"
+        try {
+            client = connectAsync(brokerString, configuration.toMqttjs()).await()
+            _connectionState.value = MqttConnectionState.Connected
+            messageFlow = callbackFlow {
+                client.on("message") { topic, message, packet -> onMessageCallback(topic, message, packet, this) }
+                awaitClose()
+            }
+        } finally {
+            if (_connectionState.value is MqttConnectionState.Connecting) {
+                _connectionState.value = MqttConnectionState.Disconnected
+            }
         }
     }
 
-    override suspend fun disconnect() = withContext(dispatcher) {
-        if (::client.isInitialized) {
-            client.endAsync().await()
-            client.off("message") { }
-        } else {
-            error("Client not initialized")
+    override suspend fun disconnect(): Unit = withContext(dispatcher) {
+        check(_connectionState.value is MqttConnectionState.Connected) {
+            "Client is not connected"
         }
+        client.endAsync().await()
+        client.off("message") { }
+        _connectionState.value = MqttConnectionState.Disconnected
     }
 
     override suspend fun publish(topic: String, message: ByteArray, qos: MqttQoS) = withContext(dispatcher) {
@@ -70,7 +69,7 @@ internal class MqttJsClient(
                 override var retain: Boolean? = true
                 override var dup: Boolean? = null
                 override var properties: Any? = null
-                override var cbStorePut: ((Error?) -> Unit)? = null
+                override var cbStorePut: ((io.github.nicolasfara.facade.Error?) -> Unit)? = null
             }
         client.publishAsync(topic, message.decodeToString(), publishOption).await()
     }
@@ -89,13 +88,11 @@ internal class MqttJsClient(
     }
 
     private fun matchesTopicFilter(topic: String, filter: String): Boolean {
-        // Convert the topic filter into a regex pattern
         val regexPattern =
             filter
-                .replace("+", "[^/]+") // `+` matches a single level (anything except `/`)
-                .replace("#", ".*") // `#` matches everything beyond this point
-                .let { "^$it$" } // Ensure the pattern matches the whole topic
-
+                .replace("+", "[^/]+")
+                .replace("#", ".*")
+                .let { "^$it$" }
         return Regex(regexPattern).matches(topic)
     }
 

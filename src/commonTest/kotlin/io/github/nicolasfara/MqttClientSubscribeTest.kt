@@ -10,18 +10,19 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertContains
+import kotlin.test.assertNotNull
 import kotlin.test.assertSame
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 class MqttClientSubscribeTest {
     @Test
-    @Suppress("IgnoredReturnValue")
     fun `The client should subscribe successfully to a topic`() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         val mqttClient = MkttClient(dispatcher, connectionConfiguration)
         mqttClient.connect()
-        mqttClient.subscribe("test/topic")
+        val flow = mqttClient.subscribe("test/topic")
+        assertNotNull(flow)
         mqttClient.disconnect()
     }
 

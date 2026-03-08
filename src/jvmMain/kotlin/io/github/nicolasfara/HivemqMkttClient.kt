@@ -1,7 +1,9 @@
 package io.github.nicolasfara
 
 import com.hivemq.client.mqtt.datatypes.MqttQos
+import com.hivemq.client.mqtt.exceptions.ConnectionFailedException
 import com.hivemq.client.mqtt.mqtt5.Mqtt5Client
+import com.hivemq.client.mqtt.mqtt5.exceptions.Mqtt5ConnAckException
 import com.hivemq.client.mqtt.mqtt5.message.Mqtt5MessageType
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish
 import com.hivemq.client.mqtt.mqtt5.message.subscribe.Mqtt5Subscribe
@@ -9,6 +11,9 @@ import com.hivemq.client.mqtt.mqtt5.message.unsubscribe.Mqtt5Unsubscribe
 import io.github.nicolasfara.adapter.MqttWillAdapter.toHivemq
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
@@ -28,30 +33,68 @@ import kotlinx.coroutines.withContext
  */
 internal class HivemqMkttClient(override val dispatcher: CoroutineDispatcher, configuration: MqttClientConfiguration) :
     MkttClient {
+    private val _connectionState = MutableStateFlow<MqttConnectionState>(MqttConnectionState.Disconnected)
     private val client by lazy {
-        @Suppress("IgnoredReturnValue")
-        Mqtt5Client
-            .builder()
-            .apply {
-                serverHost(configuration.brokerUrl)
-                serverPort(configuration.port)
-                identifier(configuration.clientId)
-                willPublish(configuration.will?.toHivemq())
-                if (configuration.automaticReconnect) {
-                    automaticReconnectWithDefaultConfig()
+        val builder = Mqtt5Client.builder()
+            .serverHost(configuration.brokerUrl)
+            .serverPort(configuration.port)
+            .identifier(configuration.clientId)
+            .addConnectedListener { _connectionState.value = MqttConnectionState.Connected }
+            .addDisconnectedListener { ctx ->
+                _connectionState.value = if (ctx.reconnector.isReconnect) {
+                    MqttConnectionState.Connecting
+                } else {
+                    MqttConnectionState.Disconnected
                 }
-            }.buildRx()
+            }
+        val builderWithWill = configuration.will?.let { builder.willPublish(it.toHivemq()) } ?: builder
+        val builderWithAuth = if (configuration.username != null) {
+            val authBuilder = builderWithWill.simpleAuth().username(configuration.username)
+            val authBuilderWithPassword = if (configuration.password != null) {
+                authBuilder.password(configuration.password.encodeToByteArray())
+            } else {
+                authBuilder
+            }
+            authBuilderWithPassword.applySimpleAuth()
+        } else {
+            builderWithWill
+        }
+        val builderWithReconnect = if (configuration.automaticReconnect) {
+            builderWithAuth.automaticReconnectWithDefaultConfig()
+        } else {
+            builderWithAuth
+        }
+        val builderWithSsl = if (configuration.ssl) {
+            builderWithReconnect.sslWithDefaultConfig()
+        } else {
+            builderWithReconnect
+        }
+        builderWithSsl.buildRx()
     }
     private val messageFlows = mutableMapOf<String, Flow<MqttMessage>>()
 
-    override val connectionState: Flow<MqttConnectionState>
-        get() = TODO("Not yet implemented")
+    override val connectionState: StateFlow<MqttConnectionState> = _connectionState.asStateFlow()
 
     override suspend fun connect(): Unit = withContext(dispatcher) {
-        client.connect().await()
+        check(_connectionState.value is MqttConnectionState.Disconnected) {
+            "Client is already connected or connecting"
+        }
+        _connectionState.value = MqttConnectionState.Connecting
+        try {
+            client.connect().await()
+        } catch (e: ConnectionFailedException) {
+            _connectionState.value = MqttConnectionState.ConnectionError(e)
+            throw e
+        } catch (e: Mqtt5ConnAckException) {
+            _connectionState.value = MqttConnectionState.ConnectionError(e)
+            throw e
+        }
     }
 
     override suspend fun disconnect(): Unit = withContext(dispatcher) {
+        check(_connectionState.value is MqttConnectionState.Connected) {
+            "Client is not connected"
+        }
         client.disconnect().await()
     }
 

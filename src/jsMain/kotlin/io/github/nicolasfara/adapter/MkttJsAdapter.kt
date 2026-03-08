@@ -23,7 +23,16 @@ internal object MkttJsAdapter {
         override var keepalive: Number? = keepAliveInterval
         override var username: String? = this@toMqttjs.username
         override var password: Any? = this@toMqttjs.password
-        override var will: Any? = null // TODO: Implement will
+        override var will: Any? = this@toMqttjs.will?.let { w ->
+            js(
+                """({
+                topic: w.topic,
+                payload: w.message,
+                qos: w.qos.code,
+                retain: w.retained
+            })""",
+            )
+        }
         override var properties: Any? = null
         override var timerVariant: Any? = "auto"
         override var forceNativeWebSocket: Boolean? = null

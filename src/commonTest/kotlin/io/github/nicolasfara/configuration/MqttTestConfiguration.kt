@@ -17,6 +17,11 @@ object MqttTestConfiguration {
      */
     const val WRONG_PORT = 5555
 
+    /**
+     * The standard SSL/TLS port for the broker.
+     */
+    const val SSL_PORT = 8883
+
     val connectionConfiguration: MqttClientConfigurationScope.() -> Unit = {
         brokerUrl = BROKER
         clientId = "mktt-test-client${Random.nextInt()}"
