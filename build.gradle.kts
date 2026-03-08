@@ -112,6 +112,8 @@ kotlin {
 //    tvosSimulatorArm64(nativeSetup)
 }
 
+val mqttCertsDir = "${rootProject.projectDir}/mosquitto/certs"
+
 tasks.withType<Test>().configureEach {
     testLogging {
         events = setOf(TestLogEvent.PASSED, TestLogEvent.FAILED, TestLogEvent.SKIPPED)
@@ -120,6 +122,14 @@ tasks.withType<Test>().configureEach {
         showCauses = true
         showStackTraces = true
     }
+    // Configure JVM tests to trust the local Mosquitto TLS certificate
+    systemProperty("javax.net.ssl.trustStore", "$mqttCertsDir/truststore.jks")
+    systemProperty("javax.net.ssl.trustStorePassword", "changeit")
+}
+
+tasks.withType<org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest>().configureEach {
+    // Configure Node.js tests to trust the local Mosquitto TLS certificate
+    environment("NODE_EXTRA_CA_CERTS", "$mqttCertsDir/ca.crt")
 }
 
 signing {

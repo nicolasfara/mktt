@@ -36,6 +36,65 @@ jobs:
             dry = keywords.any? { |kw| branch.include?(kw) } ? '' : '--dry-run'
             puts "dry_run=#{dry}"
           RUBY
+      - name: Generate TLS certificates for local Mosquitto broker
+        shell: bash
+        run: bash mosquitto/generate-certs.sh
+      - name: Install and start Mosquitto broker (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get install -y mosquitto
+          sudo systemctl stop mosquitto || true
+          CERT_DIR="${{ github.workspace }}/mosquitto/certs"
+          CONF="${{ runner.temp }}/mosquitto-test.conf"
+          {
+            echo "allow_anonymous true"
+            echo "listener 1883"
+            echo "listener 8883"
+            echo "cafile $CERT_DIR/ca.crt"
+            echo "certfile $CERT_DIR/server.crt"
+            echo "keyfile $CERT_DIR/server.key"
+            echo "require_certificate false"
+          } > "$CONF"
+          mosquitto -c "$CONF" -d
+          sleep 2
+      - name: Install and start Mosquitto broker (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install mosquitto
+          CERT_DIR="${{ github.workspace }}/mosquitto/certs"
+          CONF="${{ runner.temp }}/mosquitto-test.conf"
+          {
+            echo "allow_anonymous true"
+            echo "listener 1883"
+            echo "listener 8883"
+            echo "cafile $CERT_DIR/ca.crt"
+            echo "certfile $CERT_DIR/server.crt"
+            echo "keyfile $CERT_DIR/server.key"
+            echo "require_certificate false"
+          } > "$CONF"
+          mosquitto -c "$CONF" -d
+          sleep 2
+      - name: Install and start Mosquitto broker (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          choco install mosquitto --no-progress -y
+          Stop-Service -Name "Mosquitto Broker" -ErrorAction SilentlyContinue
+          $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
+          $certDir = "${{ github.workspace }}\mosquitto\certs"
+          $confPath = "${{ runner.temp }}\mosquitto-test.conf"
+          @(
+            "allow_anonymous true",
+            "listener 1883",
+            "listener 8883",
+            "cafile $certDir\ca.crt",
+            "certfile $certDir\server.crt",
+            "keyfile $certDir\server.key",
+            "require_certificate false"
+          ) | Set-Content -Path $confPath -Encoding ASCII
+          Start-Process -NoNewWindow -FilePath (Get-Command mosquitto.exe).Source -ArgumentList "-c", $confPath -PassThru | Tee-Object -Variable proc
+          Start-Sleep -Seconds 3
+          if ($proc.HasExited) { Write-Error "Mosquitto failed to start"; exit 1 }
       - uses: DanySK/build-check-deploy-gradle-action@4.0.24
         with:
           deploy-command: >-
