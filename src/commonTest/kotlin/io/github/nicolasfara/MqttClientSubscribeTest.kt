@@ -16,6 +16,7 @@ import kotlin.uuid.Uuid
 
 class MqttClientSubscribeTest {
     @Test
+    @Suppress("IgnoredReturnValue")
     fun `The client should subscribe successfully to a topic`() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         val mqttClient = MkttClient(dispatcher, connectionConfiguration)
