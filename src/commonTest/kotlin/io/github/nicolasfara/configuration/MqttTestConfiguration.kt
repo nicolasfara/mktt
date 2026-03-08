@@ -10,7 +10,7 @@ object MqttTestConfiguration {
     /**
      * The URL of the broker to connect to.
      */
-    const val BROKER = "broker.emqx.io"
+    const val BROKER = "localhost"
 
     /**
      * The wrong port to connect to the broker.
