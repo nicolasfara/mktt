@@ -3,12 +3,14 @@ package io.github.nicolasfara
 import arrow.fx.coroutines.CountDownLatch
 import com.hivemq.client.mqtt.exceptions.ConnectionFailedException
 import io.github.nicolasfara.configuration.MqttTestConfiguration.connectionConfiguration
+import io.github.nicolasfara.configuration.MqttTestConfiguration.wrongConnectionConfiguration
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
+import kotlin.test.assertIs
 
 class MqttClientTestJvm {
     @Test
@@ -24,6 +26,14 @@ class MqttClientTestJvm {
                 mqttClient.connect()
             }
         }
+
+    @Test
+    fun `The connectionState should reflect ConnectionError on failed connection`() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val mqttClient = MkttClient(dispatcher, wrongConnectionConfiguration)
+        assertFailsWith<Throwable> { mqttClient.connect() }
+        assertIs<MqttConnectionState.ConnectionError>(mqttClient.connectionState.value)
+    }
 
     @Test
     fun `No exception should be thrown when cancel a publishing`() = runTest {

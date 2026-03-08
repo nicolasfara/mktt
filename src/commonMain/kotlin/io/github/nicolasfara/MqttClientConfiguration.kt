@@ -9,6 +9,7 @@ package io.github.nicolasfara
  * The [will] is the MQTT Last Will and Testament.
  * The [automaticReconnect] flag indicates if the client should automatically reconnect to the broker.
  * The [connectionTimeout] is the connection timeout in seconds.
+ * The [ssl] flag enables TLS/SSL for the connection.
  */
 data class MqttClientConfiguration(
     val brokerUrl: String,
@@ -21,6 +22,7 @@ data class MqttClientConfiguration(
     val will: MqttWill? = null,
     val automaticReconnect: Boolean = true,
     val connectionTimeout: Long = 30,
+    val ssl: Boolean = false,
 )
 
 /**
@@ -84,6 +86,11 @@ class MqttClientConfigurationScope {
      */
     var connectionTimeout: Long = DEFAULT_CONNECTION_TIMEOUT
 
+    /**
+     * The flag indicating if the client should use TLS/SSL for the connection.
+     */
+    var ssl: Boolean = DEFAULT_SSL
+
     internal fun build(): MqttClientConfiguration {
         require(brokerSet) { "The broker URL must be set" }
         return MqttClientConfiguration(
@@ -97,6 +104,7 @@ class MqttClientConfigurationScope {
             will = will,
             automaticReconnect = automaticReconnect,
             connectionTimeout = connectionTimeout,
+            ssl = ssl,
         )
     }
 
@@ -106,5 +114,6 @@ class MqttClientConfigurationScope {
         private const val DEFAULT_CLEAN_SESSION = true
         private const val DEFAULT_AUTOMATIC_RECONNECT = true
         private const val DEFAULT_CONNECTION_TIMEOUT = 30L
+        private const val DEFAULT_SSL = false
     }
 }
