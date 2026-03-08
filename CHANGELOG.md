@@ -1,3 +1,14 @@
+## [2.0.2](https://github.com/nicolasfara/mktt/compare/2.0.1...2.0.2) (2026-03-08)
+
+### Dependency updates
+
+* **deps:** update arrow-kt monorepo to v2.2.2 ([db63bad](https://github.com/nicolasfara/mktt/commit/db63badc2c389d9d24a83eeef4a8705ad36be0ea))
+* **deps:** update plugin publishoncentral to v9.1.13 ([f7071de](https://github.com/nicolasfara/mktt/commit/f7071de015ea9079a74fefd30cfaeedf10fd41d2))
+
+### Bug Fixes
+
+* **client:** support SSL connection, update tests and improve API ([#424](https://github.com/nicolasfara/mktt/issues/424)) ([35112a7](https://github.com/nicolasfara/mktt/commit/35112a7d1ce0e4c7ad83f0297c4bfd2afd5b0d6b))
+
 ## [2.0.1](https://github.com/nicolasfara/mktt/compare/2.0.0...2.0.1) (2026-03-08)
 
 ### Dependency updates
