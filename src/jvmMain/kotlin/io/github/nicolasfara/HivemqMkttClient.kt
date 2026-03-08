@@ -36,7 +36,7 @@ internal class HivemqMkttClient(override val dispatcher: CoroutineDispatcher, co
     MkttClient {
     private val _connectionState = MutableStateFlow<MqttConnectionState>(MqttConnectionState.Disconnected)
     private val client by lazy {
-        val builder = Mqtt5Client.builder()
+        Mqtt5Client.builder()
             .serverHost(configuration.brokerUrl)
             .serverPort(configuration.port)
             .identifier(configuration.clientId)
@@ -53,29 +53,26 @@ internal class HivemqMkttClient(override val dispatcher: CoroutineDispatcher, co
                     }
                 }
             }
-        val builderWithWill = configuration.will?.let { builder.willPublish(it.toHivemq()) } ?: builder
-        val builderWithAuth = if (configuration.username != null) {
-            val authBuilder = builderWithWill.simpleAuth().username(configuration.username)
-            val authBuilderWithPassword = if (configuration.password != null) {
-                authBuilder.password(configuration.password.encodeToByteArray())
-            } else {
-                authBuilder
+            .run { configuration.will?.let { willPublish(it.toHivemq()) } ?: this }
+            .run {
+                if (configuration.username != null) {
+                    simpleAuth()
+                        .username(configuration.username)
+                        .run {
+                            if (configuration.password != null) {
+                                password(configuration.password.encodeToByteArray())
+                            } else {
+                                this
+                            }
+                        }
+                        .applySimpleAuth()
+                } else {
+                    this
+                }
             }
-            authBuilderWithPassword.applySimpleAuth()
-        } else {
-            builderWithWill
-        }
-        val builderWithReconnect = if (configuration.automaticReconnect) {
-            builderWithAuth.automaticReconnectWithDefaultConfig()
-        } else {
-            builderWithAuth
-        }
-        val builderWithSsl = if (configuration.ssl) {
-            builderWithReconnect.sslWithDefaultConfig()
-        } else {
-            builderWithReconnect
-        }
-        builderWithSsl.buildRx()
+            .run { if (configuration.automaticReconnect) automaticReconnectWithDefaultConfig() else this }
+            .run { if (configuration.ssl) sslWithDefaultConfig() else this }
+            .buildRx()
     }
     private val messageFlows = mutableMapOf<String, Flow<MqttMessage>>()
 
@@ -89,12 +86,15 @@ internal class HivemqMkttClient(override val dispatcher: CoroutineDispatcher, co
         try {
             client.connect().await()
         } catch (e: ConnectionFailedException) {
-            _connectionState.value = MqttConnectionState.ConnectionError(e)
-            throw e
+            failConnection(e)
         } catch (e: Mqtt5ConnAckException) {
-            _connectionState.value = MqttConnectionState.ConnectionError(e)
-            throw e
+            failConnection(e)
         }
+    }
+
+    private fun failConnection(cause: Exception): Nothing {
+        _connectionState.value = MqttConnectionState.ConnectionError(cause)
+        throw cause
     }
 
     override suspend fun disconnect(): Unit = withContext(dispatcher) {

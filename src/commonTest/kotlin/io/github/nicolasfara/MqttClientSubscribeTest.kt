@@ -10,7 +10,7 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertContains
-import kotlin.test.assertNotNull
+import kotlin.test.assertIs
 import kotlin.test.assertSame
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -21,8 +21,11 @@ class MqttClientSubscribeTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         val mqttClient = MkttClient(dispatcher, connectionConfiguration)
         mqttClient.connect()
-        val flow = mqttClient.subscribe("test/topic")
-        assertNotNull(flow)
+        // Subscribe must not alter the connection state; the returned flow is non-null by contract.
+        val flow = mqttClient.subscribe("test/subscribe-topic")
+        assertIs<MqttConnectionState.Connected>(mqttClient.connectionState.value)
+        // Subscribing again to the same topic must return the identical cached flow.
+        assertSame(flow, mqttClient.subscribe("test/subscribe-topic"))
         mqttClient.disconnect()
     }
 
