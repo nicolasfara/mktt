@@ -5,6 +5,7 @@ import io.github.nicolasfara.facade.IClientOptions
 import io.github.nicolasfara.facade.IClientPublishOptions
 import io.github.nicolasfara.facade.IMessageIdProvider
 import io.github.nicolasfara.facade.MqttClient
+import io.github.nicolasfara.facade.PacketInfo
 import io.github.nicolasfara.facade.Server
 import io.github.nicolasfara.facade.connectAsync
 import kotlinx.coroutines.await
@@ -20,10 +21,9 @@ internal actual class MqttClientWrapper actual constructor() {
     }
 
     actual fun setMessageCallback(callback: (topic: String, message: ByteArray, qos: Int, retain: Boolean) -> Unit) {
-        mqttClient?.on("message") { topic, message, packet ->
+        mqttClient?.on("message") { topic, message, packet: PacketInfo ->
             if (packet.cmd == "publish") {
-                @Suppress("UNCHECKED_CAST")
-                callback(topic, message, packet.qos as Int, packet.retain as Boolean)
+                callback(topic, message, packet.qos, packet.retain)
             }
         }
     }

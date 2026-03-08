@@ -63,7 +63,7 @@ external interface MqttClient : JsAny {
 
     fun publishAsync(topic: String, message: String): Promise<JsAny?>
 
-    fun publishAsync(topic: String, message: String, options: IClientPublishOptions): Promise<JsAny?>
+    fun publishAsync(topic: String, message: String, options: JsAny): Promise<JsAny?>
 
     fun subscribeAsync(topicObject: String): Promise<JsAny?>
 

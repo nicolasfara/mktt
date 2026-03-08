@@ -1,9 +1,8 @@
 @file:OptIn(ExperimentalWasmJsInterop::class)
-@file:Suppress("UNCHECKED_CAST", "MatchingDeclarationName")
+@file:Suppress("MatchingDeclarationName")
 
 package io.github.nicolasfara
 
-import io.github.nicolasfara.facade.IClientPublishOptions
 import io.github.nicolasfara.facade.MqttClient
 import io.github.nicolasfara.facade.connectAsync
 import kotlinx.coroutines.await
@@ -39,9 +38,7 @@ internal actual class MqttClientWrapper actual constructor() {
     }
 
     actual suspend fun publish(topic: String, message: String, qos: Int) {
-        @Suppress("UNCHECKED_CAST_TO_EXTERNAL_INTERFACE")
-        val opts = jsCreatePublishOptionsRaw(qos)!! as IClientPublishOptions
-        mqttClient?.publishAsync(topic, message, opts)?.await<JsAny?>()
+        mqttClient?.publishAsync(topic, message, jsCreatePublishOptionsRaw(qos)!!)?.await<JsAny?>()
     }
 
     actual suspend fun end() {

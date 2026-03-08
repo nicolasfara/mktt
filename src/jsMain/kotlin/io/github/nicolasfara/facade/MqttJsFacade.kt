@@ -41,6 +41,12 @@ external interface Server {
 
 external interface IMessageIdProvider
 
+external interface PacketInfo {
+    val cmd: String
+    val qos: Int
+    val retain: Boolean
+}
+
 external interface IClientPublishOptions {
     var qos: Number?
     var retain: Boolean?
@@ -99,7 +105,7 @@ external interface MqttClient {
 
     fun on(event: String, callback: (topic: String, message: ByteArray) -> Unit)
 
-    fun on(event: String, callback: (topic: String, message: ByteArray, packet: dynamic) -> Unit)
+    fun on(event: String, callback: (topic: String, message: ByteArray, packet: PacketInfo) -> Unit)
 
     fun on(event: String, callback: (dynamic) -> Unit)
 
