@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.future.await
 import kotlinx.coroutines.reactive.asFlow
 import kotlinx.coroutines.reactive.awaitFirst
@@ -39,12 +40,17 @@ internal class HivemqMkttClient(override val dispatcher: CoroutineDispatcher, co
             .serverHost(configuration.brokerUrl)
             .serverPort(configuration.port)
             .identifier(configuration.clientId)
-            .addConnectedListener { _connectionState.value = MqttConnectionState.Connected }
+            .addConnectedListener { _connectionState.update { MqttConnectionState.Connected } }
             .addDisconnectedListener { ctx ->
-                _connectionState.value = if (ctx.reconnector.isReconnect) {
-                    MqttConnectionState.Connecting
-                } else {
-                    MqttConnectionState.Disconnected
+                _connectionState.update { current ->
+                    // Do not override a ConnectionError set by the connect() catch block
+                    if (current is MqttConnectionState.ConnectionError) {
+                        current
+                    } else if (ctx.reconnector.isReconnect) {
+                        MqttConnectionState.Connecting
+                    } else {
+                        MqttConnectionState.Disconnected
+                    }
                 }
             }
         val builderWithWill = configuration.will?.let { builder.willPublish(it.toHivemq()) } ?: builder

@@ -5,7 +5,9 @@ package io.github.nicolasfara
  */
 sealed interface MqttConnectionState {
     /**
-     * The client is currently connecting to the MQTT broker.
+     * The client is currently connecting or reconnecting to the MQTT broker.
+     * This state is entered both during the initial connection attempt and
+     * during automatic reconnection after a disconnection.
      */
     object Connecting : MqttConnectionState
 

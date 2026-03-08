@@ -1,14 +1,16 @@
 package io.github.nicolasfara
 
+import io.github.nicolasfara.configuration.MqttTestConfiguration.BROKER
+import io.github.nicolasfara.configuration.MqttTestConfiguration.SSL_PORT
 import io.github.nicolasfara.configuration.MqttTestConfiguration.connectionConfiguration
 import io.github.nicolasfara.configuration.MqttTestConfiguration.invalidPortConnectionConfiguration
 import io.github.nicolasfara.configuration.MqttTestConfiguration.wrongConnectionConfiguration
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
+import kotlin.test.assertTrue
 
 class MqttClientTest {
     @Test
@@ -77,13 +79,15 @@ class MqttClientTest {
     }
 
     @Test
-    fun `The connectionState should reflect Disconnected after a failed connection attempt`() = runTest {
+    fun `The connectionState should not remain Connecting after a failed connection attempt`() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         val mqttClient = MkttClient(dispatcher, wrongConnectionConfiguration)
         assertFailsWith<Throwable> { mqttClient.connect() }
-        assertIs<MqttConnectionState>(mqttClient.connectionState.value)
-        // State must not be Connecting after a failed attempt
-        check(mqttClient.connectionState.value !is MqttConnectionState.Connecting)
+        val state = mqttClient.connectionState.value
+        assertTrue(
+            state is MqttConnectionState.Disconnected || state is MqttConnectionState.ConnectionError,
+            "Expected Disconnected or ConnectionError but got $state",
+        )
     }
 
     @Test
@@ -97,8 +101,8 @@ class MqttClientTest {
     fun `The client should connect over SSL`() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         val mqttClient = MkttClient(dispatcher) {
-            brokerUrl = io.github.nicolasfara.configuration.MqttTestConfiguration.BROKER
-            port = io.github.nicolasfara.configuration.MqttTestConfiguration.SSL_PORT
+            brokerUrl = BROKER
+            port = SSL_PORT
             ssl = true
         }
         mqttClient.connect()
@@ -107,13 +111,13 @@ class MqttClientTest {
     }
 
     @Test
-    fun `The connectionState should emit state changes as a Flow`() = runTest {
+    fun `The connectionState value should reflect each stage of the client lifecycle`() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         val mqttClient = MkttClient(dispatcher, connectionConfiguration)
-        assertIs<MqttConnectionState.Disconnected>(mqttClient.connectionState.first())
+        assertIs<MqttConnectionState.Disconnected>(mqttClient.connectionState.value)
         mqttClient.connect()
-        assertIs<MqttConnectionState.Connected>(mqttClient.connectionState.first())
+        assertIs<MqttConnectionState.Connected>(mqttClient.connectionState.value)
         mqttClient.disconnect()
-        assertIs<MqttConnectionState.Disconnected>(mqttClient.connectionState.first())
+        assertIs<MqttConnectionState.Disconnected>(mqttClient.connectionState.value)
     }
 }

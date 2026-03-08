@@ -24,14 +24,12 @@ internal object MkttJsAdapter {
         override var username: String? = this@toMqttjs.username
         override var password: Any? = this@toMqttjs.password
         override var will: Any? = this@toMqttjs.will?.let { w ->
-            js(
-                """({
-                topic: w.topic,
-                payload: w.message,
-                qos: w.qos.code,
-                retain: w.retained
-            })""",
-            )
+            val willObj: dynamic = js("{}")
+            willObj.topic = w.topic
+            willObj.payload = w.message
+            willObj.qos = w.qos.code
+            willObj.retain = w.retained
+            willObj
         }
         override var properties: Any? = null
         override var timerVariant: Any? = "auto"

@@ -1,6 +1,7 @@
 package io.github.nicolasfara
 
 import io.github.nicolasfara.adapter.MkttJsAdapter.toMqttjs
+import io.github.nicolasfara.facade.Error
 import io.github.nicolasfara.facade.IClientPublishOptions
 import io.github.nicolasfara.facade.MqttClient
 import io.github.nicolasfara.facade.connectAsync
@@ -69,7 +70,7 @@ internal class MqttJsClient(
                 override var retain: Boolean? = true
                 override var dup: Boolean? = null
                 override var properties: Any? = null
-                override var cbStorePut: ((io.github.nicolasfara.facade.Error?) -> Unit)? = null
+                override var cbStorePut: ((Error?) -> Unit)? = null
             }
         client.publishAsync(topic, message.decodeToString(), publishOption).await()
     }
