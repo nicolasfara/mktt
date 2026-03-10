@@ -87,14 +87,12 @@ kotlin {
             implementation(libs.kotlinx.coroutines.rx2)
             implementation(libs.hive.mqtt)
         }
-        val webMain by creating {
-            dependsOn(commonMain.get())
-            dependencies {
-                implementation(npm("mqtt", "5.13.3"))
-            }
+        jsMain.dependencies {
+            implementation(npm("mqtt", "5.13.3"))
         }
-        jsMain.get().dependsOn(webMain)
-        wasmJsMain.get().dependsOn(webMain)
+        wasmJsMain.dependencies {
+            implementation(npm("mqtt", "5.13.3"))
+        }
     }
 
 //

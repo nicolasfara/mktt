@@ -1,6 +1,13 @@
 package io.github.nicolasfara
 
+import io.github.nicolasfara.adapter.MkttJsAdapter.toMqttjs
+import io.github.nicolasfara.facade.Error
+import io.github.nicolasfara.facade.IClientPublishOptions
+import io.github.nicolasfara.facade.MqttClient
+import io.github.nicolasfara.facade.connectAsync
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.await
+import kotlinx.coroutines.channels.ProducerScope
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.channels.onFailure
 import kotlinx.coroutines.flow.Flow
@@ -19,7 +26,7 @@ internal class MqttJsClient(
     override val dispatcher: CoroutineDispatcher,
     private val configuration: MqttClientConfiguration,
 ) : MkttClient {
-    private val wrapper = MqttClientWrapper()
+    private lateinit var client: MqttClient
     private lateinit var messageFlow: Flow<MqttMessage>
     private val subscribedTopics = mutableMapOf<String, Flow<MqttMessage>>()
     private val _connectionState = MutableStateFlow<MqttConnectionState>(MqttConnectionState.Disconnected)
@@ -34,14 +41,11 @@ internal class MqttJsClient(
         val scheme = if (configuration.ssl) "mqtts" else "mqtt"
         val brokerString = "$scheme://${configuration.brokerUrl}:${configuration.port}"
         try {
-            wrapper.connect(brokerString, configuration)
+            client = connectAsync(brokerString, configuration.toMqttjs()).await()
             _connectionState.value = MqttConnectionState.Connected
             messageFlow = callbackFlow {
-                wrapper.setMessageCallback { topic, message, qos, retain ->
-                    val msg = MqttMessage(topic, message, MqttQoS.from(qos), retain)
-                    trySend(msg).onFailure { error -> close(error) }
-                }
-                awaitClose { wrapper.clearMessageCallback() }
+                client.on("message") { topic, message, packet -> onMessageCallback(topic, message, packet, this) }
+                awaitClose()
             }
         } finally {
             if (_connectionState.value is MqttConnectionState.Connecting) {
@@ -54,24 +58,33 @@ internal class MqttJsClient(
         check(_connectionState.value is MqttConnectionState.Connected) {
             "Client is not connected"
         }
-        wrapper.end()
+        client.endAsync().await()
+        client.off("message") { }
         _connectionState.value = MqttConnectionState.Disconnected
     }
 
     override suspend fun publish(topic: String, message: ByteArray, qos: MqttQoS) = withContext(dispatcher) {
-        wrapper.publish(topic, message.decodeToString(), qos.code)
+        val publishOption =
+            object : IClientPublishOptions {
+                override var qos: Number? = qos.code
+                override var retain: Boolean? = true
+                override var dup: Boolean? = null
+                override var properties: Any? = null
+                override var cbStorePut: ((Error?) -> Unit)? = null
+            }
+        client.publishAsync(topic, message.decodeToString(), publishOption).await()
     }
 
     override fun subscribe(topic: String, qos: MqttQoS): Flow<MqttMessage> = subscribedTopics.getOrPut(topic) {
         flow {
-            require(wrapper.isConnected) { "Client not initialized" }
-            wrapper.subscribe(topic)
+            require(::client.isInitialized) { "Client not initialized" }
+            client.subscribeAsync(topic).await()
             emitAll(messageFlow.filter { matchesTopicFilter(it.topic, topic) })
         }.cancellable().flowOn(dispatcher)
     }
 
     override suspend fun unsubscribe(topic: String): Unit = withContext(dispatcher) {
-        wrapper.unsubscribe(topic)
+        client.unsubscribeAsync(topic).await()
         subscribedTopics.remove(topic)
     }
 
@@ -82,5 +95,17 @@ internal class MqttJsClient(
                 .replace("#", ".*")
                 .let { "^$it$" }
         return Regex(regexPattern).matches(topic)
+    }
+
+    private fun onMessageCallback(
+        topic: String,
+        message: ByteArray,
+        packet: dynamic,
+        flowScope: ProducerScope<MqttMessage>,
+    ) = with(flowScope) {
+        if (packet.cmd == "publish") {
+            val msg = MqttMessage(topic, message, MqttQoS.from(packet.qos), packet.retain)
+            trySend(msg).onFailure { error -> close(error) }
+        }
     }
 }
