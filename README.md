@@ -67,7 +67,8 @@ mqttClient.disconnect()
 | **Linux**   | `linuxX64()`, `linuxArm64()`, `linuxArm32Hfp()`             | Linux native applications                    | :x:                |
 | **Windows** | `mingwX64()`                                                | Windows native applications                  | :x:                |
 | **Web**     | `js()`                                                      | JavaScript (both browser & Node.js)          | :white_check_mark: |
-| **Wasm**    | `wasmJs()`, `wasmWasi()`                                    | WebAssembly (browser & standalone)           | :x:                |
+| **Wasm JS** | `wasmJs()`                                                  | WebAssembly via JS (browser & Node.js)       | :white_check_mark: |
+| **Wasm**    | `wasmWasi()`                                                | WebAssembly WASI (standalone)                | :x:                |
 
 # License
 

@@ -55,11 +55,23 @@ kotlin {
         }
         binaries.library()
     }
-    //    wasmJs {
-    //        browser()
-    //        nodejs()
-    //        binaries.library()
-    //    }
+    wasmJs {
+        browser {
+            testTask {
+                useMocha {
+                    timeout = "1m"
+                }
+            }
+        }
+        nodejs {
+            testTask {
+                useMocha {
+                    timeout = "1m"
+                }
+            }
+        }
+        binaries.library()
+    }
 
     sourceSets {
         commonMain.dependencies {
@@ -76,6 +88,9 @@ kotlin {
             implementation(libs.hive.mqtt)
         }
         jsMain.dependencies {
+            implementation(npm("mqtt", "5.13.3"))
+        }
+        wasmJsMain.dependencies {
             implementation(npm("mqtt", "5.13.3"))
         }
     }
