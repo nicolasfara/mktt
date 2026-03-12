@@ -2,6 +2,7 @@ import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.targets.js.dsl.KotlinJsSubTargetDsl
+import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 
 plugins {
     alias(libs.plugins.dokka)
@@ -61,6 +62,37 @@ kotlin {
     //        binaries.library()
     //    }
 
+    applyDefaultHierarchyTemplate()
+
+    val nativeSetup: KotlinNativeTarget.() -> Unit = {
+        binaries {
+            sharedLib()
+            staticLib()
+        }
+    }
+
+    /*
+     * Linux
+     */
+    linuxX64(nativeSetup)
+    linuxArm64(nativeSetup)
+    /*
+     * Windows
+     */
+    mingwX64(nativeSetup)
+    /*
+     * Apple OSs
+     */
+    macosX64(nativeSetup)
+    macosArm64(nativeSetup)
+    iosArm64(nativeSetup)
+    iosSimulatorArm64(nativeSetup)
+    watchosArm32(nativeSetup)
+    watchosArm64(nativeSetup)
+    watchosSimulatorArm64(nativeSetup)
+    tvosArm64(nativeSetup)
+    tvosSimulatorArm64(nativeSetup)
+
     sourceSets {
         commonMain.dependencies {
             implementation(libs.kotlinx.coroutines)
@@ -78,38 +110,13 @@ kotlin {
         jsMain.dependencies {
             implementation(npm("mqtt", "5.13.3"))
         }
+        val nativeMain by getting {
+            dependencies {
+                implementation(libs.ktor.network)
+                implementation(libs.ktor.network.tls)
+            }
+        }
     }
-
-//
-//    val nativeSetup: KotlinNativeTarget.() -> Unit = {
-//        binaries {
-//            sharedLib()
-//            staticLib()
-//        }
-//    }
-//
-//    applyDefaultHierarchyTemplate()
-//    /*
-//     * Linux 64
-//     */
-//    linuxX64(nativeSetup)
-//    linuxArm64(nativeSetup)
-//    /*
-//     * Win 64
-//     */
-//    mingwX64(nativeSetup)
-//    /*
-//     * Apple OSs
-//     */
-//    macosX64(nativeSetup)
-//    macosArm64(nativeSetup)
-//    iosArm64(nativeSetup)
-//    iosSimulatorArm64(nativeSetup)
-//    watchosArm32(nativeSetup)
-//    watchosArm64(nativeSetup)
-//    watchosSimulatorArm64(nativeSetup)
-//    tvosArm64(nativeSetup)
-//    tvosSimulatorArm64(nativeSetup)
 }
 
 tasks.withType<Test>().configureEach {
