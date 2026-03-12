@@ -352,8 +352,15 @@ internal class NativeMkttClient(
 
     // ---- MQTT packet reading ----
 
+    /** Reads exactly one byte from the channel using [readFully]. */
+    private suspend fun ByteReadChannel.readOneByte(): Byte {
+        val buf = ByteArray(1)
+        readFully(buf, 0, 1)
+        return buf[0]
+    }
+
     private suspend fun readPacket(rc: ByteReadChannel): Pair<Byte, ByteArray> {
-        val firstByte = rc.readByte()
+        val firstByte = rc.readOneByte()
         val remainingLength = readVariableLength(rc)
         val payload = ByteArray(remainingLength)
         if (remainingLength > 0) {
@@ -366,7 +373,7 @@ internal class NativeMkttClient(
         var multiplier = 1
         var value = 0
         do {
-            val byte = rc.readByte().toInt() and 0xFF
+            val byte = rc.readOneByte().toInt() and 0xFF
             value += (byte and 0x7F) * multiplier
             multiplier *= 128
             if (multiplier > 128 * 128 * 128) error("Malformed remaining length in MQTT packet")
@@ -397,25 +404,32 @@ internal class NativeMkttClient(
 
     // ---- MQTT packet writing ----
 
+    /**
+     * Builds a complete MQTT packet (fixed header + variable-length remaining-length + payload)
+     * and writes it to the channel in one [ByteWriteChannel.write] call.
+     * This avoids the [writeByte]/[writeFully] extensions that were removed in ktor 3.x.
+     */
     private suspend fun sendPacket(wc: ByteWriteChannel, fixedHeader: Int, payload: ByteArray) {
+        val packet = buildFullPacket(fixedHeader, payload)
         writeMutex.withLock {
-            wc.writeByte(fixedHeader.toByte())
-            writeVariableLength(wc, payload.size)
-            if (payload.isNotEmpty()) {
-                wc.writeFully(payload, 0, payload.size)
-            }
+            wc.write(packet.size) { buf -> buf.write(packet, 0, packet.size) }
             wc.flush()
         }
     }
 
-    private suspend fun writeVariableLength(wc: ByteWriteChannel, value: Int) {
-        var remaining = value
+    /** Encodes [fixedHeader] + variable-length remaining-length + [payload] into one [ByteArray]. */
+    private fun buildFullPacket(fixedHeader: Int, payload: ByteArray): ByteArray {
+        val packet = MqttBuffer()
+        packet.writeByte(fixedHeader)
+        var remaining = payload.size
         do {
             var digit = remaining % 128
             remaining /= 128
             if (remaining > 0) digit = digit or 0x80
-            wc.writeByte(digit.toByte())
+            packet.writeByte(digit)
         } while (remaining > 0)
+        packet.writeBytes(payload)
+        return packet.toByteArray()
     }
 
     private suspend fun sendConnect(wc: ByteWriteChannel) {
