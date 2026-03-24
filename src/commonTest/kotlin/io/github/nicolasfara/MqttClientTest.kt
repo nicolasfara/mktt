@@ -5,6 +5,7 @@ import io.github.nicolasfara.configuration.MqttTestConfiguration.SSL_PORT
 import io.github.nicolasfara.configuration.MqttTestConfiguration.connectionConfiguration
 import io.github.nicolasfara.configuration.MqttTestConfiguration.invalidPortConnectionConfiguration
 import io.github.nicolasfara.configuration.MqttTestConfiguration.wrongConnectionConfiguration
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
@@ -107,6 +108,8 @@ class MqttClientTest {
         }
         try {
             mqttClient.connect()
+        } catch (error: CancellationException) {
+            throw error
         } catch (error: IllegalStateException) {
             // Ktor TLS on Kotlin/Native currently reports this unsupported mode explicitly.
             if (error.message?.contains("TLS sessions are not supported") == true) {

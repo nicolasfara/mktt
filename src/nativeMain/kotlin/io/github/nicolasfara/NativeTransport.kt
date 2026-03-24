@@ -50,24 +50,27 @@ internal object KtorNativeTransportFactory : NativeTransportFactory {
     ): NativeTransportSession = withContext(ioDispatcher) {
         val selectorManager = SelectorManager(ioDispatcher)
         var socket: Socket? = null
-        try {
-            val rawSocket = aSocket(selectorManager).tcp().connect(
-                hostname = configuration.brokerUrl,
-                port = configuration.port,
-            )
-            socket = if (configuration.ssl) rawSocket.tls(coroutineContext) else rawSocket
-            val connectedSocket = requireNotNull(socket)
-            KtorNativeTransportSession(
-                selectorManager = selectorManager,
-                socket = connectedSocket,
-                readChannel = connectedSocket.openReadChannel(),
-                writeChannel = connectedSocket.openWriteChannel(autoFlush = false),
-            )
-        } catch (error: Throwable) {
-            socket?.close()
-            selectorManager.close()
-            throw error
-        }
+        recoverNonCancellation(
+            block = {
+                val rawSocket = aSocket(selectorManager).tcp().connect(
+                    hostname = configuration.brokerUrl,
+                    port = configuration.port,
+                )
+                socket = if (configuration.ssl) rawSocket.tls(coroutineContext) else rawSocket
+                val connectedSocket = requireNotNull(socket)
+                KtorNativeTransportSession(
+                    selectorManager = selectorManager,
+                    socket = connectedSocket,
+                    readChannel = connectedSocket.openReadChannel(),
+                    writeChannel = connectedSocket.openWriteChannel(autoFlush = false),
+                )
+            },
+            onFailure = { error ->
+                ignoreNonCancellation { socket?.close() }
+                selectorManager.close()
+                throw error
+            },
+        )
     }
 }
 
