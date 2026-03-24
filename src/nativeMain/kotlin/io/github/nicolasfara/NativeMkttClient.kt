@@ -1,15 +1,7 @@
 package io.github.nicolasfara
 
-import io.ktor.network.selector.SelectorManager
-import io.ktor.network.sockets.Socket
-import io.ktor.network.sockets.aSocket
-import io.ktor.network.sockets.openReadChannel
-import io.ktor.network.sockets.openWriteChannel
-import io.ktor.network.tls.tls
 import io.ktor.utils.io.ByteReadChannel
 import io.ktor.utils.io.ByteWriteChannel
-import io.ktor.utils.io.errors.PosixException
-import io.ktor.utils.io.readFully
 import io.ktor.utils.io.writeFully
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
@@ -22,11 +14,11 @@ import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
@@ -36,107 +28,6 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
-
-// MQTT 3.1.1 fixed-header byte constants
-private const val MQTT_CONNECT = 0x10
-private const val MQTT_CONNACK = 0x20
-private const val MQTT_PUBLISH_TYPE = 0x30
-private const val MQTT_PUBACK = 0x40
-private const val MQTT_PUBREC = 0x50
-private const val MQTT_PUBREL = 0x62 // type bits 0x60 | reserved bits 0x02
-private const val MQTT_PUBCOMP = 0x70
-private const val MQTT_SUBSCRIBE = 0x82 // type bits 0x80 | reserved bits 0x02
-private const val MQTT_SUBACK = 0x90
-private const val MQTT_UNSUBSCRIBE = 0xa2 // type bits 0xa0 | reserved bits 0x02
-private const val MQTT_UNSUBACK = 0xb0
-private const val MQTT_PINGREQ = 0xc0
-private const val MQTT_PINGRESP = 0xd0
-private const val MQTT_DISCONNECT = 0xe0
-
-// MQTT 3.1.1 protocol name and version
-private const val MQTT_PROTOCOL_NAME = "MQTT"
-private const val MQTT_PROTOCOL_LEVEL = 4
-
-// CONNACK return codes
-private const val CONNACK_ACCEPTED = 0
-private const val CONNACK_UNACCEPTABLE_PROTOCOL = 1
-private const val CONNACK_IDENTIFIER_REJECTED = 2
-private const val CONNACK_SERVER_UNAVAILABLE = 3
-private const val CONNACK_BAD_CREDENTIALS = 4
-private const val CONNACK_NOT_AUTHORIZED = 5
-
-private const val MAX_REMAINING_LENGTH_BYTES = 4
-private const val MAX_REMAINING_LENGTH = 268_435_455
-private const val DEFAULT_CONNECT_RETRY_ATTEMPTS = 3
-private const val DEFAULT_CONNECT_RETRY_INITIAL_DELAY_MS = 100L
-private const val DEFAULT_CONNECT_RETRY_MAX_DELAY_MS = 1_000L
-private const val DEFAULT_RECONNECT_INITIAL_DELAY_MS = 500L
-private const val DEFAULT_RECONNECT_MAX_DELAY_MS = 10_000L
-private const val DEFAULT_ACK_TIMEOUT_MS = 10_000L
-
-internal data class NativeMkttClientTiming(
-    val connectRetryAttempts: Int = DEFAULT_CONNECT_RETRY_ATTEMPTS,
-    val connectRetryInitialDelayMs: Long = DEFAULT_CONNECT_RETRY_INITIAL_DELAY_MS,
-    val connectRetryMaxDelayMs: Long = DEFAULT_CONNECT_RETRY_MAX_DELAY_MS,
-    val reconnectInitialDelayMs: Long = DEFAULT_RECONNECT_INITIAL_DELAY_MS,
-    val reconnectMaxDelayMs: Long = DEFAULT_RECONNECT_MAX_DELAY_MS,
-    val ackTimeoutMs: Long = DEFAULT_ACK_TIMEOUT_MS,
-)
-
-internal fun interface NativeTransportFactory {
-    suspend fun open(configuration: MqttClientConfiguration, ioDispatcher: CoroutineDispatcher): NativeTransportSession
-}
-
-internal interface NativeTransportSession {
-    val readChannel: ByteReadChannel
-    val writeChannel: ByteWriteChannel
-
-    suspend fun close()
-}
-
-internal val DEFAULT_TRANSIENT_FAILURE_DETECTOR: (Throwable) -> Boolean = { error ->
-    error is PosixException.TryAgainException
-}
-
-private object KtorNativeTransportFactory : NativeTransportFactory {
-    override suspend fun open(
-        configuration: MqttClientConfiguration,
-        ioDispatcher: CoroutineDispatcher,
-    ): NativeTransportSession = withContext(ioDispatcher) {
-        val selectorManager = SelectorManager(ioDispatcher)
-        var socket: Socket? = null
-        try {
-            val rawSocket = aSocket(selectorManager).tcp().connect(
-                hostname = configuration.brokerUrl,
-                port = configuration.port,
-            )
-            socket = if (configuration.ssl) rawSocket.tls(coroutineContext) else rawSocket
-            val connectedSocket = socket
-            KtorNativeTransportSession(
-                selectorManager = selectorManager,
-                socket = connectedSocket,
-                readChannel = connectedSocket.openReadChannel(),
-                writeChannel = connectedSocket.openWriteChannel(autoFlush = false),
-            )
-        } catch (error: Throwable) {
-            socket?.close()
-            selectorManager.close()
-            throw error
-        }
-    }
-}
-
-private class KtorNativeTransportSession(
-    private val selectorManager: SelectorManager,
-    private val socket: Socket,
-    override val readChannel: ByteReadChannel,
-    override val writeChannel: ByteWriteChannel,
-) : NativeTransportSession {
-    override suspend fun close() {
-        socket.close()
-        selectorManager.close()
-    }
-}
 
 private data class ActiveConnection(
     val transport: NativeTransportSession,
@@ -185,8 +76,14 @@ private sealed class ClientCommand {
     data class ReconnectAttempt(val result: CompletableDeferred<Boolean>) : ClientCommand()
 }
 
+private sealed class ConnectionCloseCause {
+    data object Expected : ConnectionCloseCause()
+
+    data class Unexpected(val error: Throwable) : ConnectionCloseCause()
+}
+
 /**
- * Native [MkttClient] using Ktor sockets and an internal MQTT 3.1.1 codec.
+ * Native [MkttClient] using Ktor sockets and an internal MQTT 5 codec.
  *
  * A single command actor serializes client lifecycle and API operations.
  */
@@ -205,7 +102,7 @@ internal class NativeMkttClient(
     private val commandScope = CoroutineScope(dispatcher + SupervisorJob())
     private val commandChannel = Channel<ClientCommand>(Channel.UNLIMITED)
 
-    private val incomingMessages = MutableSharedFlow<MqttMessage>(extraBufferCapacity = 1000)
+    private val incomingMessages = MutableSharedFlow<MqttMessage>(extraBufferCapacity = 1_000)
     private val subscribedTopics = mutableMapOf<String, MqttQoS>()
     private val subscribedFlows = mutableMapOf<String, Flow<MqttMessage>>()
 
@@ -236,14 +133,13 @@ internal class NativeMkttClient(
         submitCommand { result -> ClientCommand.Publish(topic, message, qos, result) }
     }
 
-    override fun subscribe(topic: String, qos: MqttQoS): Flow<MqttMessage> {
-        return subscribedFlows.getOrPut(topic) {
+    override fun subscribe(topic: String, qos: MqttQoS): Flow<MqttMessage> =
+        subscribedFlows.getOrPut(topic) {
             flow {
                 submitCommand { result -> ClientCommand.Subscribe(topic, qos, result) }
                 emitAll(incomingMessages.filter { matchesTopicFilter(it.topic, topic) })
             }.flowOn(dispatcher)
         }
-    }
 
     override suspend fun unsubscribe(topic: String) {
         submitCommand { result -> ClientCommand.Unsubscribe(topic, result) }
@@ -264,9 +160,7 @@ internal class NativeMkttClient(
                     unsubscribeInternal(command.topic)
                 }
                 is ClientCommand.ConnectionLost -> onConnectionLost(command.cause)
-                is ClientCommand.ReconnectAttempt -> complete(command.result) {
-                    reconnectAttemptInternal()
-                }
+                is ClientCommand.ReconnectAttempt -> complete(command.result) { reconnectAttemptInternal() }
             }
         }
     }
@@ -302,9 +196,7 @@ internal class NativeMkttClient(
         reconnectJob = null
 
         val connection = requireActiveConnection()
-        runCatching {
-            sendDisconnect(connection.transport.writeChannel)
-        }
+        runCatching { sendDisconnect(connection.transport.writeChannel) }
 
         closeActiveConnection(ConnectionCloseCause.Expected)
         subscribedTopics.clear()
@@ -320,29 +212,25 @@ internal class NativeMkttClient(
             }
             error("Not connected")
         }
+
         when (qos) {
-            MqttQoS.AtMostOnce -> sendPublish(connection.transport.writeChannel, topic, payload, qos, packetId = 0)
+            MqttQoS.AtMostOnce -> {
+                sendPublish(connection.transport.writeChannel, topic, payload, qos, packetId = 0)
+            }
+
             MqttQoS.AtLeastOnce -> {
                 val packetId = nextPacketId()
-                awaitAck(
-                    ackKey = AckKey(AckType.PubAck, packetId),
-                    timeoutMs = ackTimeoutMs(),
-                ) {
+                awaitAck(AckKey(AckType.PubAck, packetId), ackTimeoutMs()) {
                     sendPublish(connection.transport.writeChannel, topic, payload, qos, packetId)
                 }
             }
+
             MqttQoS.ExactlyOnce -> {
                 val packetId = nextPacketId()
-                awaitAck(
-                    ackKey = AckKey(AckType.PubRec, packetId),
-                    timeoutMs = ackTimeoutMs(),
-                ) {
+                awaitAck(AckKey(AckType.PubRec, packetId), ackTimeoutMs()) {
                     sendPublish(connection.transport.writeChannel, topic, payload, qos, packetId)
                 }
-                awaitAck(
-                    ackKey = AckKey(AckType.PubComp, packetId),
-                    timeoutMs = ackTimeoutMs(),
-                ) {
+                awaitAck(AckKey(AckType.PubComp, packetId), ackTimeoutMs()) {
                     sendPubRel(connection.transport.writeChannel, packetId)
                 }
             }
@@ -351,33 +239,21 @@ internal class NativeMkttClient(
 
     private suspend fun subscribeInternal(topic: String, qos: MqttQoS) {
         requireActiveConnection()
-
-        val existingQoS = subscribedTopics[topic]
-        if (existingQoS != null) {
+        if (subscribedTopics.containsKey(topic)) {
             return
         }
 
-        try {
-            sendSubscribeAndAwait(topic, qos)
-            subscribedTopics[topic] = qos
-        } catch (error: Throwable) {
-            throw error
-        }
+        sendSubscribeAndAwait(topic, qos)
+        subscribedTopics[topic] = qos
     }
 
     private suspend fun unsubscribeInternal(topic: String) {
-        val removed = subscribedTopics[topic] ?: error("Topic not subscribed: $topic")
+        check(subscribedTopics.containsKey(topic)) { "Topic not subscribed: $topic" }
         requireActiveConnection()
 
-        try {
-            sendUnsubscribeAndAwait(topic)
-            if (subscribedTopics[topic] == removed) {
-                subscribedTopics.remove(topic)
-            }
-            subscribedFlows.remove(topic)
-        } catch (error: Throwable) {
-            throw error
-        }
+        sendUnsubscribeAndAwait(topic)
+        subscribedTopics.remove(topic)
+        subscribedFlows.remove(topic)
     }
 
     private suspend fun reconnectAttemptInternal(): Boolean {
@@ -400,11 +276,7 @@ internal class NativeMkttClient(
     }
 
     private suspend fun onConnectionLost(cause: Throwable) {
-        if (_connectionState.value is MqttConnectionState.Disconnected) {
-            return
-        }
-
-        if (activeConnection == null) {
+        if (_connectionState.value is MqttConnectionState.Disconnected || activeConnection == null) {
             return
         }
 
@@ -454,8 +326,7 @@ internal class NativeMkttClient(
                 return
             } catch (error: Throwable) {
                 closeActiveConnection(ConnectionCloseCause.Expected)
-                val shouldRetry =
-                    isTransientFailure(error) && attempt < timing.connectRetryAttempts.coerceAtLeast(1)
+                val shouldRetry = isTransientFailure(error) && attempt < timing.connectRetryAttempts.coerceAtLeast(1)
                 if (!shouldRetry) {
                     throw error
                 }
@@ -517,10 +388,7 @@ internal class NativeMkttClient(
     private suspend fun sendSubscribeAndAwait(topic: String, qos: MqttQoS) {
         val connection = activeConnection ?: error("Not connected")
         val packetId = nextPacketId()
-        awaitAck(
-            ackKey = AckKey(AckType.SubAck, packetId),
-            timeoutMs = ackTimeoutMs(),
-        ) {
+        awaitAck(AckKey(AckType.SubAck, packetId), ackTimeoutMs()) {
             sendSubscribe(connection.transport.writeChannel, topic, qos, packetId)
         }
     }
@@ -528,10 +396,7 @@ internal class NativeMkttClient(
     private suspend fun sendUnsubscribeAndAwait(topic: String) {
         val connection = activeConnection ?: error("Not connected")
         val packetId = nextPacketId()
-        awaitAck(
-            ackKey = AckKey(AckType.UnsubAck, packetId),
-            timeoutMs = ackTimeoutMs(),
-        ) {
+        awaitAck(AckKey(AckType.UnsubAck, packetId), ackTimeoutMs()) {
             sendUnsubscribe(connection.transport.writeChannel, topic, packetId)
         }
     }
@@ -540,10 +405,7 @@ internal class NativeMkttClient(
         val intervalMs = configuration.keepAliveInterval.coerceAtLeast(1L) * 1_000L
         while (true) {
             delay(intervalMs)
-            awaitAck(
-                ackKey = AckKey(AckType.PingResp, packetId = 0),
-                timeoutMs = ackTimeoutMs(),
-            ) {
+            awaitAck(AckKey(AckType.PingResp, 0), ackTimeoutMs()) {
                 sendPingReq(writeChannel)
             }
         }
@@ -551,26 +413,57 @@ internal class NativeMkttClient(
 
     private suspend fun readLoop(readChannel: ByteReadChannel) {
         while (true) {
-            val (firstByte, payload) = readPacket(readChannel)
-            val packetType = firstByte.toInt() and 0xFF
+            val packet = readChannel.readMqttPacket()
             when {
-                packetType and 0xF0 == MQTT_PUBLISH_TYPE -> handleIncomingPublish(packetType, payload)
-                packetType == MQTT_PUBACK -> completeAck(AckKey(AckType.PubAck, readPacketId(payload)), payload)
-                packetType == MQTT_PUBREC -> completeAck(AckKey(AckType.PubRec, readPacketId(payload)), payload)
-                packetType == MQTT_PUBCOMP -> completeAck(AckKey(AckType.PubComp, readPacketId(payload)), payload)
-                packetType == MQTT_SUBACK -> {
-                    validateSubAck(payload)
-                    completeAck(AckKey(AckType.SubAck, readPacketId(payload)), payload)
+                isPublishPacket(packet.fixedHeader) -> handleIncomingPublish(packet)
+                packet.fixedHeader == MQTT_PUBACK -> {
+                    handleAckPacket(AckKey(AckType.PubAck, packet.payload.readMqttPacketId()), packet.payload, "PUBACK")
                 }
-                packetType == MQTT_UNSUBACK -> completeAck(AckKey(AckType.UnsubAck, readPacketId(payload)), payload)
-                packetType and 0xF0 == 0x60 -> handleIncomingPubRel(payload)
-                packetType == MQTT_PINGRESP -> completeAck(AckKey(AckType.PingResp, 0), payload)
-                packetType == MQTT_DISCONNECT -> throw IllegalStateException("Broker sent DISCONNECT")
-                else -> {
-                    // Ignore unsupported packet types for now.
+
+                packet.fixedHeader == MQTT_PUBREC -> {
+                    handleAckPacket(AckKey(AckType.PubRec, packet.payload.readMqttPacketId()), packet.payload, "PUBREC")
                 }
+
+                packet.fixedHeader == MQTT_PUBCOMP -> {
+                    handleAckPacket(AckKey(AckType.PubComp, packet.payload.readMqttPacketId()), packet.payload, "PUBCOMP")
+                }
+
+                packet.fixedHeader == MQTT_SUBACK -> handleSubAck(packet.payload)
+                packet.fixedHeader == MQTT_UNSUBACK -> handleUnsubAck(packet.payload)
+                isPubRelPacket(packet.fixedHeader) -> handleIncomingPubRel(packet.payload)
+                packet.fixedHeader == MQTT_PINGRESP -> completeAck(AckKey(AckType.PingResp, 0), packet.payload)
+                packet.fixedHeader == MQTT_DISCONNECT -> throw packet.payload.toDisconnectException()
             }
         }
+    }
+
+    private suspend fun handleAckPacket(ackKey: AckKey, payload: ByteArray, packetName: String) {
+        val reasonCode = payload.readAckReasonCode(packetName)
+        if (reasonCode >= MQTT_REASON_ERROR_THRESHOLD) {
+            failAck(ackKey, IllegalStateException("$packetName failed: ${describeReasonCode(reasonCode)}"))
+            return
+        }
+        completeAck(ackKey, payload)
+    }
+
+    private suspend fun handleSubAck(payload: ByteArray) {
+        val ackKey = AckKey(AckType.SubAck, payload.readMqttPacketId())
+        val failureReason = payload.readReasonCodes("SUBACK").firstOrNull { it >= MQTT_REASON_ERROR_THRESHOLD }
+        if (failureReason != null) {
+            failAck(ackKey, IllegalStateException("Subscription rejected: ${describeReasonCode(failureReason)}"))
+            return
+        }
+        completeAck(ackKey, payload)
+    }
+
+    private suspend fun handleUnsubAck(payload: ByteArray) {
+        val ackKey = AckKey(AckType.UnsubAck, payload.readMqttPacketId())
+        val failureReason = payload.readReasonCodes("UNSUBACK").firstOrNull { it >= MQTT_REASON_ERROR_THRESHOLD }
+        if (failureReason != null) {
+            failAck(ackKey, IllegalStateException("Unsubscription rejected: ${describeReasonCode(failureReason)}"))
+            return
+        }
+        completeAck(ackKey, payload)
     }
 
     private suspend fun completeAck(ackKey: AckKey, payload: ByteArray) {
@@ -578,50 +471,43 @@ internal class NativeMkttClient(
         deferred?.complete(payload)
     }
 
-    private suspend fun handleIncomingPublish(packetType: Int, payload: ByteArray) {
-        val qosBits = (packetType shr 1) and 0x03
-        val retain = (packetType and 0x01) != 0
-        val qos = MqttQoS.from(qosBits)
+    private suspend fun failAck(ackKey: AckKey, error: Throwable) {
+        val deferred = acksMutex.withLock { pendingAcks.remove(ackKey) }
+        deferred?.completeExceptionally(error)
+    }
 
-        var offset = 0
-        val topicLength = readUInt16(payload, offset)
-        offset += 2
-        check(offset + topicLength <= payload.size) { "Malformed PUBLISH packet topic field" }
-        val topic = payload.decodeToString(offset, offset + topicLength)
-        offset += topicLength
+    private suspend fun handleIncomingPublish(packet: NativeMqttPacket) {
+        val publish = packet.payload.parseIncomingPublish(packet.fixedHeader)
+        val mqttMessage = MqttMessage(
+            topic = publish.topic,
+            payload = publish.payload,
+            qos = publish.qos,
+            retained = publish.retain,
+        )
 
-        val packetId = if (qos != MqttQoS.AtMostOnce) {
-            val id = readUInt16(payload, offset)
-            offset += 2
-            id
-        } else {
-            0
-        }
-
-        check(offset <= payload.size) { "Malformed PUBLISH payload" }
-        val messagePayload = payload.copyOfRange(offset, payload.size)
-        val mqttMessage = MqttMessage(topic, messagePayload, qos, retain)
-
-        when (qos) {
+        when (publish.qos) {
             MqttQoS.AtMostOnce -> incomingMessages.emit(mqttMessage)
+
             MqttQoS.AtLeastOnce -> {
                 incomingMessages.emit(mqttMessage)
-                activeConnection?.let { sendPubAck(it.transport.writeChannel, packetId) }
+                activeConnection?.let { sendPubAck(it.transport.writeChannel, publish.packetId) }
             }
+
             MqttQoS.ExactlyOnce -> {
-                acksMutex.withLock { pendingQoS2Messages[packetId] = mqttMessage }
-                activeConnection?.let { sendPubRec(it.transport.writeChannel, packetId) }
+                acksMutex.withLock { pendingQoS2Messages[publish.packetId] = mqttMessage }
+                activeConnection?.let { sendPubRec(it.transport.writeChannel, publish.packetId) }
             }
         }
     }
 
     private suspend fun handleIncomingPubRel(payload: ByteArray) {
-        val packetId = readPacketId(payload)
+        val packetId = payload.readMqttPacketId()
+        val reasonCode = payload.readAckReasonCode("PUBREL")
         val message = acksMutex.withLock { pendingQoS2Messages.remove(packetId) }
-        if (message != null) {
+        if (reasonCode < MQTT_REASON_ERROR_THRESHOLD && message != null) {
             incomingMessages.emit(message)
-            activeConnection?.let { sendPubComp(it.transport.writeChannel, packetId) }
         }
+        activeConnection?.let { sendPubComp(it.transport.writeChannel, packetId) }
     }
 
     private suspend fun awaitAck(
@@ -646,7 +532,6 @@ internal class NativeMkttClient(
         activeConnection = null
 
         connection.ioScope.cancel()
-
         val pendingError = when (cause) {
             ConnectionCloseCause.Expected -> IllegalStateException("Connection closed")
             is ConnectionCloseCause.Unexpected -> cause.error
@@ -674,7 +559,7 @@ internal class NativeMkttClient(
     }
 
     private fun nextPacketId(): Int {
-        packetIdCounter = (packetIdCounter % 0xFFFF) + 1
+        packetIdCounter = (packetIdCounter % MQTT_MAX_PACKET_ID) + 1
         return packetIdCounter
     }
 
@@ -703,77 +588,19 @@ internal class NativeMkttClient(
             }
         }
 
-    // ---- MQTT packet reading ----
-
-    private suspend fun ByteReadChannel.readOneByte(): Byte {
-        val buf = ByteArray(1)
-        readFully(buf, 0, 1)
-        return buf[0]
-    }
-
-    private suspend fun readPacket(readChannel: ByteReadChannel): Pair<Byte, ByteArray> {
-        val firstByte = readChannel.readOneByte()
-        val remainingLength = readVariableLength(readChannel)
-        val payload = ByteArray(remainingLength)
-        if (remainingLength > 0) {
-            readChannel.readFully(payload, 0, remainingLength)
-        }
-        return firstByte to payload
-    }
-
-    private suspend fun readVariableLength(readChannel: ByteReadChannel): Int {
-        var multiplier = 1
-        var value = 0
-        var count = 0
-
-        do {
-            val byte = readChannel.readOneByte().toInt() and 0xFF
-            value += (byte and 0x7F) * multiplier
-            check(value <= MAX_REMAINING_LENGTH) { "MQTT remaining length exceeds maximum" }
-            multiplier *= 128
-            count += 1
-            check(count <= MAX_REMAINING_LENGTH_BYTES) { "Malformed MQTT remaining length" }
-        } while (byte and 0x80 != 0)
-
-        return value
-    }
-
     private suspend fun receiveConnAck(readChannel: ByteReadChannel) {
-        val (firstByte, payload) = readPacket(readChannel)
-        if (firstByte.toInt() and 0xFF != MQTT_CONNACK) {
-            error("Expected CONNACK but received packet type ${firstByte.toInt() and 0xFF}")
+        val packet = readChannel.readMqttPacket()
+        check(packet.fixedHeader == MQTT_CONNACK) {
+            "Expected CONNACK but received packet type ${packet.fixedHeader}"
         }
-        check(payload.size >= 2) { "CONNACK packet is too short" }
-        val returnCode = payload[1].toInt() and 0xFF
-        if (returnCode != CONNACK_ACCEPTED) {
-            throw IllegalStateException(
-                "MQTT connection refused: " + when (returnCode) {
-                    CONNACK_UNACCEPTABLE_PROTOCOL -> "Unacceptable protocol version"
-                    CONNACK_IDENTIFIER_REJECTED -> "Client identifier rejected"
-                    CONNACK_SERVER_UNAVAILABLE -> "Server unavailable"
-                    CONNACK_BAD_CREDENTIALS -> "Bad username or password"
-                    CONNACK_NOT_AUTHORIZED -> "Not authorized"
-                    else -> "Unknown return code $returnCode"
-                },
-            )
+        val reasonCode = packet.payload.readConnAckReasonCode()
+        if (reasonCode != MQTT_REASON_SUCCESS) {
+            throw IllegalStateException("MQTT connection refused: ${describeConnectReasonCode(reasonCode)}")
         }
     }
-
-    private fun readPacketId(payload: ByteArray): Int {
-        check(payload.size >= 2) { "ACK packet is too short" }
-        return readUInt16(payload, 0)
-    }
-
-    private fun validateSubAck(payload: ByteArray) {
-        check(payload.size >= 3) { "SUBACK packet is too short" }
-        val granted = payload.copyOfRange(2, payload.size)
-        check(granted.none { (it.toInt() and 0xFF) == 0x80 }) { "Subscription rejected by broker" }
-    }
-
-    // ---- MQTT packet writing ----
 
     private suspend fun sendPacket(writeChannel: ByteWriteChannel, fixedHeader: Int, payload: ByteArray) {
-        val packet = buildFullPacket(fixedHeader, payload)
+        val packet = buildMqttPacket(fixedHeader, payload)
         withContext(ioDispatcher) {
             writeMutex.withLock {
                 writeChannel.writeFully(packet)
@@ -782,60 +609,8 @@ internal class NativeMkttClient(
         }
     }
 
-    private fun buildFullPacket(fixedHeader: Int, payload: ByteArray): ByteArray {
-        val packet = MqttBuffer()
-        packet.writeByte(fixedHeader)
-        var remaining = payload.size
-        do {
-            var digit = remaining % 128
-            remaining /= 128
-            if (remaining > 0) {
-                digit = digit or 0x80
-            }
-            packet.writeByte(digit)
-        } while (remaining > 0)
-        packet.writeBytes(payload)
-        return packet.toByteArray()
-    }
-
     private suspend fun sendConnect(writeChannel: ByteWriteChannel) {
-        val buf = MqttBuffer()
-
-        // Variable header
-        buf.writeUtf8String(MQTT_PROTOCOL_NAME)
-        buf.writeByte(MQTT_PROTOCOL_LEVEL)
-
-        // Connect flags
-        var flags = 0
-        if (configuration.cleanSession) {
-            flags = flags or 0x02
-        }
-        configuration.will?.let { will ->
-            flags = flags or 0x04
-            flags = flags or (will.qos.code shl 3)
-            if (will.retained) {
-                flags = flags or 0x20
-            }
-        }
-        if (configuration.username != null) {
-            flags = flags or 0x80
-        }
-        if (configuration.password != null && configuration.username != null) {
-            flags = flags or 0x40
-        }
-        buf.writeByte(flags)
-        buf.writeUInt16(configuration.keepAliveInterval.toInt())
-
-        // Payload
-        buf.writeUtf8String(configuration.clientId)
-        configuration.will?.let { will ->
-            buf.writeUtf8String(will.topic)
-            buf.writeBinaryData(will.message)
-        }
-        configuration.username?.let { buf.writeUtf8String(it) }
-        configuration.password?.let { buf.writeBinaryData(it.encodeToByteArray()) }
-
-        sendPacket(writeChannel, MQTT_CONNECT, buf.toByteArray())
+        sendPacket(writeChannel, MQTT_CONNECT, buildConnectPayload(configuration))
     }
 
     private suspend fun sendPublish(
@@ -845,28 +620,28 @@ internal class NativeMkttClient(
         qos: MqttQoS,
         packetId: Int,
     ) {
-        val buf = MqttBuffer()
-        buf.writeUtf8String(topic)
-        if (qos != MqttQoS.AtMostOnce) {
-            buf.writeUInt16(packetId)
-        }
-        buf.writeBytes(payload)
-
-        val fixedHeader = MQTT_PUBLISH_TYPE or (qos.code shl 1)
-        sendPacket(writeChannel, fixedHeader, buf.toByteArray())
+        sendPacket(
+            writeChannel = writeChannel,
+            fixedHeader = buildPublishFixedHeader(qos),
+            payload = buildPublishPayload(topic, payload, qos, packetId),
+        )
     }
 
-    private suspend fun sendPubAck(writeChannel: ByteWriteChannel, packetId: Int) =
-        sendPacket(writeChannel, MQTT_PUBACK, uInt16ToBytes(packetId))
+    private suspend fun sendPubAck(writeChannel: ByteWriteChannel, packetId: Int) {
+        sendPacket(writeChannel, MQTT_PUBACK, buildReasonCodeAckPayload(packetId))
+    }
 
-    private suspend fun sendPubRec(writeChannel: ByteWriteChannel, packetId: Int) =
-        sendPacket(writeChannel, MQTT_PUBREC, uInt16ToBytes(packetId))
+    private suspend fun sendPubRec(writeChannel: ByteWriteChannel, packetId: Int) {
+        sendPacket(writeChannel, MQTT_PUBREC, buildReasonCodeAckPayload(packetId))
+    }
 
-    private suspend fun sendPubRel(writeChannel: ByteWriteChannel, packetId: Int) =
-        sendPacket(writeChannel, MQTT_PUBREL, uInt16ToBytes(packetId))
+    private suspend fun sendPubRel(writeChannel: ByteWriteChannel, packetId: Int) {
+        sendPacket(writeChannel, MQTT_PUBREL, buildReasonCodeAckPayload(packetId))
+    }
 
-    private suspend fun sendPubComp(writeChannel: ByteWriteChannel, packetId: Int) =
-        sendPacket(writeChannel, MQTT_PUBCOMP, uInt16ToBytes(packetId))
+    private suspend fun sendPubComp(writeChannel: ByteWriteChannel, packetId: Int) {
+        sendPacket(writeChannel, MQTT_PUBCOMP, buildReasonCodeAckPayload(packetId))
+    }
 
     private suspend fun sendSubscribe(
         writeChannel: ByteWriteChannel,
@@ -874,97 +649,18 @@ internal class NativeMkttClient(
         qos: MqttQoS,
         packetId: Int,
     ) {
-        val buf = MqttBuffer()
-        buf.writeUInt16(packetId)
-        buf.writeUtf8String(topic)
-        buf.writeByte(qos.code)
-        sendPacket(writeChannel, MQTT_SUBSCRIBE, buf.toByteArray())
+        sendPacket(writeChannel, MQTT_SUBSCRIBE, buildSubscribePayload(topic, qos, packetId))
     }
 
     private suspend fun sendUnsubscribe(writeChannel: ByteWriteChannel, topic: String, packetId: Int) {
-        val buf = MqttBuffer()
-        buf.writeUInt16(packetId)
-        buf.writeUtf8String(topic)
-        sendPacket(writeChannel, MQTT_UNSUBSCRIBE, buf.toByteArray())
+        sendPacket(writeChannel, MQTT_UNSUBSCRIBE, buildUnsubscribePayload(topic, packetId))
     }
 
-    private suspend fun sendPingReq(writeChannel: ByteWriteChannel) =
+    private suspend fun sendPingReq(writeChannel: ByteWriteChannel) {
         sendPacket(writeChannel, MQTT_PINGREQ, ByteArray(0))
-
-    private suspend fun sendDisconnect(writeChannel: ByteWriteChannel) =
-        sendPacket(writeChannel, MQTT_DISCONNECT, ByteArray(0))
-
-    // ---- Topic filter matching ----
-
-    private fun matchesTopicFilter(topic: String, filter: String): Boolean {
-        val topicParts = topic.split("/")
-        val filterParts = filter.split("/")
-
-        fun match(topicIndex: Int, filterIndex: Int): Boolean {
-            if (filterIndex == filterParts.size) {
-                return topicIndex == topicParts.size
-            }
-            if (filterParts[filterIndex] == "#") {
-                return true
-            }
-            if (topicIndex == topicParts.size) {
-                return false
-            }
-            if (filterParts[filterIndex] != "+" && filterParts[filterIndex] != topicParts[topicIndex]) {
-                return false
-            }
-            return match(topicIndex + 1, filterIndex + 1)
-        }
-
-        return match(0, 0)
     }
 
-    // ---- Byte utilities ----
-
-    private fun readUInt16(data: ByteArray, offset: Int): Int {
-        check(offset + 1 < data.size) { "Malformed MQTT packet: expected UInt16 at offset $offset" }
-        return ((data[offset].toInt() and 0xFF) shl 8) or (data[offset + 1].toInt() and 0xFF)
+    private suspend fun sendDisconnect(writeChannel: ByteWriteChannel) {
+        sendPacket(writeChannel, MQTT_DISCONNECT, buildDisconnectPayload())
     }
-
-    private fun uInt16ToBytes(value: Int): ByteArray =
-        byteArrayOf((value shr 8 and 0xFF).toByte(), (value and 0xFF).toByte())
-
-    private sealed class ConnectionCloseCause {
-        data object Expected : ConnectionCloseCause()
-
-        data class Unexpected(val error: Throwable) : ConnectionCloseCause()
-    }
-}
-
-/**
- * Minimal mutable byte buffer for constructing MQTT packet payloads.
- */
-private class MqttBuffer {
-    private val buffer = mutableListOf<Byte>()
-
-    fun writeByte(value: Int) {
-        buffer.add((value and 0xFF).toByte())
-    }
-
-    fun writeUInt16(value: Int) {
-        writeByte(value shr 8)
-        writeByte(value)
-    }
-
-    fun writeBytes(bytes: ByteArray) {
-        buffer.addAll(bytes.toList())
-    }
-
-    fun writeUtf8String(value: String) {
-        val bytes = value.encodeToByteArray()
-        writeUInt16(bytes.size)
-        writeBytes(bytes)
-    }
-
-    fun writeBinaryData(bytes: ByteArray) {
-        writeUInt16(bytes.size)
-        writeBytes(bytes)
-    }
-
-    fun toByteArray(): ByteArray = buffer.toByteArray()
 }
