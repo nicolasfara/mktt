@@ -9,8 +9,13 @@ import io.ktor.network.tls.tls
 import io.ktor.utils.io.ByteReadChannel
 import io.ktor.utils.io.ByteWriteChannel
 import io.ktor.utils.io.errors.PosixException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.async
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 
 private const val DEFAULT_CONNECT_RETRY_ATTEMPTS = 3
 private const val DEFAULT_CONNECT_RETRY_INITIAL_DELAY_MS = 100L
@@ -47,28 +52,41 @@ internal object KtorNativeTransportFactory : NativeTransportFactory {
     override suspend fun open(
         configuration: MqttClientConfiguration,
         ioDispatcher: CoroutineDispatcher,
-    ): NativeTransportSession = withContext(ioDispatcher) {
+    ): NativeTransportSession {
         val selectorManager = SelectorManager(ioDispatcher)
         var socket: Socket? = null
-        recoverNonCancellation(
+        val connectScope = CoroutineScope(ioDispatcher + SupervisorJob())
+        val connectAttempt = connectScope.async {
+            val rawSocket = aSocket(selectorManager).tcp().connect(
+                hostname = configuration.brokerUrl,
+                port = configuration.port,
+            )
+            socket = if (configuration.ssl) rawSocket.tls(coroutineContext) else rawSocket
+            val connectedSocket = requireNotNull(socket)
+            KtorNativeTransportSession(
+                selectorManager = selectorManager,
+                socket = connectedSocket,
+                readChannel = connectedSocket.openReadChannel(),
+                writeChannel = connectedSocket.openWriteChannel(autoFlush = false),
+            )
+        }
+
+        return cleanupOnFailure(
             block = {
-                val rawSocket = aSocket(selectorManager).tcp().connect(
-                    hostname = configuration.brokerUrl,
-                    port = configuration.port,
-                )
-                socket = if (configuration.ssl) rawSocket.tls(coroutineContext) else rawSocket
-                val connectedSocket = requireNotNull(socket)
-                KtorNativeTransportSession(
-                    selectorManager = selectorManager,
-                    socket = connectedSocket,
-                    readChannel = connectedSocket.openReadChannel(),
-                    writeChannel = connectedSocket.openWriteChannel(autoFlush = false),
-                )
+                val timeoutMs = configuration.connectionTimeout.coerceAtLeast(1L) * 1_000L
+                val session = try {
+                    withTimeout(timeoutMs) { connectAttempt.await() }
+                } catch (error: TimeoutCancellationException) {
+                    throw IllegalStateException("Connection timed out after ${timeoutMs}ms", error)
+                }
+                connectScope.cancel()
+                session
             },
-            onFailure = { error ->
+            onFailure = {
+                connectAttempt.cancel()
+                connectScope.cancel()
                 ignoreNonCancellation { socket?.close() }
                 selectorManager.close()
-                throw error
             },
         )
     }

@@ -20,3 +20,17 @@ internal suspend inline fun ignoreNonCancellation(crossinline block: suspend () 
         onFailure = { },
     )
 }
+
+@Suppress("TooGenericExceptionCaught")
+internal suspend inline fun <T> cleanupOnFailure(
+    crossinline block: suspend () -> T,
+    crossinline onFailure: suspend (Throwable) -> Unit,
+): T = try {
+    block()
+} catch (error: CancellationException) {
+    onFailure(error)
+    throw error
+} catch (error: Throwable) {
+    onFailure(error)
+    throw error
+}

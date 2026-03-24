@@ -8,6 +8,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.Channel
@@ -79,13 +80,14 @@ internal class NativeMkttClient(
     private val configuration: MqttClientConfiguration,
     private val transportFactory: NativeTransportFactory = KtorNativeTransportFactory,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.Default.limitedParallelism(2),
+    private val commandDispatcher: CoroutineDispatcher = Dispatchers.Default.limitedParallelism(1),
     private val timing: NativeMkttClientTiming = NativeMkttClientTiming(),
     private val isTransientFailure: (Throwable) -> Boolean = DEFAULT_TRANSIENT_FAILURE_DETECTOR,
 ) : MkttClient {
     private val _connectionState = MutableStateFlow<MqttConnectionState>(MqttConnectionState.Disconnected)
     override val connectionState: StateFlow<MqttConnectionState> = _connectionState.asStateFlow()
 
-    private val commandScope = CoroutineScope(dispatcher + SupervisorJob())
+    private val commandScope = CoroutineScope(commandDispatcher + SupervisorJob())
     private val commandChannel = Channel<ClientCommand>(Channel.UNLIMITED)
 
     private val incomingMessages = MutableSharedFlow<MqttMessage>(extraBufferCapacity = 1_000)
@@ -108,15 +110,21 @@ internal class NativeMkttClient(
     }
 
     override suspend fun connect() {
-        submitCommand { result -> ClientCommand.Connect(result) }
+        withContext(dispatcher) {
+            submitCommand { result -> ClientCommand.Connect(result) }
+        }
     }
 
     override suspend fun disconnect() {
-        submitCommand { result -> ClientCommand.Disconnect(result) }
+        withContext(dispatcher) {
+            submitCommand { result -> ClientCommand.Disconnect(result) }
+        }
     }
 
     override suspend fun publish(topic: String, message: ByteArray, qos: MqttQoS) {
-        submitCommand { result -> ClientCommand.Publish(topic, message, qos, result) }
+        withContext(dispatcher) {
+            submitCommand { result -> ClientCommand.Publish(topic, message, qos, result) }
+        }
     }
 
     override fun subscribe(topic: String, qos: MqttQoS): Flow<MqttMessage> = subscribedFlows.getOrPut(topic) {
@@ -127,7 +135,9 @@ internal class NativeMkttClient(
     }
 
     override suspend fun unsubscribe(topic: String) {
-        submitCommand { result -> ClientCommand.Unsubscribe(topic, result) }
+        withContext(dispatcher) {
+            submitCommand { result -> ClientCommand.Unsubscribe(topic, result) }
+        }
     }
 
     private suspend fun commandLoop() {
@@ -344,9 +354,7 @@ internal class NativeMkttClient(
 
     private suspend fun establishConnectionOnce() {
         val timeoutMs = connectTimeoutMs()
-        val transport = withIoTimeout(timeoutMs) {
-            transportFactory.open(configuration, ioDispatcher)
-        }
+        val transport = transportFactory.open(configuration, ioDispatcher)
 
         recoverNonCancellation(
             block = {
@@ -597,8 +605,12 @@ internal class NativeMkttClient(
     private fun ackTimeoutMs(): Long = timing.ackTimeoutMs.coerceAtLeast(1L)
 
     private suspend fun <T> withIoTimeout(timeoutMs: Long, block: suspend () -> T): T = withContext(ioDispatcher) {
-        withTimeout(timeoutMs) {
-            block()
+        try {
+            withTimeout(timeoutMs) {
+                block()
+            }
+        } catch (error: TimeoutCancellationException) {
+            throw IllegalStateException("I/O operation timed out after ${timeoutMs}ms", error)
         }
     }
 
