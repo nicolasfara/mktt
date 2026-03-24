@@ -3,6 +3,7 @@ package io.github.nicolasfara
 import io.ktor.network.selector.SelectorManager
 import io.ktor.network.sockets.Socket
 import io.ktor.network.sockets.aSocket
+import io.ktor.network.sockets.awaitClosed
 import io.ktor.network.sockets.openReadChannel
 import io.ktor.network.sockets.openWriteChannel
 import io.ktor.network.tls.tls
@@ -11,6 +12,7 @@ import io.ktor.utils.io.ByteWriteChannel
 import io.ktor.utils.io.errors.PosixException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.async
@@ -49,11 +51,12 @@ internal val DEFAULT_TRANSIENT_FAILURE_DETECTOR: (Throwable) -> Boolean = { erro
 }
 
 internal object KtorNativeTransportFactory : NativeTransportFactory {
+    private val selectorManager: SelectorManager = SelectorManager(Dispatchers.Default)
+
     override suspend fun open(
         configuration: MqttClientConfiguration,
         ioDispatcher: CoroutineDispatcher,
     ): NativeTransportSession {
-        val selectorManager = SelectorManager(ioDispatcher)
         var socket: Socket? = null
         val connectScope = CoroutineScope(ioDispatcher + SupervisorJob())
         val connectAttempt = connectScope.async {
@@ -64,7 +67,6 @@ internal object KtorNativeTransportFactory : NativeTransportFactory {
             socket = if (configuration.ssl) rawSocket.tls(coroutineContext) else rawSocket
             val connectedSocket = requireNotNull(socket)
             KtorNativeTransportSession(
-                selectorManager = selectorManager,
                 socket = connectedSocket,
                 readChannel = connectedSocket.openReadChannel(),
                 writeChannel = connectedSocket.openWriteChannel(autoFlush = false),
@@ -86,21 +88,36 @@ internal object KtorNativeTransportFactory : NativeTransportFactory {
             if (!connected) {
                 connectAttempt.cancel()
                 connectScope.cancel()
-                bestEffort { socket?.close() }
-                selectorManager.close()
+                bestEffort { socket?.closeAndAwait() }
             }
         }
     }
 }
 
+internal fun Throwable.isIgnorableNativeSocketCloseFailure(): Boolean = when {
+    this is PosixException && errno == 0 -> true
+    cause?.isIgnorableNativeSocketCloseFailure() == true -> true
+    suppressedExceptions.any { it.isIgnorableNativeSocketCloseFailure() } -> true
+    else -> false
+}
+
+private suspend fun Socket.closeAndAwait() {
+    close()
+    runSuspendCatching { awaitClosed() }
+        .exceptionOrNull()
+        ?.let { error ->
+            if (!error.isIgnorableNativeSocketCloseFailure()) {
+                throw error
+            }
+        }
+}
+
 private class KtorNativeTransportSession(
-    private val selectorManager: SelectorManager,
     private val socket: Socket,
     override val readChannel: ByteReadChannel,
     override val writeChannel: ByteWriteChannel,
 ) : NativeTransportSession {
     override suspend fun close() {
-        socket.close()
-        selectorManager.close()
+        socket.closeAndAwait()
     }
 }
