@@ -71,13 +71,8 @@ internal class NativeMkttClientTest {
     @Test
     fun connectRetriesTransientFailureAndEventuallySucceeds() = runTest {
         val scriptedSession = ScriptedSession { fromClient, toClient ->
-            val connect = readPacket(fromClient)
-            assertEquals(TEST_MQTT_CONNECT, connect.fixedHeader)
-            assertMqtt5Connect(connect.payload)
-            writePacket(toClient, TEST_MQTT_CONNACK, encodeConnAck())
-
-            val disconnect = readPacket(fromClient)
-            assertEquals(TEST_MQTT_DISCONNECT, disconnect.fixedHeader)
+            acceptConnect(fromClient, toClient)
+            expectDisconnect(fromClient)
         }
 
         val factory = QueueTransportFactory(
@@ -130,10 +125,7 @@ internal class NativeMkttClientTest {
     @Test
     fun qos2PublishCompletesPubRecPubRelPubCompHandshake() = runTest {
         val scriptedSession = ScriptedSession { fromClient, toClient ->
-            val connect = readPacket(fromClient)
-            assertEquals(TEST_MQTT_CONNECT, connect.fixedHeader)
-            assertMqtt5Connect(connect.payload)
-            writePacket(toClient, TEST_MQTT_CONNACK, encodeConnAck())
+            acceptConnect(fromClient, toClient)
 
             val publish = readPacket(fromClient)
             assertEquals(TEST_MQTT_PUBLISH, publish.fixedHeader and TEST_PACKET_TYPE_MASK)
@@ -149,17 +141,10 @@ internal class NativeMkttClientTest {
             assertAckPacket(pubrel.payload, publishPacketId)
             writePacket(toClient, TEST_MQTT_PUBCOMP, encodeAckPacket(publishPacketId))
 
-            val disconnect = readPacket(fromClient)
-            assertEquals(TEST_MQTT_DISCONNECT, disconnect.fixedHeader)
+            expectDisconnect(fromClient)
         }
 
-        val client = NativeMkttClient(
-            dispatcher = Dispatchers.Default,
-            configuration = testConfiguration(automaticReconnect = false),
-            transportFactory = QueueTransportFactory(listOf { scriptedSession.open() }),
-            ioDispatcher = Dispatchers.Default,
-            timing = NativeMkttClientTiming(ackTimeoutMs = TEST_ACK_TIMEOUT_MS),
-        )
+        val client = createScriptedClient(scriptedSession)
 
         client.connect()
         client.publish("test/topic", "hello".encodeToByteArray(), MqttQoS.ExactlyOnce)
@@ -176,19 +161,8 @@ internal class NativeMkttClientTest {
         val secondSubscribeSeen = CompletableDeferred<Unit>()
 
         val firstSession = ScriptedSession { fromClient, toClient ->
-            val connect = readPacket(fromClient)
-            assertEquals(TEST_MQTT_CONNECT, connect.fixedHeader)
-            assertMqtt5Connect(connect.payload)
-            writePacket(toClient, TEST_MQTT_CONNACK, encodeConnAck())
-
-            val subscribe = readPacket(fromClient)
-            assertEquals(TEST_MQTT_SUBSCRIBE, subscribe.fixedHeader)
-            assertEquals(topic, readSubscribeTopic(subscribe.payload))
-            writePacket(
-                toClient,
-                TEST_MQTT_SUBACK,
-                encodeSubAck(readUInt16(subscribe.payload, 0), MqttQoS.AtMostOnce),
-            )
+            acceptConnect(fromClient, toClient)
+            expectSubscribeAndAck(fromClient, toClient, topic)
             firstSubscribeSeen.complete(Unit)
 
             delay(TEST_LONG_DELAY_MS)
@@ -196,19 +170,8 @@ internal class NativeMkttClientTest {
         }
 
         val secondSession = ScriptedSession { fromClient, toClient ->
-            val connect = readPacket(fromClient)
-            assertEquals(TEST_MQTT_CONNECT, connect.fixedHeader)
-            assertMqtt5Connect(connect.payload)
-            writePacket(toClient, TEST_MQTT_CONNACK, encodeConnAck())
-
-            val subscribe = readPacket(fromClient)
-            assertEquals(TEST_MQTT_SUBSCRIBE, subscribe.fixedHeader)
-            assertEquals(topic, readSubscribeTopic(subscribe.payload))
-            writePacket(
-                toClient,
-                TEST_MQTT_SUBACK,
-                encodeSubAck(readUInt16(subscribe.payload, 0), MqttQoS.AtMostOnce),
-            )
+            acceptConnect(fromClient, toClient)
+            expectSubscribeAndAck(fromClient, toClient, topic)
             secondSubscribeSeen.complete(Unit)
 
             delay(TEST_SHORT_DELAY_MS)
@@ -218,17 +181,14 @@ internal class NativeMkttClientTest {
                 encodePublishPayload(topic, "after-reconnect".encodeToByteArray()),
             )
 
-            val disconnect = readPacket(fromClient)
-            assertEquals(TEST_MQTT_DISCONNECT, disconnect.fixedHeader)
+            expectDisconnect(fromClient)
         }
 
         val factory = QueueTransportFactory(listOf({ firstSession.open() }, { secondSession.open() }))
 
-        val client = NativeMkttClient(
-            dispatcher = Dispatchers.Default,
-            configuration = testConfiguration(automaticReconnect = true),
+        val client = createScriptedClient(
             transportFactory = factory,
-            ioDispatcher = Dispatchers.Default,
+            automaticReconnect = true,
             timing = NativeMkttClientTiming(
                 connectRetryAttempts = 1,
                 reconnectInitialDelayMs = TEST_RECONNECT_INITIAL_DELAY_MS,
@@ -281,19 +241,8 @@ internal class NativeMkttClientTest {
     fun unsubscribeClearsCachedFlowAndANewSubscribeCreatesANewFlow() = runTest {
         val topic = "cache/topic"
         val scriptedSession = ScriptedSession { fromClient, toClient ->
-            val connect = readPacket(fromClient)
-            assertEquals(TEST_MQTT_CONNECT, connect.fixedHeader)
-            assertMqtt5Connect(connect.payload)
-            writePacket(toClient, TEST_MQTT_CONNACK, encodeConnAck())
-
-            val firstSubscribe = readPacket(fromClient)
-            assertEquals(TEST_MQTT_SUBSCRIBE, firstSubscribe.fixedHeader)
-            assertEquals(topic, readSubscribeTopic(firstSubscribe.payload))
-            writePacket(
-                toClient,
-                TEST_MQTT_SUBACK,
-                encodeSubAck(readUInt16(firstSubscribe.payload, 0), MqttQoS.AtMostOnce),
-            )
+            acceptConnect(fromClient, toClient)
+            expectSubscribeAndAck(fromClient, toClient, topic)
             delay(TEST_SHORT_DELAY_MS)
             writePacket(
                 toClient,
@@ -306,14 +255,7 @@ internal class NativeMkttClientTest {
             assertEquals(topic, readUnsubscribeTopic(unsubscribe.payload))
             writePacket(toClient, TEST_MQTT_UNSUBACK, encodeUnsubAck(readUInt16(unsubscribe.payload, 0)))
 
-            val secondSubscribe = readPacket(fromClient)
-            assertEquals(TEST_MQTT_SUBSCRIBE, secondSubscribe.fixedHeader)
-            assertEquals(topic, readSubscribeTopic(secondSubscribe.payload))
-            writePacket(
-                toClient,
-                TEST_MQTT_SUBACK,
-                encodeSubAck(readUInt16(secondSubscribe.payload, 0), MqttQoS.AtMostOnce),
-            )
+            expectSubscribeAndAck(fromClient, toClient, topic)
             delay(TEST_SHORT_DELAY_MS)
             writePacket(
                 toClient,
@@ -321,17 +263,10 @@ internal class NativeMkttClientTest {
                 encodePublishPayload(topic, "second".encodeToByteArray()),
             )
 
-            val disconnect = readPacket(fromClient)
-            assertEquals(TEST_MQTT_DISCONNECT, disconnect.fixedHeader)
+            expectDisconnect(fromClient)
         }
 
-        val client = NativeMkttClient(
-            dispatcher = Dispatchers.Default,
-            configuration = testConfiguration(automaticReconnect = false),
-            transportFactory = QueueTransportFactory(listOf { scriptedSession.open() }),
-            ioDispatcher = Dispatchers.Default,
-            timing = NativeMkttClientTiming(ackTimeoutMs = TEST_ACK_TIMEOUT_MS),
-        )
+        val client = createScriptedClient(scriptedSession)
 
         client.connect()
 
@@ -362,15 +297,8 @@ internal class NativeMkttClientTest {
         val matchingTopic = "wild/device/sensor"
 
         val scriptedSession = ScriptedSession { fromClient, toClient ->
-            val connect = readPacket(fromClient)
-            assertEquals(TEST_MQTT_CONNECT, connect.fixedHeader)
-            assertMqtt5Connect(connect.payload)
-            writePacket(toClient, TEST_MQTT_CONNACK, encodeConnAck())
-
-            val subscribe = readPacket(fromClient)
-            assertEquals(TEST_MQTT_SUBSCRIBE, subscribe.fixedHeader)
-            assertEquals(filter, readSubscribeTopic(subscribe.payload))
-            writePacket(toClient, TEST_MQTT_SUBACK, encodeSubAck(readUInt16(subscribe.payload, 0), MqttQoS.AtMostOnce))
+            acceptConnect(fromClient, toClient)
+            expectSubscribeAndAck(fromClient, toClient, filter)
 
             delay(TEST_SHORT_DELAY_MS)
             writePacket(
@@ -384,17 +312,10 @@ internal class NativeMkttClientTest {
                 encodePublishPayload(matchingTopic, "match".encodeToByteArray()),
             )
 
-            val disconnect = readPacket(fromClient)
-            assertEquals(TEST_MQTT_DISCONNECT, disconnect.fixedHeader)
+            expectDisconnect(fromClient)
         }
 
-        val client = NativeMkttClient(
-            dispatcher = Dispatchers.Default,
-            configuration = testConfiguration(automaticReconnect = false),
-            transportFactory = QueueTransportFactory(listOf { scriptedSession.open() }),
-            ioDispatcher = Dispatchers.Default,
-            timing = NativeMkttClientTiming(ackTimeoutMs = TEST_ACK_TIMEOUT_MS),
-        )
+        val client = createScriptedClient(scriptedSession)
 
         client.connect()
         val message = withRealTimeout(TEST_FLOW_TIMEOUT_MS) {
@@ -477,6 +398,28 @@ private suspend fun <T> withRealTimeout(timeoutMs: Long, block: suspend () -> T)
         }
     }
 
+private fun createScriptedClient(
+    scriptedSession: ScriptedSession,
+    automaticReconnect: Boolean = false,
+    timing: NativeMkttClientTiming = NativeMkttClientTiming(ackTimeoutMs = TEST_ACK_TIMEOUT_MS),
+): NativeMkttClient = createScriptedClient(
+    transportFactory = QueueTransportFactory(listOf { scriptedSession.open() }),
+    automaticReconnect = automaticReconnect,
+    timing = timing,
+)
+
+private fun createScriptedClient(
+    transportFactory: NativeTransportFactory,
+    automaticReconnect: Boolean = false,
+    timing: NativeMkttClientTiming = NativeMkttClientTiming(ackTimeoutMs = TEST_ACK_TIMEOUT_MS),
+): NativeMkttClient = NativeMkttClient(
+    dispatcher = Dispatchers.Default,
+    configuration = testConfiguration(automaticReconnect = automaticReconnect),
+    transportFactory = transportFactory,
+    ioDispatcher = Dispatchers.Default,
+    timing = timing,
+)
+
 private fun testConfiguration(automaticReconnect: Boolean): MqttClientConfiguration = MqttClientConfiguration(
     brokerUrl = "scripted-broker",
     port = 1883,
@@ -485,6 +428,34 @@ private fun testConfiguration(automaticReconnect: Boolean): MqttClientConfigurat
     automaticReconnect = automaticReconnect,
     connectionTimeout = 1,
 )
+
+private suspend fun acceptConnect(fromClient: ByteReadChannel, toClient: ByteChannel) {
+    val connect = readPacket(fromClient)
+    assertEquals(TEST_MQTT_CONNECT, connect.fixedHeader)
+    assertMqtt5Connect(connect.payload)
+    writePacket(toClient, TEST_MQTT_CONNACK, encodeConnAck())
+}
+
+private suspend fun expectSubscribeAndAck(
+    fromClient: ByteReadChannel,
+    toClient: ByteChannel,
+    topic: String,
+    qos: MqttQoS = MqttQoS.AtMostOnce,
+) {
+    val subscribe = readPacket(fromClient)
+    assertEquals(TEST_MQTT_SUBSCRIBE, subscribe.fixedHeader)
+    assertEquals(topic, readSubscribeTopic(subscribe.payload))
+    writePacket(
+        toClient,
+        TEST_MQTT_SUBACK,
+        encodeSubAck(readUInt16(subscribe.payload, 0), qos),
+    )
+}
+
+private suspend fun expectDisconnect(fromClient: ByteReadChannel) {
+    val disconnect = readPacket(fromClient)
+    assertEquals(TEST_MQTT_DISCONNECT, disconnect.fixedHeader)
+}
 
 private suspend fun readPacket(channel: ByteReadChannel): Packet {
     val header = channel.readOneByte()
