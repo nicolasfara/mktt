@@ -70,25 +70,26 @@ internal object KtorNativeTransportFactory : NativeTransportFactory {
                 writeChannel = connectedSocket.openWriteChannel(autoFlush = false),
             )
         }
+        var connected = false
 
-        return cleanupOnFailure(
-            block = {
-                val timeoutMs = configuration.connectionTimeout.coerceAtLeast(1L) * 1_000L
-                val session = try {
-                    withTimeout(timeoutMs) { connectAttempt.await() }
-                } catch (error: TimeoutCancellationException) {
-                    throw IllegalStateException("Connection timed out after ${timeoutMs}ms", error)
-                }
-                connectScope.cancel()
-                session
-            },
-            onFailure = {
+        try {
+            val timeoutMs = configuration.connectionTimeout.coerceAtLeast(1L) * 1_000L
+            val session = try {
+                withTimeout(timeoutMs) { connectAttempt.await() }
+            } catch (error: TimeoutCancellationException) {
+                throw IllegalStateException("Connection timed out after ${timeoutMs}ms", error)
+            }
+            connected = true
+            connectScope.cancel()
+            return session
+        } finally {
+            if (!connected) {
                 connectAttempt.cancel()
                 connectScope.cancel()
-                ignoreNonCancellation { socket?.close() }
+                bestEffort { socket?.close() }
                 selectorManager.close()
-            },
-        )
+            }
+        }
     }
 }
 

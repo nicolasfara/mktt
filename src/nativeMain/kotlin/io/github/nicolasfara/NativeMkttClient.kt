@@ -176,17 +176,15 @@ internal class NativeMkttClient(
         reconnectJob = null
         _connectionState.value = MqttConnectionState.Connecting
 
-        recoverNonCancellation(
-            block = {
-                establishConnectionWithRetry()
-                _connectionState.value = MqttConnectionState.Connected
-            },
-            onFailure = { error ->
+        runSuspendCatching {
+            establishConnectionWithRetry()
+            _connectionState.value = MqttConnectionState.Connected
+        }
+            .onFailure { error ->
                 closeActiveConnection(ConnectionCloseCause.Expected)
                 _connectionState.value = MqttConnectionState.ConnectionError(error)
-                throw error
-            },
-        )
+            }
+            .getOrThrow()
     }
 
     private suspend fun disconnectInternal() {
@@ -200,7 +198,7 @@ internal class NativeMkttClient(
         reconnectJob = null
 
         val connection = requireActiveConnection()
-        ignoreNonCancellation { sendDisconnect(connection.transport.writeChannel) }
+        runSuspendCatching { sendDisconnect(connection.transport.writeChannel) }
 
         closeActiveConnection(ConnectionCloseCause.Expected)
         subscribedTopics.clear()
@@ -265,21 +263,19 @@ internal class NativeMkttClient(
             return true
         }
 
-        return recoverNonCancellation(
-            block = {
-                establishConnectionWithRetry()
-                resubscribeAll()
-                _connectionState.value = MqttConnectionState.Connected
-                reconnectEnabled = false
-                true
-            },
-            onFailure = { error ->
+        return runSuspendCatching {
+            establishConnectionWithRetry()
+            resubscribeAll()
+            _connectionState.value = MqttConnectionState.Connected
+            reconnectEnabled = false
+            true
+        }
+            .getOrElse { error ->
                 closeActiveConnection(ConnectionCloseCause.Expected)
                 _connectionState.value = MqttConnectionState.ConnectionError(error)
                 _connectionState.value = MqttConnectionState.Connecting
                 false
-            },
-        )
+            }
     }
 
     private suspend fun onConnectionLost(cause: Throwable) {
@@ -328,12 +324,11 @@ internal class NativeMkttClient(
 
         while (true) {
             attempt += 1
-            val established = recoverNonCancellation(
-                block = {
-                    establishConnectionOnce()
-                    true
-                },
-                onFailure = { error ->
+            val established = runSuspendCatching {
+                establishConnectionOnce()
+                true
+            }
+                .getOrElse { error ->
                     closeActiveConnection(ConnectionCloseCause.Expected)
                     val shouldRetry =
                         isTransientFailure(error) &&
@@ -344,8 +339,7 @@ internal class NativeMkttClient(
                     delay(backoff)
                     backoff = (backoff * 2).coerceAtMost(maxBackoff)
                     false
-                },
-            )
+                }
             if (established) {
                 return
             }
@@ -355,40 +349,36 @@ internal class NativeMkttClient(
     private suspend fun establishConnectionOnce() {
         val timeoutMs = connectTimeoutMs()
         val transport = transportFactory.open(configuration, ioDispatcher)
+        var handshakeCompleted = false
 
-        recoverNonCancellation(
-            block = {
-                withIoTimeout(timeoutMs) {
-                    sendConnect(transport.writeChannel)
-                    receiveConnAck(transport.readChannel)
-                }
-            },
-            onFailure = { error ->
-                ignoreNonCancellation { transport.close() }
-                throw error
-            },
-        )
+        try {
+            withIoTimeout(timeoutMs) {
+                sendConnect(transport.writeChannel)
+                receiveConnAck(transport.readChannel)
+            }
+            handshakeCompleted = true
+        } finally {
+            if (!handshakeCompleted) {
+                bestEffort { transport.close() }
+            }
+        }
 
         val ioScope = CoroutineScope(ioDispatcher + SupervisorJob())
         activeConnection = ActiveConnection(transport = transport, ioScope = ioScope)
 
         ioScope.launch {
-            recoverNonCancellation(
-                block = { readLoop(transport.readChannel) },
-                onFailure = { error ->
+            runSuspendCatching { readLoop(transport.readChannel) }
+                .onFailure { error ->
                     notifyConnectionLost(error)
-                },
-            )
+                }
         }
 
         if (configuration.keepAliveInterval > 0) {
             ioScope.launch {
-                recoverNonCancellation(
-                    block = { keepAliveLoop(transport.writeChannel) },
-                    onFailure = { error ->
+                runSuspendCatching { keepAliveLoop(transport.writeChannel) }
+                    .onFailure { error ->
                         notifyConnectionLost(error)
-                    },
-                )
+                    }
             }
         }
     }
@@ -563,7 +553,7 @@ internal class NativeMkttClient(
             pendingQoS2Messages.clear()
         }
 
-        ignoreNonCancellation { connection.transport.close() }
+        bestEffort { connection.transport.close() }
     }
 
     private fun notifyConnectionLost(error: Throwable) {
@@ -590,14 +580,13 @@ internal class NativeMkttClient(
     }
 
     private suspend fun <T> complete(result: CompletableDeferred<T>, block: suspend () -> T) {
-        recoverNonCancellation(
-            block = {
-                result.complete(block())
-            },
-            onFailure = { error ->
+        runSuspendCatching { block() }
+            .onSuccess { value ->
+                result.complete(value)
+            }
+            .onFailure { error ->
                 result.completeExceptionally(error)
-            },
-        )
+            }
     }
 
     private fun connectTimeoutMs(): Long = configuration.connectionTimeout.coerceAtLeast(1L) * 1_000L
