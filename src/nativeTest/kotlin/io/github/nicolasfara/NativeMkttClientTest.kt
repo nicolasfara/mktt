@@ -420,7 +420,10 @@ private class QueueTransportFactory(
         private set
 
     @Suppress("UNUSED_PARAMETER")
-    override suspend fun open(configuration: MqttClientConfiguration, _: CoroutineDispatcher): NativeTransportSession {
+    override suspend fun open(
+        configuration: MqttClientConfiguration,
+        ioDispatcher: CoroutineDispatcher,
+    ): NativeTransportSession {
         check(openCount < opens.size) { "No more scripted transport sessions available" }
         return opens[openCount++].invoke()
     }
