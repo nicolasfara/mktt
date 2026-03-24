@@ -1,86 +1,70 @@
-<p align="center">
-    <img alt="MKTT logo" src="mktt-logo.svg">
-</p>
+# MKTT
 
-> A Kotlin Multiplatform, coroutine-based MQTT client library
+MQTT 5 for Kotlin Multiplatform, split into:
 
-# Dependencies
+- `mktt-core`: protocol types, properties, packets, codecs
+- `mktt-client`: coroutine and Flow based client built on top of `mktt-core`
 
-```kotlin
-implementation("io.github.nicolasfara:mktt:<version>")
-```
-
-or using [Gradle catalogs](https://docs.gradle.org/current/userguide/version_catalogs.html):
+## Dependencies
 
 ```kotlin
-[versions]
-mktt-version = "<version>"
-
-[dependencies]
-mktt = { module = "io.github.nicolasfara:mktt", version.ref = "mktt-version" }
-```
-
-# Examples
-
-## Publishing
-
-```kotlin
-val mqttClient = MkttClient(Dispatchers.IO) {
-    brokerUrl = "localhost"
-    port = 1883
-    clientId = "mktt-client"
+dependencies {
+    implementation("io.github.nicolasfara:mktt-core:<version>")
+    implementation("io.github.nicolasfara:mktt-client:<version>")
 }
-mqttClient.connect()
-mqttClient.publish(
-    topic = "test/topic",
-    qos = MqttQoS.ExactlyOnce,
-    "hello world".encodeToByteArray(),
-)
-mqttClient.disconnect()
 ```
 
-## Subscribing
+## Example
 
 ```kotlin
-val mqttClient = MkttClient(Dispatchers.IO) {
-    brokerUrl = "localhost"
-    port = 1883
-    clientId = "mktt-client"
+import io.github.nicolasfara.mktt.client.MqttClient
+import io.github.nicolasfara.mktt.client.PublishRequest
+import io.github.nicolasfara.mktt.core.QoS
+import io.github.nicolasfara.mktt.core.Topic
+import io.github.nicolasfara.mktt.core.TopicFilter
+import kotlinx.coroutines.flow.first
+
+suspend fun sample() {
+    val client = MqttClient("localhost", 1883) {
+        clientId = "mktt-sample"
+    }
+
+    client.connect()
+    client.subscribe(listOf(TopicFilter(Topic("sample/topic"))))
+
+    client.publish(
+        PublishRequest("sample/topic") {
+            desiredQoS = QoS.AT_LEAST_ONCE
+            payload("hello")
+        },
+    )
+
+    val message = client.messages(TopicFilter(Topic("sample/topic"))).first()
+    println(message.payloadAsString())
+
+    client.disconnect()
+    client.close()
 }
-mqttClient.connect()
-mqttClient.subscribe("test/topic", MqttQoS.ExactlyOnce).collect {
-    println("Received message: ${it.payload.decodeToString()}")
-}
-mqttClient.disconnect()
 ```
 
-# Supported Platforms
+## Modules
 
-| Platform    | Target                                                      | Description                                  | Supported          |
-|-------------|-------------------------------------------------------------|----------------------------------------------|--------------------|
-| **JVM**     | `jvm()`                                                     | Java Virtual Machine (backend, desktop apps) | :white_check_mark: |
-| **Android** | `android()`                                                 | Native Android development                   | :white_check_mark: |
-| **iOS**     | `ios()`, `iosArm64()`, `iosX64()`, `iosSimulatorArm64()`    | Apple iOS devices (real & simulator)         | :x:                |
-| **macOS**   | `macosX64()`, `macosArm64()`                                | macOS applications                           | :x:                |
-| **watchOS** | `watchosX64()`, `watchosArm64()`, `watchosSimulatorArm64()` | Apple Watch apps                             | :x:                |
-| **tvOS**    | `tvosX64()`, `tvosArm64()`, `tvosSimulatorArm64()`          | Apple TV apps                                | :x:                |
-| **Linux**   | `linuxX64()`, `linuxArm64()`, `linuxArm32Hfp()`             | Linux native applications                    | :x:                |
-| **Windows** | `mingwX64()`                                                | Windows native applications                  | :x:                |
-| **Web**     | `js()`                                                      | JavaScript (both browser & Node.js)          | :white_check_mark: |
-| **Wasm**    | `wasmJs()`, `wasmWasi()`                                    | WebAssembly (browser & standalone)           | :x:                |
+`mktt-core` exposes:
 
-# License
+- MQTT 5 reason codes and properties
+- topic and subscription models
+- packet definitions for CONNECT, CONNACK, PUBLISH, PUBACK/PUBREC/PUBREL/PUBCOMP, SUBSCRIBE, UNSUBSCRIBE, PING and DISCONNECT
+- packet encode/decode utilities over Ktor channels and `kotlinx-io`
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+`mktt-client` exposes:
 
-    http://www.apache.org/licenses/LICENSE-2.0
+- `MqttClient`
+- `StateFlow<MqttConnectionState>`
+- `SharedFlow<MqttPublishMessage>`
+- `messages(filter)` local filtering helper
+- coroutine-based `connect`, `publish`, `subscribe`, `unsubscribe`, and `disconnect`
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+## Testing
 
-See the [LICENSE](LICENSE) file for more details.
+- `mktt-core` is covered by deterministic packet/property round-trip tests.
+- `mktt-client` uses fake-engine common tests for client logic and a small JVM Mosquitto container suite for integration coverage.

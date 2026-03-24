@@ -1,0 +1,31 @@
+package io.github.nicolasfara.mktt.core.util
+
+import io.github.nicolasfara.mktt.core.MalformedPacketException
+import kotlinx.io.*
+import kotlinx.io.bytestring.ByteString
+
+private const val MAX_BYTES_SIZE = 65_535
+
+/**
+ * Writes the size of the byte string and then the byte string as specified in MQTT.
+ *
+ * @throws io.github.nicolasfara.mktt.core.MalformedPacketException when the byte string is larger than 65,535 bytes.
+ */
+internal fun Sink.writeMqttByteString(bytes: ByteString) {
+    if (bytes.size > _root_ide_package_.io.github.nicolasfara.mktt.core.util.MAX_BYTES_SIZE) {
+        throw _root_ide_package_.io.github.nicolasfara.mktt.core.MalformedPacketException(
+            "ByteString is too long: ${bytes.size} (max allowed size: ${_root_ide_package_.io.github.nicolasfara.mktt.core.util.MAX_BYTES_SIZE})",
+        )
+    }
+
+    writeShort(bytes.size.toShort())
+    write(bytes)
+}
+
+/**
+ * Reads a byte string from the specified packet, reading the bytes size first.
+ */
+internal fun Source.readMqttByteString(): ByteString {
+    val size = readUShort().toInt()
+    return readByteString(size)
+}
