@@ -4,6 +4,8 @@
 
 > A Kotlin Multiplatform, coroutine-based MQTT client library
 
+Native targets use MQTT 5 on the wire while keeping the common multiplatform API unchanged.
+
 # Dependencies
 
 ```kotlin
@@ -60,12 +62,10 @@ mqttClient.disconnect()
 |-------------|-------------------------------------------------------------|----------------------------------------------|--------------------|
 | **JVM**     | `jvm()`                                                     | Java Virtual Machine (backend, desktop apps) | :white_check_mark: |
 | **Android** | `android()`                                                 | Native Android development                   | :white_check_mark: |
-| **iOS**     | `ios()`, `iosArm64()`, `iosX64()`, `iosSimulatorArm64()`    | Apple iOS devices (real & simulator)         | :x:                |
-| **macOS**   | `macosX64()`, `macosArm64()`                                | macOS applications                           | :x:                |
-| **watchOS** | `watchosX64()`, `watchosArm64()`, `watchosSimulatorArm64()` | Apple Watch apps                             | :x:                |
-| **tvOS**    | `tvosX64()`, `tvosArm64()`, `tvosSimulatorArm64()`          | Apple TV apps                                | :x:                |
-| **Linux**   | `linuxX64()`, `linuxArm64()`, `linuxArm32Hfp()`             | Linux native applications                    | :x:                |
-| **Windows** | `mingwX64()`                                                | Windows native applications                  | :x:                |
+| **iOS**     | `iosArm64()`, `iosSimulatorArm64()`                         | Apple iOS devices (real & simulator)         | :white_check_mark: |
+| **macOS**   | `macosX64()`, `macosArm64()`                                | macOS applications                           | :white_check_mark: |
+| **Linux**   | `linuxX64()`, `linuxArm64()`                                | Linux native applications                    | :white_check_mark: |
+| **Windows** | `mingwX64()`                                                | Windows native applications                  | :white_check_mark: |
 | **Web**     | `js()`                                                      | JavaScript (both browser & Node.js)          | :white_check_mark: |
 | **Wasm**    | `wasmJs()`, `wasmWasi()`                                    | WebAssembly (browser & standalone)           | :x:                |
 
