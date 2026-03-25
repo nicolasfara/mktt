@@ -14,43 +14,41 @@ import io.github.nicolasfara.mktt.core.packet.Connack
 import io.github.nicolasfara.mktt.core.packet.Suback
 import io.github.nicolasfara.mktt.core.packet.Unsuback
 
-public typealias ConnAck = io.github.nicolasfara.mktt.core.packet.Connack
-public typealias SubAck = io.github.nicolasfara.mktt.core.packet.Suback
-public typealias UnsubAck = io.github.nicolasfara.mktt.core.packet.Unsuback
-public typealias DisconnectReason = io.github.nicolasfara.mktt.core.ReasonCode
-public typealias Subscription = io.github.nicolasfara.mktt.core.TopicFilter
-public typealias PublishResult = io.github.nicolasfara.mktt.client.PublishResponse
+typealias ConnAck = Connack
+typealias SubAck = Suback
+typealias UnsubAck = Unsuback
+typealias DisconnectReason = ReasonCode
+typealias Subscription = TopicFilter
+typealias PublishResult = PublishResponse
 
-public sealed interface MqttConnectionState {
-    public data object Connecting : io.github.nicolasfara.mktt.client.MqttConnectionState
+sealed interface MqttConnectionState {
+    data object Connecting : MqttConnectionState
 
-    public data class Connected(public val connack: io.github.nicolasfara.mktt.client.ConnAck) :
-        io.github.nicolasfara.mktt.client.MqttConnectionState
+    data class Connected(val connack: ConnAck) : MqttConnectionState
 
-    public data object Disconnected : io.github.nicolasfara.mktt.client.MqttConnectionState
+    data object Disconnected : MqttConnectionState
 
-    public data class ConnectionError(public val cause: Throwable) :
-        io.github.nicolasfara.mktt.client.MqttConnectionState
+    data class ConnectionError(val cause: Throwable) : MqttConnectionState
 }
 
-public data class MqttPublishMessage(
-    public val topic: io.github.nicolasfara.mktt.core.Topic,
-    public val payload: ByteArray,
-    public val qos: io.github.nicolasfara.mktt.core.QoS,
-    public val retained: Boolean,
-    public val duplicate: Boolean,
-    public val responseTopic: io.github.nicolasfara.mktt.core.ResponseTopic? = null,
-    public val correlationData: io.github.nicolasfara.mktt.core.CorrelationData? = null,
-    public val contentType: io.github.nicolasfara.mktt.core.ContentType? = null,
-    public val payloadFormatIndicator: io.github.nicolasfara.mktt.core.PayloadFormatIndicator? = null,
-    public val subscriptionIdentifier: io.github.nicolasfara.mktt.core.SubscriptionIdentifier? = null,
-    public val userProperties: io.github.nicolasfara.mktt.core.UserProperties = _root_ide_package_.io.github.nicolasfara.mktt.core.UserProperties.Companion.EMPTY,
+data class MqttPublishMessage(
+    val topic: Topic,
+    val payload: ByteArray,
+    val qos: QoS,
+    val retained: Boolean,
+    val duplicate: Boolean,
+    val responseTopic: ResponseTopic? = null,
+    val correlationData: CorrelationData? = null,
+    val contentType: ContentType? = null,
+    val payloadFormatIndicator: PayloadFormatIndicator? = null,
+    val subscriptionIdentifier: SubscriptionIdentifier? = null,
+    val userProperties: UserProperties = UserProperties.EMPTY,
 ) {
-    public fun payloadAsString(): String = payload.decodeToString()
+    fun payloadAsString(): String = payload.decodeToString()
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (other !is io.github.nicolasfara.mktt.client.MqttPublishMessage) return false
+        if (other !is MqttPublishMessage) return false
 
         return topic == other.topic &&
             payload.contentEquals(other.payload) &&
@@ -81,8 +79,8 @@ public data class MqttPublishMessage(
     }
 }
 
-internal fun io.github.nicolasfara.mktt.core.packet.Publish.toIncomingMessage(): io.github.nicolasfara.mktt.client.MqttPublishMessage =
-    _root_ide_package_.io.github.nicolasfara.mktt.client.MqttPublishMessage(
+internal fun io.github.nicolasfara.mktt.core.packet.Publish.toIncomingMessage(): MqttPublishMessage =
+    MqttPublishMessage(
         topic = topic,
         payload = payload.toByteArray(0, payload.size),
         qos = qoS,
@@ -96,9 +94,9 @@ internal fun io.github.nicolasfara.mktt.core.packet.Publish.toIncomingMessage():
         userProperties = userProperties,
     )
 
-public fun io.github.nicolasfara.mktt.core.TopicFilter.matches(topic: io.github.nicolasfara.mktt.core.Topic): Boolean {
+fun TopicFilter.matches(topic: Topic): Boolean {
     val rawFilter = if (filter.isShared()) filter.shareNameAndFilter().second.name else filter.name
-    return _root_ide_package_.io.github.nicolasfara.mktt.client.topicMatchesFilter(rawFilter, topic.name)
+    return topicMatchesFilter(rawFilter, topic.name)
 }
 
 private fun topicMatchesFilter(filter: String, topic: String): Boolean {

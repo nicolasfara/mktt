@@ -18,18 +18,18 @@ import kotlinx.io.bytestring.encodeToByteString
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 
-public data class PublishRequest(
-    val topic: io.github.nicolasfara.mktt.core.Topic,
-    val desiredQoS: io.github.nicolasfara.mktt.core.QoS = _root_ide_package_.io.github.nicolasfara.mktt.core.QoS.AT_MOST_ONCE,
+data class PublishRequest(
+    val topic: Topic,
+    val desiredQoS: QoS = QoS.AT_MOST_ONCE,
     val payload: ByteArray = byteArrayOf(),
     val isRetainMessage: Boolean = false,
-    val messageExpiryInterval: io.github.nicolasfara.mktt.core.MessageExpiryInterval? = null,
-    val topicAlias: io.github.nicolasfara.mktt.core.TopicAlias? = null,
-    val responseTopic: io.github.nicolasfara.mktt.core.ResponseTopic? = null,
-    val correlationData: io.github.nicolasfara.mktt.core.CorrelationData? = null,
-    val contentType: io.github.nicolasfara.mktt.core.ContentType? = null,
-    val payloadFormatIndicator: io.github.nicolasfara.mktt.core.PayloadFormatIndicator? = null,
-    val userProperties: io.github.nicolasfara.mktt.core.UserProperties = _root_ide_package_.io.github.nicolasfara.mktt.core.UserProperties.Companion.EMPTY,
+    val messageExpiryInterval: MessageExpiryInterval? = null,
+    val topicAlias: TopicAlias? = null,
+    val responseTopic: ResponseTopic? = null,
+    val correlationData: CorrelationData? = null,
+    val contentType: ContentType? = null,
+    val payloadFormatIndicator: PayloadFormatIndicator? = null,
+    val userProperties: UserProperties = UserProperties.EMPTY,
 ) {
     init {
         require(!topic.containsWildcard()) {
@@ -41,7 +41,7 @@ public data class PublishRequest(
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (other !is io.github.nicolasfara.mktt.client.PublishRequest) return false
+        if (other !is PublishRequest) return false
 
         return topic == other.topic &&
             desiredQoS == other.desiredQoS &&
@@ -72,63 +72,58 @@ public data class PublishRequest(
     }
 }
 
-public fun PublishRequest(
+fun PublishRequest(
     topicName: String,
     topicAlias: UShort? = null,
-    init: io.github.nicolasfara.mktt.client.PublishRequestBuilder.() -> Unit,
-): io.github.nicolasfara.mktt.client.PublishRequest =
-    _root_ide_package_.io.github.nicolasfara.mktt.client.PublishRequestBuilder(
-        topicName.toTopic(),
-        topicAlias,
-    ).apply(init).build()
+    init: PublishRequestBuilder.() -> Unit,
+): PublishRequest = PublishRequestBuilder(
+    topicName.toTopic(),
+    topicAlias,
+).apply(init).build()
 
-@io.github.nicolasfara.mktt.core.util.MqttDslMarker
-public class PublishRequestBuilder(
-    private val topic: io.github.nicolasfara.mktt.core.Topic,
-    private val topicAlias: UShort? = null,
-) {
-    public var desiredQoS: io.github.nicolasfara.mktt.core.QoS = _root_ide_package_.io.github.nicolasfara.mktt.core.QoS.AT_MOST_ONCE
-    public var isRetainMessage: Boolean = false
-    public var messageExpiryInterval: Duration? = 5.minutes
-    public var responseTopic: String? = null
-    public var correlationData: ByteArray? = null
-    public var contentType: String? = null
-    public var payloadFormatIndicator: io.github.nicolasfara.mktt.core.PayloadFormatIndicator? = null
+@MqttDslMarker
+class PublishRequestBuilder(private val topic: Topic, private val topicAlias: UShort? = null) {
+    var desiredQoS: QoS = QoS.AT_MOST_ONCE
+    var isRetainMessage: Boolean = false
+    var messageExpiryInterval: Duration? = 5.minutes
+    var responseTopic: String? = null
+    var correlationData: ByteArray? = null
+    var contentType: String? = null
+    var payloadFormatIndicator: PayloadFormatIndicator? = null
 
     private var payload: ByteArray = byteArrayOf()
-    private var userProperties: io.github.nicolasfara.mktt.core.UserProperties = _root_ide_package_.io.github.nicolasfara.mktt.core.UserProperties.Companion.EMPTY
+    private var userProperties: UserProperties = UserProperties.EMPTY
 
-    public fun payload(text: String) {
+    fun payload(text: String) {
         val byteString = text.encodeToByteString()
         payload = byteString.toByteArray(0, byteString.size)
         payloadFormatIndicator =
-            _root_ide_package_.io.github.nicolasfara.mktt.core.PayloadFormatIndicator.Companion.UTF_8
+            PayloadFormatIndicator.UTF_8
     }
 
-    public fun payload(bytes: ByteArray) {
+    fun payload(bytes: ByteArray) {
         payload = bytes.copyOf()
     }
 
-    public fun userProperties(init: io.github.nicolasfara.mktt.core.UserPropertiesBuilder.() -> Unit) {
-        userProperties = _root_ide_package_.io.github.nicolasfara.mktt.core.UserPropertiesBuilder().apply(init).build()
+    fun userProperties(init: UserPropertiesBuilder.() -> Unit) {
+        userProperties = UserPropertiesBuilder().apply(init).build()
     }
 
-    public fun build(): io.github.nicolasfara.mktt.client.PublishRequest =
-        _root_ide_package_.io.github.nicolasfara.mktt.client.PublishRequest(
-            topic = topic,
-            desiredQoS = desiredQoS,
-            payload = payload,
-            isRetainMessage = isRetainMessage,
-            messageExpiryInterval = messageExpiryInterval?.toMessageExpiryInterval(),
-            topicAlias = topicAlias?.let(::TopicAlias),
-            responseTopic = responseTopic?.let(::ResponseTopic),
-            correlationData = correlationData?.let {
-                _root_ide_package_.io.github.nicolasfara.mktt.core.CorrelationData(
-                    ByteString(it),
-                )
-            },
-            contentType = contentType?.let(::ContentType),
-            payloadFormatIndicator = payloadFormatIndicator,
-            userProperties = userProperties,
-        )
+    fun build(): PublishRequest = PublishRequest(
+        topic = topic,
+        desiredQoS = desiredQoS,
+        payload = payload,
+        isRetainMessage = isRetainMessage,
+        messageExpiryInterval = messageExpiryInterval?.toMessageExpiryInterval(),
+        topicAlias = topicAlias?.let(::TopicAlias),
+        responseTopic = responseTopic?.let(::ResponseTopic),
+        correlationData = correlationData?.let {
+            CorrelationData(
+                ByteString(it),
+            )
+        },
+        contentType = contentType?.let(::ContentType),
+        payloadFormatIndicator = payloadFormatIndicator,
+        userProperties = userProperties,
+    )
 }

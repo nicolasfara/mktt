@@ -18,21 +18,18 @@ import kotlin.concurrent.atomics.incrementAndFetch
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
-public open class InMemorySessionStore(private val clock: Clock = Clock.System) :
-    io.github.nicolasfara.mktt.core.SessionStore {
+open class InMemorySessionStore(private val clock: Clock = Clock.System) : SessionStore {
 
     private val outgoingPackets =
-        _root_ide_package_.io.github.nicolasfara.mktt.client.AtomicMap<UShort, io.github.nicolasfara.mktt.core.InFlightPacket>()
+        AtomicMap<UShort, InFlightPacket>()
 
     private val incomingPackets = mutableSetOf<UShort>()
 
     private val sequence = AtomicLong(0)
 
-    override fun store(
-        source: io.github.nicolasfara.mktt.core.packet.Publish,
-    ): io.github.nicolasfara.mktt.core.InFlightPublish {
-        _root_ide_package_.io.github.nicolasfara.mktt.core.util.Logger.v { "Storing in-flight packet $source" }
-        val packet = _root_ide_package_.io.github.nicolasfara.mktt.core.InFlightPublish(
+    override fun store(source: Publish): InFlightPublish {
+        Logger.v { "Storing in-flight packet $source" }
+        val packet = InFlightPublish(
             source,
             clock.now(),
             sequence.incrementAndFetch(),
@@ -41,44 +38,41 @@ public open class InMemorySessionStore(private val clock: Clock = Clock.System) 
         return packet
     }
 
-    override fun replace(
-        source: io.github.nicolasfara.mktt.core.InFlightPublish,
-    ): io.github.nicolasfara.mktt.core.InFlightPubrel {
+    override fun replace(source: InFlightPublish): InFlightPubrel {
         val packetIdentifier = source.packetIdentifier
 
         if (!outgoingPackets.containsKey(packetIdentifier)) {
             throw NoSuchElementException("No PUBLISH packet found with identifier $packetIdentifier")
         }
 
-        return _root_ide_package_.io.github.nicolasfara.mktt.core.InFlightPubrel(source, sequence.incrementAndFetch())
+        return InFlightPubrel(source, sequence.incrementAndFetch())
             .also { inFlight ->
-                _root_ide_package_.io.github.nicolasfara.mktt.core.util.Logger.v {
+                Logger.v {
                     "Replacing PUBLISH packet with identifier $packetIdentifier with $inFlight"
                 }
                 outgoingPackets[packetIdentifier] = inFlight
             }
     }
 
-    override fun acknowledge(packet: io.github.nicolasfara.mktt.core.InFlightPacket) {
+    override fun acknowledge(packet: InFlightPacket) {
         outgoingPackets.remove(packet.packetIdentifier)
-        _root_ide_package_.io.github.nicolasfara.mktt.core.util.Logger.v { "Acknowledged PUBLISH packet $packet" }
+        Logger.v { "Acknowledged PUBLISH packet $packet" }
     }
 
-    override fun rememberIncomingPacketId(publish: io.github.nicolasfara.mktt.core.packet.Publish): Boolean {
+    override fun rememberIncomingPacketId(publish: Publish): Boolean {
         val packetIdentifier = publish.packetIdentifier
         require(packetIdentifier != null) { "Packets without packet identifier cannot be part of a transaction" }
 
         return !incomingPackets.add(packetIdentifier)
     }
 
-    override fun hasIncomingPacketId(publish: io.github.nicolasfara.mktt.core.packet.Publish): Boolean =
-        incomingPackets.contains(publish.packetIdentifier)
+    override fun hasIncomingPacketId(publish: Publish): Boolean = incomingPackets.contains(publish.packetIdentifier)
 
-    override fun releaseIncomingPacketId(pubrel: io.github.nicolasfara.mktt.core.packet.Pubrel) {
+    override fun releaseIncomingPacketId(pubrel: Pubrel) {
         incomingPackets.remove(pubrel.packetIdentifier)
     }
 
-    override fun unacknowledgedPackets(): List<io.github.nicolasfara.mktt.core.InFlightPacket> {
+    override fun unacknowledgedPackets(): List<InFlightPacket> {
         // Does not need to be thread safe:
         val now = clock.now()
         val all = outgoingPackets.ref.load().filterNot { it.value.isExpired(now) }

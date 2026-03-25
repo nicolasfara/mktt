@@ -21,23 +21,23 @@ class MqttClientIntegrationTest {
             subscriber.connect()
             subscriber.subscribe(
                 listOf(
-                    _root_ide_package_.io.github.nicolasfara.mktt.core.TopicFilter(
-                        _root_ide_package_.io.github.nicolasfara.mktt.core.Topic(topic),
+                    TopicFilter(
+                        Topic(topic),
                     ),
                 ),
             )
 
             publisher.connect()
             publisher.publish(
-                _root_ide_package_.io.github.nicolasfara.mktt.client.PublishRequest(topic) {
-                    desiredQoS = _root_ide_package_.io.github.nicolasfara.mktt.core.QoS.AT_LEAST_ONCE
+                PublishRequest(topic) {
+                    desiredQoS = QoS.AT_LEAST_ONCE
                     payload("hello")
                 },
             )
 
             val message = subscriber.messages(
-                _root_ide_package_.io.github.nicolasfara.mktt.core.TopicFilter(
-                    _root_ide_package_.io.github.nicolasfara.mktt.core.Topic(topic),
+                TopicFilter(
+                    Topic(topic),
                 ),
             ).first()
             assertEquals("hello", message.payloadAsString())
@@ -54,7 +54,7 @@ class MqttClientIntegrationTest {
         val container = startContainerOrSkip() ?: return@runTest
         try {
             val client =
-                _root_ide_package_.io.github.nicolasfara.mktt.client.MqttClient(container.host, container.tlsPort) {
+                MqttClient(container.host, container.tlsPort) {
                     clientId = "tls-client"
                     username = MosquittoContainer.USER
                     password = MosquittoContainer.PASSWORD
@@ -67,18 +67,15 @@ class MqttClientIntegrationTest {
 
             val connack = client.connect()
 
-            assertEquals(_root_ide_package_.io.github.nicolasfara.mktt.core.Success, connack.reason)
+            assertEquals(Success, connack.reason)
             client.disconnect()
         } finally {
             container.stop()
         }
     }
 
-    private fun newClient(
-        container: MosquittoContainer,
-        clientId: String,
-    ): io.github.nicolasfara.mktt.client.MqttClient =
-        _root_ide_package_.io.github.nicolasfara.mktt.client.MqttClient(container.host, container.defaultPort) {
+    private fun newClient(container: MosquittoContainer, clientId: String): MqttClient =
+        MqttClient(container.host, container.defaultPort) {
             this.clientId = clientId
             username = MosquittoContainer.USER
             password = MosquittoContainer.PASSWORD

@@ -1,23 +1,38 @@
 package io.github.nicolasfara.mktt.client
-import io.github.nicolasfara.mktt.core.*
+
+import io.github.nicolasfara.mktt.core.ConnectionException
+import io.github.nicolasfara.mktt.core.MalformedPacketException
 import io.github.nicolasfara.mktt.core.packet.Packet
 import io.github.nicolasfara.mktt.core.packet.readPacket
 import io.github.nicolasfara.mktt.core.packet.write
 import io.github.nicolasfara.mktt.core.util.Logger
-import io.ktor.network.selector.*
-import io.ktor.network.sockets.*
-import io.ktor.network.tls.*
-import io.ktor.utils.io.*
-import io.ktor.utils.io.core.*
-import kotlinx.coroutines.*
+import io.ktor.network.selector.SelectorManager
+import io.ktor.network.sockets.Socket
+import io.ktor.network.sockets.aSocket
+import io.ktor.network.sockets.openReadChannel
+import io.ktor.network.sockets.openWriteChannel
+import io.ktor.utils.io.ByteReadChannel
+import io.ktor.utils.io.ByteWriteChannel
+import io.ktor.utils.io.ClosedWriteChannelException
+import io.ktor.utils.io.core.Closeable
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.CoroutineName
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeout
 import kotlinx.io.EOFException
 
 /**
@@ -26,13 +41,13 @@ import kotlinx.io.EOFException
  * @param replay the size of the replay cache for [packetResults], mainly used for testing
  */
 internal class DefaultEngine(
-    private val config: io.github.nicolasfara.mktt.client.DefaultEngineConfig,
-    socketHandler: io.github.nicolasfara.mktt.client.SocketHandler? = null,
+    private val config: DefaultEngineConfig,
+    socketHandler: SocketHandler? = null,
     replay: Int = 0,
-) : io.github.nicolasfara.mktt.client.MqttEngine {
+) : MqttEngine {
 
     private val _packetResults =
-        MutableSharedFlow<Result<io.github.nicolasfara.mktt.core.packet.Packet>>(replay = replay)
+        MutableSharedFlow<Result<Packet>>(replay = replay)
     override val packetResults = _packetResults.asSharedFlow()
 
     private val _connected = MutableStateFlow(false)
@@ -59,7 +74,6 @@ internal class DefaultEngine(
             socket
         }.await().also { socket ->
             sendChannel = socket.openWriteChannel()
-
             // It's important to open the read channel here, if we do it in the job below exceptions will be ignored
             val readChannel = socket.openReadChannel()
             receiverJob = scope.launch {
@@ -69,20 +83,19 @@ internal class DefaultEngine(
         Result.success(Unit)
     } catch (ex: Exception) {
         Result.failure(
-            _root_ide_package_.io.github.nicolasfara.mktt.core.ConnectionException(
+            ConnectionException(
                 "Cannot connect to ${config.host}:${config.port}",
                 ex,
             ),
         )
     }
 
-    override suspend fun send(packet: io.github.nicolasfara.mktt.core.packet.Packet): Result<Unit> =
-        sendChannel?.doSend(packet)
-            ?: Result.failure(
-                _root_ide_package_.io.github.nicolasfara.mktt.core.ConnectionException(
-                    "Not connected to ${config.host}:${config.port}",
-                ),
-            )
+    override suspend fun send(packet: Packet): Result<Unit> = sendChannel?.doSend(packet)
+        ?: Result.failure(
+            ConnectionException(
+                "Not connected to ${config.host}:${config.port}",
+            ),
+        )
 
     override suspend fun disconnect() {
         socket?.let {
@@ -106,37 +119,37 @@ internal class DefaultEngine(
             try {
                 _packetResults.emit(Result.success(readPacket()))
             } catch (_: CancellationException) {
-                _root_ide_package_.io.github.nicolasfara.mktt.core.util.Logger.v {
+                Logger.v {
                     "Packet reader job has been cancelled, terminating..."
                 }
                 break
             } catch (_: ClosedReceiveChannelException) {
-                _root_ide_package_.io.github.nicolasfara.mktt.core.util.Logger.v {
+                Logger.v {
                     "Read channel has been closed, terminating..."
                 }
                 break
             } catch (_: EOFException) {
-                _root_ide_package_.io.github.nicolasfara.mktt.core.util.Logger.v {
+                Logger.v {
                     "End of stream detected, terminating..."
                 }
                 break
-            } catch (ex: io.github.nicolasfara.mktt.core.MalformedPacketException) {
+            } catch (ex: MalformedPacketException) {
                 // Continue with the loop, so that the client can decide what to do
                 _packetResults.emit(Result.failure(ex))
             } catch (ex: Exception) {
-                _root_ide_package_.io.github.nicolasfara.mktt.core.util.Logger.w(throwable = ex) {
+                Logger.w(throwable = ex) {
                     "Read channel error detected, terminating..."
                 }
                 break
             }
         }
 
-        _root_ide_package_.io.github.nicolasfara.mktt.core.util.Logger.d { "Incoming message loop terminated" }
+        Logger.d { "Incoming message loop terminated" }
         disconnected()
     }
 
-    private suspend fun ByteWriteChannel.doSend(packet: io.github.nicolasfara.mktt.core.packet.Packet): Result<Unit> {
-        _root_ide_package_.io.github.nicolasfara.mktt.core.util.Logger.d { "Sending $packet..." }
+    private suspend fun ByteWriteChannel.doSend(packet: Packet): Result<Unit> {
+        Logger.d { "Sending $packet..." }
 
         return try {
             writeMutex.withLock {
@@ -145,19 +158,19 @@ internal class DefaultEngine(
             }
             Result.success(Unit)
         } catch (ex: CancellationException) {
-            _root_ide_package_.io.github.nicolasfara.mktt.core.util.Logger.v {
+            Logger.v {
                 "Packet writer job has been cancelled during write operation"
             }
             disconnected()
             Result.failure(ex)
         } catch (ex: ClosedWriteChannelException) {
-            _root_ide_package_.io.github.nicolasfara.mktt.core.util.Logger.w(throwable = ex) {
+            Logger.w(throwable = ex) {
                 "Write channel has been closed"
             }
             disconnected()
             Result.failure(ex)
         } catch (ex: Exception) {
-            _root_ide_package_.io.github.nicolasfara.mktt.core.util.Logger.w(throwable = ex) {
+            Logger.w(throwable = ex) {
                 "Write channel error detected"
             }
             disconnected()
@@ -176,36 +189,34 @@ internal class DefaultEngine(
         sendChannel = null
     }
 
-    private inner class SocketHandlerImpl(dispatcher: CoroutineDispatcher) :
-        io.github.nicolasfara.mktt.client.SocketHandler {
+    private inner class SocketHandlerImpl(dispatcher: CoroutineDispatcher) : SocketHandler {
 
         private val selectorManager = SelectorManager(dispatcher)
 
-        override suspend fun openSocket(config: io.github.nicolasfara.mktt.client.DefaultEngineConfig): Socket =
-            with(config) {
-                val tlsConfig = tlsConfigBuilder?.build()
-                if (tlsConfig != null) {
-                    // We must provide our own exception handler for the TLS connection, otherwise errors (which might happen
-                    // due to an already closed connection) will get propagated to the parent's coroutine, which is not what
-                    // we want.
-                    val handler = CoroutineExceptionHandler { _, exception ->
-                        if (connected.value) {
-                            _root_ide_package_.io.github.nicolasfara.mktt.core.util.Logger.e(throwable = exception) {
-                                "TLS error while connected to $host:$port, disconnecting..."
-                            }
-                            scope.launch {
-                                disconnect()
-                            }
+        override suspend fun openSocket(config: DefaultEngineConfig): Socket = with(config) {
+            val tlsConfig = tlsConfigBuilder?.build()
+            if (tlsConfig != null) {
+                // We must provide our own exception handler for the TLS connection, otherwise errors (which might happen
+                // due to an already closed connection) will get propagated to the parent's coroutine, which is not what
+                // we want.
+                val handler = CoroutineExceptionHandler { _, exception ->
+                    if (connected.value) {
+                        Logger.e(throwable = exception) {
+                            "TLS error while connected to $host:$port, disconnecting..."
                         }
-                        // When not connected, ignore this exception, as it is a result of being disconnected
+                        scope.launch {
+                            disconnect()
+                        }
                     }
-                    val tlsContext = CoroutineName("TLS Handler") + config.dispatcher + handler
-
-                    aSocket(selectorManager).tcp().connect(host, port, tcpOptions).tls(tlsContext, tlsConfig)
-                } else {
-                    aSocket(selectorManager).tcp().connect(host, port, tcpOptions)
+                    // When not connected, ignore this exception, as it is a result of being disconnected
                 }
+                val tlsContext = CoroutineName("TLS Handler") + config.dispatcher + handler
+
+                aSocket(selectorManager).tcp().connect(host, port, tcpOptions).tls(tlsContext, tlsConfig)
+            } else {
+                aSocket(selectorManager).tcp().connect(host, port, tcpOptions)
             }
+        }
 
         override fun close() {
             selectorManager.close()
@@ -218,7 +229,7 @@ internal class DefaultEngine(
  */
 internal interface SocketHandler {
 
-    suspend fun openSocket(config: io.github.nicolasfara.mktt.client.DefaultEngineConfig): Socket
+    suspend fun openSocket(config: DefaultEngineConfig): Socket
 
     fun close()
 }

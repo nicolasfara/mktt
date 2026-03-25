@@ -1,17 +1,16 @@
 package io.github.nicolasfara.mktt.client
 
-import io.github.nicolasfara.mktt.core.*
 import io.github.nicolasfara.mktt.core.util.MqttDslMarker
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 
-public interface MqttEngineFactory<out T : io.github.nicolasfara.mktt.client.MqttEngineConfig> {
+interface MqttEngineFactory<out T : MqttEngineConfig> {
 
-    public fun create(block: T.() -> Unit): io.github.nicolasfara.mktt.client.MqttEngine
+    fun create(block: T.() -> Unit): MqttEngine
 }
 
-@io.github.nicolasfara.mktt.core.util.MqttDslMarker
-public open class MqttEngineConfig {
+@MqttDslMarker
+open class MqttEngineConfig {
 
-    public var dispatcher: CoroutineDispatcher = Dispatchers.Default
+    var dispatcher: CoroutineDispatcher = Dispatchers.Default
 }

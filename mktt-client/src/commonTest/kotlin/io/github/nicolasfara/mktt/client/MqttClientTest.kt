@@ -41,11 +41,11 @@ class MqttClientTest {
         val engine = FakeMqttEngine().apply {
             sendHandler = { packet ->
                 sentPackets += packet
-                if (packet is io.github.nicolasfara.mktt.core.packet.Connect) {
+                if (packet is Connect) {
                     emit(
-                        _root_ide_package_.io.github.nicolasfara.mktt.core.packet.Connack(
+                        Connack(
                             isSessionPresent = false,
-                            reason = _root_ide_package_.io.github.nicolasfara.mktt.core.Success,
+                            reason = Success,
                         ),
                     )
                 }
@@ -56,9 +56,9 @@ class MqttClientTest {
 
         val connack = client.connect()
         try {
-            assertEquals(_root_ide_package_.io.github.nicolasfara.mktt.core.Success, connack.reason)
+            assertEquals(Success, connack.reason)
             assertEquals(
-                _root_ide_package_.io.github.nicolasfara.mktt.client.MqttConnectionState.Connected(connack),
+                MqttConnectionState.Connected(connack),
                 client.connectionState.value,
             )
         } finally {
@@ -73,16 +73,16 @@ class MqttClientTest {
             startHandler =
                 {
                     Result.failure(
-                        _root_ide_package_.io.github.nicolasfara.mktt.core.ConnectionException("cannot connect"),
+                        ConnectionException("cannot connect"),
                     )
                 }
         }
         val client = createClient(engine, UnconfinedTestDispatcher(testScheduler))
 
-        assertFailsWith<io.github.nicolasfara.mktt.core.ConnectionException> {
+        assertFailsWith<ConnectionException> {
             client.connect()
         }
-        assertIs<io.github.nicolasfara.mktt.client.MqttConnectionState.ConnectionError>(client.connectionState.value)
+        assertIs<MqttConnectionState.ConnectionError>(client.connectionState.value)
         client.close()
     }
 
@@ -92,15 +92,15 @@ class MqttClientTest {
             sendHandler = { packet ->
                 sentPackets += packet
                 when (packet) {
-                    is io.github.nicolasfara.mktt.core.packet.Connect -> emit(
-                        _root_ide_package_.io.github.nicolasfara.mktt.core.packet.Connack(
+                    is Connect -> emit(
+                        Connack(
                             isSessionPresent = false,
-                            reason = _root_ide_package_.io.github.nicolasfara.mktt.core.Success,
+                            reason = Success,
                         ),
                     )
 
-                    is io.github.nicolasfara.mktt.core.packet.Publish -> emit(
-                        _root_ide_package_.io.github.nicolasfara.mktt.core.packet.Puback.from(packet),
+                    is Publish -> emit(
+                        Puback.from(packet),
                     )
                 }
                 Result.success(Unit)
@@ -110,14 +110,14 @@ class MqttClientTest {
         client.connect()
         try {
             val result = client.publish(
-                _root_ide_package_.io.github.nicolasfara.mktt.client.PublishRequest("sensor/temperature") {
-                    desiredQoS = _root_ide_package_.io.github.nicolasfara.mktt.core.QoS.AT_LEAST_ONCE
+                PublishRequest("sensor/temperature") {
+                    desiredQoS = QoS.AT_LEAST_ONCE
                     payload("21")
                 },
             )
 
-            assertIs<io.github.nicolasfara.mktt.client.AtLeastOncePublishResponse>(result)
-            assertEquals(_root_ide_package_.io.github.nicolasfara.mktt.core.Success, result.reason)
+            assertIs<AtLeastOncePublishResponse>(result)
+            assertEquals(Success, result.reason)
         } finally {
             client.disconnect()
             client.close()
@@ -129,11 +129,11 @@ class MqttClientTest {
         val engine = FakeMqttEngine().apply {
             sendHandler = { packet ->
                 sentPackets += packet
-                if (packet is io.github.nicolasfara.mktt.core.packet.Connect) {
+                if (packet is Connect) {
                     emit(
-                        _root_ide_package_.io.github.nicolasfara.mktt.core.packet.Connack(
+                        Connack(
                             isSessionPresent = false,
-                            reason = _root_ide_package_.io.github.nicolasfara.mktt.core.Success,
+                            reason = Success,
                         ),
                     )
                 }
@@ -145,8 +145,8 @@ class MqttClientTest {
         try {
             val message = backgroundScope.async {
                 client.messages(
-                    _root_ide_package_.io.github.nicolasfara.mktt.core.TopicFilter(
-                        _root_ide_package_.io.github.nicolasfara.mktt.core.Topic(
+                    TopicFilter(
+                        Topic(
                             "sensors/+",
                         ),
                     ),
@@ -155,8 +155,8 @@ class MqttClientTest {
             runCurrent()
 
             engine.emit(
-                _root_ide_package_.io.github.nicolasfara.mktt.core.packet.Publish(
-                    topic = _root_ide_package_.io.github.nicolasfara.mktt.core.Topic("sensors/temperature"),
+                Publish(
+                    topic = Topic("sensors/temperature"),
                     payload = ByteString("22".encodeToByteArray()),
                 ),
             )
@@ -174,24 +174,24 @@ class MqttClientTest {
             sendHandler = { packet ->
                 sentPackets += packet
                 when (packet) {
-                    is io.github.nicolasfara.mktt.core.packet.Connect -> emit(
-                        _root_ide_package_.io.github.nicolasfara.mktt.core.packet.Connack(
+                    is Connect -> emit(
+                        Connack(
                             isSessionPresent = false,
-                            reason = _root_ide_package_.io.github.nicolasfara.mktt.core.Success,
+                            reason = Success,
                         ),
                     )
 
-                    is io.github.nicolasfara.mktt.core.packet.Subscribe -> emit(
-                        _root_ide_package_.io.github.nicolasfara.mktt.core.packet.Suback(
+                    is Subscribe -> emit(
+                        Suback(
                             packet.packetIdentifier,
-                            listOf(_root_ide_package_.io.github.nicolasfara.mktt.core.GrantedQoS0),
+                            listOf(GrantedQoS0),
                         ),
                     )
 
-                    is io.github.nicolasfara.mktt.core.packet.Unsubscribe -> emit(
-                        _root_ide_package_.io.github.nicolasfara.mktt.core.packet.Unsuback(
+                    is Unsubscribe -> emit(
+                        Unsuback(
                             packet.packetIdentifier,
-                            listOf(_root_ide_package_.io.github.nicolasfara.mktt.core.Success),
+                            listOf(Success),
                         ),
                     )
                 }
@@ -199,8 +199,8 @@ class MqttClientTest {
             }
         }
         val client = createClient(engine, UnconfinedTestDispatcher(testScheduler))
-        val filter = _root_ide_package_.io.github.nicolasfara.mktt.core.TopicFilter(
-            _root_ide_package_.io.github.nicolasfara.mktt.core.Topic("sensors/+"),
+        val filter = TopicFilter(
+            Topic("sensors/+"),
         )
         client.connect()
         try {
@@ -222,16 +222,16 @@ class MqttClientTest {
             sendHandler = { packet ->
                 sentPackets += packet
                 when (packet) {
-                    is io.github.nicolasfara.mktt.core.packet.Connect -> emit(
-                        _root_ide_package_.io.github.nicolasfara.mktt.core.packet.Connack(
+                    is Connect -> emit(
+                        Connack(
                             isSessionPresent = false,
-                            reason = _root_ide_package_.io.github.nicolasfara.mktt.core.Success,
-                            serverKeepAlive = _root_ide_package_.io.github.nicolasfara.mktt.core.ServerKeepAlive(1u),
+                            reason = Success,
+                            serverKeepAlive = ServerKeepAlive(1u),
                         ),
                     )
 
-                    is io.github.nicolasfara.mktt.core.packet.Pingreq -> emit(
-                        _root_ide_package_.io.github.nicolasfara.mktt.core.packet.Pingresp,
+                    is Pingreq -> emit(
+                        Pingresp,
                     )
                 }
                 Result.success(Unit)
@@ -243,28 +243,23 @@ class MqttClientTest {
             advanceTimeBy(1_000)
             runCurrent()
 
-            assertTrue(engine.sentPackets.any { it is io.github.nicolasfara.mktt.core.packet.Pingreq })
+            assertTrue(engine.sentPackets.any { it is Pingreq })
         } finally {
             client.disconnect()
             client.close()
         }
     }
 
-    private fun createClient(
-        engine: FakeMqttEngine,
-        dispatcher: CoroutineDispatcher,
-    ): io.github.nicolasfara.mktt.client.MqttClient {
-        val config = _root_ide_package_.io.github.nicolasfara.mktt.client.buildConfig(TestEngineFactory(engine)) {
+    private fun createClient(engine: FakeMqttEngine, dispatcher: CoroutineDispatcher): MqttClient {
+        val config = buildConfig(TestEngineFactory(engine)) {
             this.dispatcher = dispatcher
             clientId = "test-client"
         }
-        return _root_ide_package_.io.github.nicolasfara.mktt.client.MqttClient(config)
+        return MqttClient(config)
     }
 
     private class TestEngineFactory(private val engine: FakeMqttEngine) :
-        io.github.nicolasfara.mktt.client.MqttEngineFactory<io.github.nicolasfara.mktt.client.MqttEngineConfig> {
-        override fun create(
-            block: io.github.nicolasfara.mktt.client.MqttEngineConfig.() -> Unit,
-        ): io.github.nicolasfara.mktt.client.MqttEngine = engine
+        MqttEngineFactory<MqttEngineConfig> {
+        override fun create(block: MqttEngineConfig.() -> Unit): MqttEngine = engine
     }
 }

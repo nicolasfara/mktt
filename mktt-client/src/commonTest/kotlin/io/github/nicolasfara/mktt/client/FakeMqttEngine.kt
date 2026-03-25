@@ -6,18 +6,18 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-internal class FakeMqttEngine : io.github.nicolasfara.mktt.client.MqttEngine {
+internal class FakeMqttEngine : MqttEngine {
     private val _packetResults =
-        MutableSharedFlow<Result<io.github.nicolasfara.mktt.core.packet.Packet>>(extraBufferCapacity = 32)
+        MutableSharedFlow<Result<Packet>>(extraBufferCapacity = 32)
     private val _connected = MutableStateFlow(false)
 
-    val sentPackets = mutableListOf<io.github.nicolasfara.mktt.core.packet.Packet>()
+    val sentPackets = mutableListOf<Packet>()
     var startHandler: suspend FakeMqttEngine.() -> Result<Unit> = {
         _connected.value = true
         Result.success(Unit)
     }
     var sendHandler: suspend FakeMqttEngine.(
-        io.github.nicolasfara.mktt.core.packet.Packet,
+        Packet,
     ) -> Result<Unit> = { packet ->
         sentPackets += packet
         Result.success(Unit)
@@ -28,7 +28,7 @@ internal class FakeMqttEngine : io.github.nicolasfara.mktt.client.MqttEngine {
 
     override suspend fun start(): Result<Unit> = startHandler()
 
-    override suspend fun send(packet: io.github.nicolasfara.mktt.core.packet.Packet): Result<Unit> = sendHandler(packet)
+    override suspend fun send(packet: Packet): Result<Unit> = sendHandler(packet)
 
     override suspend fun disconnect() {
         _connected.value = false
@@ -36,7 +36,7 @@ internal class FakeMqttEngine : io.github.nicolasfara.mktt.client.MqttEngine {
 
     override fun close() = Unit
 
-    suspend fun emit(packet: io.github.nicolasfara.mktt.core.packet.Packet) {
+    suspend fun emit(packet: Packet) {
         _packetResults.emit(Result.success(packet))
     }
 
