@@ -3,8 +3,15 @@ package io.github.nicolasfara.mktt.core.packet
 import io.github.nicolasfara.mktt.core.util.Logger
 import io.github.nicolasfara.mktt.core.util.readVariableByteInt
 import io.github.nicolasfara.mktt.core.util.writeVariableByteInt
-import io.ktor.utils.io.*
-import io.ktor.utils.io.core.*
+import io.ktor.utils.io.ByteReadChannel
+import io.ktor.utils.io.ByteWriteChannel
+import io.ktor.utils.io.core.buildPacket
+import io.ktor.utils.io.core.remaining
+import io.ktor.utils.io.core.writePacket
+import io.ktor.utils.io.readByte
+import io.ktor.utils.io.readPacket
+import io.ktor.utils.io.writeByte
+import io.ktor.utils.io.writePacket
 import kotlinx.io.Sink
 
 interface Packet {
@@ -15,20 +22,18 @@ interface Packet {
 /**
  * Determines whether this packet is of the specified type and its packet identifier is the same as the one of `packet`.
  */
-inline fun <reified T : PacketIdentifierPacket> Packet.isResponseFor(
-    packet: PacketIdentifierPacket,
-): Boolean = T::class.isInstance(this) &&
-    packet.packetIdentifier ==
-    (this as PacketIdentifierPacket).packetIdentifier
+inline fun <reified T : PacketIdentifierPacket> Packet.isResponseFor(packet: PacketIdentifierPacket): Boolean =
+    T::class.isInstance(this) &&
+        packet.packetIdentifier ==
+        (this as PacketIdentifierPacket).packetIdentifier
 
 /**
  * Determines whether this packet is of the specified type and its packet identifier is the same as the one of `publish`.
  */
-inline fun <reified T : PacketIdentifierPacket> Packet.isResponseFor(
-    publish: Publish,
-): Boolean = T::class.isInstance(this) &&
-    publish.packetIdentifier ==
-    (this as PacketIdentifierPacket).packetIdentifier
+inline fun <reified T : PacketIdentifierPacket> Packet.isResponseFor(publish: Publish): Boolean =
+    T::class.isInstance(this) &&
+        publish.packetIdentifier ==
+        (this as PacketIdentifierPacket).packetIdentifier
 
 /**
  * Reads a packet from this byte read channel. Blocks until the packet has been read completely
@@ -111,10 +116,10 @@ fun Sink.write(packet: Packet) {
  */
 private fun Sink.writeBody(packet: Packet) {
     when (packet.type) {
-        PacketType.CONNACK -> write(packet as Connack,)
+        PacketType.CONNACK -> write(packet as Connack)
         PacketType.CONNECT -> write(packet as Connect)
         PacketType.PUBLISH -> write(packet as Publish)
-        PacketType.PUBACK -> write(packet as Puback,)
+        PacketType.PUBACK -> write(packet as Puback)
         PacketType.PUBREC -> write(packet as Pubrec)
         PacketType.PUBREL -> write(packet as Pubrel)
         PacketType.PUBCOMP -> write(packet as Pubcomp)

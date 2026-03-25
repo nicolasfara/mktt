@@ -1,6 +1,10 @@
 package io.github.nicolasfara.mktt.core.packet
 
-import io.github.nicolasfara.mktt.core.*
+import io.github.nicolasfara.mktt.core.QoS
+import io.github.nicolasfara.mktt.core.RetainHandling
+import io.github.nicolasfara.mktt.core.SubscriptionIdentifier
+import io.github.nicolasfara.mktt.core.buildFilterList
+import io.github.nicolasfara.mktt.core.buildUserProperties
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 

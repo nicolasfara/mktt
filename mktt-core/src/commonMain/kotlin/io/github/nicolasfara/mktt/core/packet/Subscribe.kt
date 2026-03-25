@@ -1,9 +1,14 @@
 package io.github.nicolasfara.mktt.core.packet
 
-import io.github.nicolasfara.mktt.core.*
+import io.github.nicolasfara.mktt.core.QoS
+import io.github.nicolasfara.mktt.core.RetainHandling
+import io.github.nicolasfara.mktt.core.SubscriptionIdentifier
+import io.github.nicolasfara.mktt.core.SubscriptionOptions
+import io.github.nicolasfara.mktt.core.Topic
+import io.github.nicolasfara.mktt.core.TopicFilter
+import io.github.nicolasfara.mktt.core.UserProperties
 import io.github.nicolasfara.mktt.core.asArray
-import io.github.nicolasfara.mktt.core.packet.bits
-import io.github.nicolasfara.mktt.core.packet.toSubscriptionOptions
+import io.github.nicolasfara.mktt.core.malformedWhen
 import io.github.nicolasfara.mktt.core.readProperties
 import io.github.nicolasfara.mktt.core.singleOrNull
 import io.github.nicolasfara.mktt.core.util.readMqttString

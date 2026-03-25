@@ -20,16 +20,15 @@ data class WillProperties(
     val userProperties: UserProperties,
 ) {
     internal companion object {
-        internal fun from(properties: List<Property<*>>): WillProperties =
-            WillProperties(
-                willDelayInterval = properties.single<WillDelayInterval>(),
-                payloadFormatIndicator = properties.singleOrNull<PayloadFormatIndicator>(),
-                messageExpiryInterval = properties.singleOrNull<MessageExpiryInterval>(),
-                contentType = properties.singleOrNull<ContentType>(),
-                responseTopic = properties.singleOrNull<ResponseTopic>(),
-                correlationData = properties.singleOrNull<CorrelationData>(),
-                userProperties = UserProperties.from(properties),
-            )
+        internal fun from(properties: List<Property<*>>): WillProperties = WillProperties(
+            willDelayInterval = properties.single<WillDelayInterval>(),
+            payloadFormatIndicator = properties.singleOrNull<PayloadFormatIndicator>(),
+            messageExpiryInterval = properties.singleOrNull<MessageExpiryInterval>(),
+            contentType = properties.singleOrNull<ContentType>(),
+            responseTopic = properties.singleOrNull<ResponseTopic>(),
+            correlationData = properties.singleOrNull<CorrelationData>(),
+            userProperties = UserProperties.from(properties),
+        )
     }
 }
 
@@ -70,29 +69,27 @@ class WillPropertiesBuilder {
         userPropertiesBuilder.init()
     }
 
-    fun build(): WillProperties =
-        WillProperties(
-            willDelayInterval = willDelayInterval.toWillDelayInterval(),
-            payloadFormatIndicator = payloadFormatIndicator,
-            messageExpiryInterval = messageExpiryInterval?.toMessageExpiryInterval(),
-            contentType = contentType?.let { ContentType(it) },
-            responseTopic = responseTopic?.let { ResponseTopic(it) },
-            correlationData = correlationData?.let {
-                CorrelationData(
-                    it,
-                )
-            },
-            userProperties = userPropertiesBuilder.build(),
-        )
+    fun build(): WillProperties = WillProperties(
+        willDelayInterval = willDelayInterval.toWillDelayInterval(),
+        payloadFormatIndicator = payloadFormatIndicator,
+        messageExpiryInterval = messageExpiryInterval?.toMessageExpiryInterval(),
+        contentType = contentType?.let { ContentType(it) },
+        responseTopic = responseTopic?.let { ResponseTopic(it) },
+        correlationData = correlationData?.let {
+            CorrelationData(
+                it,
+            )
+        },
+        userProperties = userPropertiesBuilder.build(),
+    )
 }
 
-internal fun WillProperties.asArray(): Array<Property<*>?> =
-    arrayOf(
-        willDelayInterval,
-        payloadFormatIndicator,
-        messageExpiryInterval,
-        contentType,
-        responseTopic,
-        correlationData,
-        *userProperties.asArray,
-    )
+internal fun WillProperties.asArray(): Array<Property<*>?> = arrayOf(
+    willDelayInterval,
+    payloadFormatIndicator,
+    messageExpiryInterval,
+    contentType,
+    responseTopic,
+    correlationData,
+    *userProperties.asArray,
+)

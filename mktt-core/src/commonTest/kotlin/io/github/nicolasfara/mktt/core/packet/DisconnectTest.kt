@@ -1,6 +1,14 @@
 package io.github.nicolasfara.mktt.core.packet
 
-import io.github.nicolasfara.mktt.core.*
+import io.github.nicolasfara.mktt.core.DisconnectWithWillMessage
+import io.github.nicolasfara.mktt.core.GrantedQoS0
+import io.github.nicolasfara.mktt.core.MalformedPacketException
+import io.github.nicolasfara.mktt.core.NormalDisconnection
+import io.github.nicolasfara.mktt.core.ReasonString
+import io.github.nicolasfara.mktt.core.SessionExpiryInterval
+import io.github.nicolasfara.mktt.core.Success
+import io.github.nicolasfara.mktt.core.UnspecifiedError
+import io.github.nicolasfara.mktt.core.buildUserProperties
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertFailsWith

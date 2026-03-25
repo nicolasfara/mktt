@@ -14,8 +14,7 @@ import kotlin.time.Instant
  * @property timestamp the time when this packet was created
  * @property key an integer value used for sorting instances of this
  */
-sealed class InFlightPacket(val timestamp: Instant, val key: Long) :
-    Comparable<InFlightPacket> {
+sealed class InFlightPacket(val timestamp: Instant, val key: Long) : Comparable<InFlightPacket> {
 
     /**
      * The packet identifier of the underlying packet.
@@ -30,11 +29,7 @@ sealed class InFlightPacket(val timestamp: Instant, val key: Long) :
     override fun compareTo(other: InFlightPacket): Int = this.key.compareTo(other.key)
 }
 
-class InFlightPublish(
-    val source: Publish,
-    timestamp: Instant,
-    id: Long,
-) : InFlightPacket(timestamp, id) {
+class InFlightPublish(val source: Publish, timestamp: Instant, id: Long) : InFlightPacket(timestamp, id) {
 
     init {
         require(source.qoS != QoS.AT_MOST_ONCE) {
@@ -49,11 +44,7 @@ class InFlightPublish(
         source.messageExpiryInterval != null && timestamp + source.messageExpiryInterval.toDuration() < now
 }
 
-class InFlightPubrel(
-    val source: Pubrel,
-    timestamp: Instant,
-    id: Long,
-) : InFlightPacket(timestamp, id) {
+class InFlightPubrel(val source: Pubrel, timestamp: Instant, id: Long) : InFlightPacket(timestamp, id) {
 
     constructor(inFlightPublish: InFlightPublish, id: Long) :
         this(

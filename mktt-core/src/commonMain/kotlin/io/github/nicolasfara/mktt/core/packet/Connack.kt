@@ -1,6 +1,23 @@
 package io.github.nicolasfara.mktt.core.packet
 
-import io.github.nicolasfara.mktt.core.*
+import io.github.nicolasfara.mktt.core.AssignedClientIdentifier
+import io.github.nicolasfara.mktt.core.AuthenticationData
+import io.github.nicolasfara.mktt.core.AuthenticationMethod
+import io.github.nicolasfara.mktt.core.MaximumPacketSize
+import io.github.nicolasfara.mktt.core.MaximumQoS
+import io.github.nicolasfara.mktt.core.ReasonCode
+import io.github.nicolasfara.mktt.core.ReasonString
+import io.github.nicolasfara.mktt.core.ReceiveMaximum
+import io.github.nicolasfara.mktt.core.ResponseInformation
+import io.github.nicolasfara.mktt.core.RetainAvailable
+import io.github.nicolasfara.mktt.core.ServerKeepAlive
+import io.github.nicolasfara.mktt.core.ServerReference
+import io.github.nicolasfara.mktt.core.SessionExpiryInterval
+import io.github.nicolasfara.mktt.core.SharedSubscriptionAvailable
+import io.github.nicolasfara.mktt.core.SubscriptionIdentifierAvailable
+import io.github.nicolasfara.mktt.core.TopicAliasMaximum
+import io.github.nicolasfara.mktt.core.UserProperties
+import io.github.nicolasfara.mktt.core.WildcardSubscriptionAvailable
 import io.github.nicolasfara.mktt.core.asArray
 import io.github.nicolasfara.mktt.core.readProperties
 import io.github.nicolasfara.mktt.core.singleOrNull

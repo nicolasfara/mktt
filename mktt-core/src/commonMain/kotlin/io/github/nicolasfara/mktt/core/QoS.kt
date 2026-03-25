@@ -21,18 +21,20 @@ enum class QoS(val value: Int) {
     /**
      * Ensures that this QoS is not greater than the specified [maximumQoS].
      */
-    fun coerceAtMost(maximumQoS: QoS): QoS =
-        if (this.value > maximumQoS.value) {
-            maximumQoS
-        } else {
-            this
-        }
+    fun coerceAtMost(maximumQoS: QoS): QoS = if (this.value > maximumQoS.value) {
+        maximumQoS
+    } else {
+        this
+    }
 
     internal companion object {
         fun from(value: Int): QoS = when (value) {
             0 -> AT_MOST_ONCE
+
             1 -> AT_LEAST_ONCE
+
             2 -> EXACTLY_ONE
+
             else -> throw MalformedPacketException(
                 "Unknown QoS value: $value",
             )

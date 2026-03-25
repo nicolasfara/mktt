@@ -39,9 +39,7 @@ data class UserProperties(val values: List<StringPair>) {
         val EMPTY: UserProperties =
             UserProperties(values = emptyList())
 
-        internal fun from(
-            properties: List<Property<*>>,
-        ): UserProperties =
+        internal fun from(properties: List<Property<*>>): UserProperties =
             with(properties.filterIsInstance<UserProperty>()) {
                 if (isEmpty()) {
                     EMPTY

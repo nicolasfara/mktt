@@ -1,9 +1,13 @@
 package io.github.nicolasfara.mktt.core.packet
 
-import io.github.nicolasfara.mktt.core.*
+import io.github.nicolasfara.mktt.core.ReasonCode
+import io.github.nicolasfara.mktt.core.ReasonString
+import io.github.nicolasfara.mktt.core.Success
+import io.github.nicolasfara.mktt.core.UserProperties
 import io.github.nicolasfara.mktt.core.asArray
 import io.github.nicolasfara.mktt.core.readProperties
 import io.github.nicolasfara.mktt.core.singleOrNull
+import io.github.nicolasfara.mktt.core.wellFormedWhen
 import io.github.nicolasfara.mktt.core.writeProperties
 import kotlinx.io.Sink
 import kotlinx.io.Source
@@ -62,11 +66,7 @@ class Puback(
 ) : PublishResponsePacket(PacketType.PUBACK, packetIdentifier, reason, reasonString, userProperties) {
 
     companion object {
-        fun from(
-            publish: Publish,
-            reason: ReasonCode = Success,
-            reasonString: String? = null,
-        ): Puback {
+        fun from(publish: Publish, reason: ReasonCode = Success, reasonString: String? = null): Puback {
             val packetIdentifier = publish.packetIdentifier
             require(packetIdentifier != null) {
                 "Cannot create a PUBACK packet from a PUBLISH packet without packet identifier: $this"
@@ -91,11 +91,7 @@ class Pubrec(
 ) : PublishResponsePacket(PacketType.PUBREC, packetIdentifier, reason, reasonString, userProperties) {
 
     companion object {
-        fun from(
-            publish: Publish,
-            reason: ReasonCode = Success,
-            reasonString: String? = null,
-        ): Pubrec {
+        fun from(publish: Publish, reason: ReasonCode = Success, reasonString: String? = null): Pubrec {
             val packetIdentifier = publish.packetIdentifier
             require(packetIdentifier != null) {
                 "Cannot create a PUBREC packet from a PUBLISH packet without packet identifier: $this"
@@ -123,11 +119,7 @@ class Pubrel(
     override val headerFlags: Int = 2
 
     companion object {
-        fun from(
-            publish: Publish,
-            reason: ReasonCode = Success,
-            reasonString: String? = null,
-        ): Pubrel {
+        fun from(publish: Publish, reason: ReasonCode = Success, reasonString: String? = null): Pubrel {
             val packetIdentifier = publish.packetIdentifier
             require(packetIdentifier != null) {
                 "Cannot create a PUBREL packet from a PUBLISH packet without packet identifier: $this"

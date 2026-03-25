@@ -12,8 +12,11 @@ enum class RetainHandling(val value: Int) {
     companion object {
         fun from(value: Int): RetainHandling = when (value) {
             0 -> SEND_ON_SUBSCRIBE
+
             1 -> SEND_IF_NOT_EXISTS
+
             2 -> DO_NOT_SEND
+
             else -> throw MalformedPacketException(
                 "Unknown RetainHandling value: $value",
             )

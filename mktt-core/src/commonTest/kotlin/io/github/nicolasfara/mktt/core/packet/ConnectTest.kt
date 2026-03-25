@@ -1,9 +1,20 @@
 package io.github.nicolasfara.mktt.core.packet
 
-import io.github.nicolasfara.mktt.core.*
+import io.github.nicolasfara.mktt.core.AuthenticationData
+import io.github.nicolasfara.mktt.core.AuthenticationMethod
+import io.github.nicolasfara.mktt.core.MalformedPacketException
+import io.github.nicolasfara.mktt.core.MaximumPacketSize
+import io.github.nicolasfara.mktt.core.QoS
+import io.github.nicolasfara.mktt.core.ReceiveMaximum
+import io.github.nicolasfara.mktt.core.RequestProblemInformation
+import io.github.nicolasfara.mktt.core.RequestResponseInformation
+import io.github.nicolasfara.mktt.core.SessionExpiryInterval
+import io.github.nicolasfara.mktt.core.TopicAliasMaximum
+import io.github.nicolasfara.mktt.core.buildUserProperties
+import io.github.nicolasfara.mktt.core.buildWillMessage
 import io.github.nicolasfara.mktt.core.util.readMqttString
 import io.github.nicolasfara.mktt.core.util.readVariableByteInt
-import io.ktor.utils.io.core.*
+import io.ktor.utils.io.core.buildPacket
 import kotlinx.coroutines.test.runTest
 import kotlinx.io.bytestring.ByteString
 import kotlinx.io.bytestring.encodeToByteString

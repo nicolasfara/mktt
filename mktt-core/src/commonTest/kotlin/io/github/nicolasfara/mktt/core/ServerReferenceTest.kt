@@ -1,7 +1,6 @@
 package io.github.nicolasfara.mktt.core
 
-import io.github.nicolasfara.mktt.core.servers
-import io.ktor.network.sockets.*
+import io.ktor.network.sockets.InetSocketAddress
 import kotlin.test.Test
 import kotlin.test.assertEquals
 

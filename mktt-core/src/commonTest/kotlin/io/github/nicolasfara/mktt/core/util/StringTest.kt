@@ -1,9 +1,9 @@
 package io.github.nicolasfara.mktt.core.util
 
 import io.github.nicolasfara.mktt.core.MalformedPacketException
-import io.github.nicolasfara.mktt.core.util.readMqttString
-import io.github.nicolasfara.mktt.core.util.writeMqttString
-import io.ktor.utils.io.core.*
+import io.ktor.utils.io.core.build
+import io.ktor.utils.io.core.buildPacket
+import io.ktor.utils.io.core.writeFully
 import kotlinx.io.Buffer
 import kotlin.test.Test
 import kotlin.test.assertEquals

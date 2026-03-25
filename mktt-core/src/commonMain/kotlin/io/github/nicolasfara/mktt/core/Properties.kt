@@ -1,9 +1,23 @@
 package io.github.nicolasfara.mktt.core
 
-import io.github.nicolasfara.mktt.core.util.*
-import io.ktor.network.sockets.*
-import kotlinx.io.*
+import io.github.nicolasfara.mktt.core.util.Logger
+import io.github.nicolasfara.mktt.core.util.readMqttByteString
+import io.github.nicolasfara.mktt.core.util.readMqttString
+import io.github.nicolasfara.mktt.core.util.readVariableByteInt
+import io.github.nicolasfara.mktt.core.util.utf8Size
+import io.github.nicolasfara.mktt.core.util.variableByteIntSize
+import io.github.nicolasfara.mktt.core.util.writeMqttByteString
+import io.github.nicolasfara.mktt.core.util.writeMqttString
+import io.github.nicolasfara.mktt.core.util.writeVariableByteInt
+import io.ktor.network.sockets.InetSocketAddress
+import io.ktor.network.sockets.SocketAddress
+import kotlinx.io.Sink
+import kotlinx.io.Source
 import kotlinx.io.bytestring.ByteString
+import kotlinx.io.readUInt
+import kotlinx.io.readUShort
+import kotlinx.io.writeUInt
+import kotlinx.io.writeUShort
 import kotlin.jvm.JvmInline
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
@@ -836,7 +850,8 @@ private val StringWriter: Sink.(String) -> Unit = {
 }
 
 private val ByteStringWriter: Sink.(ByteString) -> Unit = {
-    writeMqttByteString(it) // Do NOT(!) use ByteWriteChannel.writeFully(...) as this will not write the size of the byte array
+    // Do NOT(!) use ByteWriteChannel.writeFully(...) as this will not write the size of the byte array
+    writeMqttByteString(it)
 }
 
 private val BooleanWriter: Sink.(Boolean) -> Unit = {

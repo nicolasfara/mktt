@@ -1,25 +1,29 @@
 package io.github.nicolasfara.mktt.core.util
 
-import io.github.nicolasfara.mktt.core.*
-import io.github.nicolasfara.mktt.core.util.utf8Size
-import kotlinx.io.*
+import io.github.nicolasfara.mktt.core.MalformedPacketException
+import io.github.nicolasfara.mktt.core.ReasonString
+import io.github.nicolasfara.mktt.core.ResponseInformation
+import io.github.nicolasfara.mktt.core.ResponseTopic
+import io.github.nicolasfara.mktt.core.Topic
+import kotlinx.io.Sink
+import kotlinx.io.Source
 import kotlinx.io.bytestring.decodeToString
 import kotlinx.io.bytestring.encodeToByteString
+import kotlinx.io.readByteString
+import kotlinx.io.readUShort
+import kotlinx.io.write
+import kotlinx.io.writeUShort
 import kotlin.toUShort
 
 private const val MAX_TEXT_SIZE = 65_535
 
-fun String.toTopic(): Topic =
-    Topic(this)
+fun String.toTopic(): Topic = Topic(this)
 
-fun String.toResponseTopic(): ResponseTopic =
-    ResponseTopic(this)
+fun String.toResponseTopic(): ResponseTopic = ResponseTopic(this)
 
-fun String.toResponseInformation(): ResponseInformation =
-    ResponseInformation(this)
+fun String.toResponseInformation(): ResponseInformation = ResponseInformation(this)
 
-fun String.toReasonString(): ReasonString =
-    ReasonString(this)
+fun String.toReasonString(): ReasonString = ReasonString(this)
 
 /**
  * Writes the specified string as an MQTT string, hence writing first the size of the string, then the ZTF-8 encoded
@@ -31,9 +35,11 @@ internal fun Sink.writeMqttString(text: String) {
     val size = text.utf8Size()
     if (size > MAX_TEXT_SIZE) {
         throw MalformedPacketException(
-            "Text '${text.substring(
-                0..100,
-            )}...' is too large: $size (max allowed size: ${MAX_TEXT_SIZE})",
+            "Text '${
+                text.substring(
+                    0..100,
+                )
+            }...' is too large: $size (max allowed size: ${MAX_TEXT_SIZE})",
         )
     }
 

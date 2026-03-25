@@ -1,6 +1,10 @@
 package io.github.nicolasfara.mktt.core.packet
 
-import io.github.nicolasfara.mktt.core.*
+import io.github.nicolasfara.mktt.core.GrantedQoS0
+import io.github.nicolasfara.mktt.core.GrantedQoS1
+import io.github.nicolasfara.mktt.core.GrantedQoS2
+import io.github.nicolasfara.mktt.core.ReasonString
+import io.github.nicolasfara.mktt.core.buildUserProperties
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 

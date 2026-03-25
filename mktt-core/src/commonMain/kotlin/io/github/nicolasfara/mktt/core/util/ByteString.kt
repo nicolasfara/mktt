@@ -1,8 +1,12 @@
 package io.github.nicolasfara.mktt.core.util
 
 import io.github.nicolasfara.mktt.core.MalformedPacketException
-import kotlinx.io.*
+import kotlinx.io.Sink
+import kotlinx.io.Source
 import kotlinx.io.bytestring.ByteString
+import kotlinx.io.readByteString
+import kotlinx.io.readUShort
+import kotlinx.io.write
 
 private const val MAX_BYTES_SIZE = 65_535
 

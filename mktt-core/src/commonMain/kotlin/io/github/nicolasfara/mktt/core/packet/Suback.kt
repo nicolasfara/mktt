@@ -1,7 +1,13 @@
 package io.github.nicolasfara.mktt.core.packet
 
-import io.github.nicolasfara.mktt.core.*
+import io.github.nicolasfara.mktt.core.GrantedQoS0
+import io.github.nicolasfara.mktt.core.GrantedQoS2
+import io.github.nicolasfara.mktt.core.ReasonCode
+import io.github.nicolasfara.mktt.core.ReasonString
+import io.github.nicolasfara.mktt.core.Success
+import io.github.nicolasfara.mktt.core.UserProperties
 import io.github.nicolasfara.mktt.core.asArray
+import io.github.nicolasfara.mktt.core.malformedWhen
 import io.github.nicolasfara.mktt.core.readProperties
 import io.github.nicolasfara.mktt.core.singleOrNull
 import io.github.nicolasfara.mktt.core.writeProperties

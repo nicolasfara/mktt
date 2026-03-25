@@ -1,10 +1,12 @@
 package io.github.nicolasfara.mktt.core.packet
 
-import io.github.nicolasfara.mktt.core.*
+import io.github.nicolasfara.mktt.core.Topic
+import io.github.nicolasfara.mktt.core.UserProperties
 import io.github.nicolasfara.mktt.core.asArray
 import io.github.nicolasfara.mktt.core.readProperties
 import io.github.nicolasfara.mktt.core.util.readMqttString
 import io.github.nicolasfara.mktt.core.util.writeMqttString
+import io.github.nicolasfara.mktt.core.wellFormedWhen
 import io.github.nicolasfara.mktt.core.writeProperties
 import kotlinx.io.Sink
 import kotlinx.io.Source

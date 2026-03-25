@@ -1,8 +1,6 @@
 package io.github.nicolasfara.mktt.core.packet
 
-import io.github.nicolasfara.mktt.core.packet.readPacket
-import io.github.nicolasfara.mktt.core.packet.write
-import io.ktor.utils.io.*
+import io.ktor.utils.io.ByteReadChannel
 import kotlinx.io.Buffer
 import kotlin.test.assertEquals
 

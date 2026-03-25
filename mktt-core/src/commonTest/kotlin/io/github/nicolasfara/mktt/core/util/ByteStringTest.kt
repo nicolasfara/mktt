@@ -1,9 +1,8 @@
 package io.github.nicolasfara.mktt.core.util
 
 import io.github.nicolasfara.mktt.core.MalformedPacketException
-import io.github.nicolasfara.mktt.core.util.readMqttByteString
-import io.github.nicolasfara.mktt.core.util.writeMqttByteString
-import io.ktor.utils.io.core.*
+import io.ktor.utils.io.core.buildPacket
+import io.ktor.utils.io.core.writeFully
 import kotlinx.io.Buffer
 import kotlinx.io.bytestring.ByteString
 import kotlin.test.Test

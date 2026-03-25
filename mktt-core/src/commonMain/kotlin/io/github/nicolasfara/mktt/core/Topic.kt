@@ -19,8 +19,7 @@ value class Topic(val name: String) {
      * Determines whether this topic is a valid 'shared subscription name', hence has the form:
      * `$share/{ShareName}/{filter}`
      */
-    fun isShared(): Boolean =
-        shareRegex.matches(name)
+    fun isShared(): Boolean = shareRegex.matches(name)
 
     /**
      * When this is a shared subscription (see [isShared]), returns the name of the share and the remaining filter,

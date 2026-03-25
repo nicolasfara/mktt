@@ -1,23 +1,16 @@
 package io.github.nicolasfara.mktt.core
 
-import io.github.nicolasfara.mktt.core.asArray
-import io.github.nicolasfara.mktt.core.readProperties
-import io.github.nicolasfara.mktt.core.util.*
+import io.github.nicolasfara.mktt.core.util.MqttDslMarker
 import io.github.nicolasfara.mktt.core.util.readMqttByteString
 import io.github.nicolasfara.mktt.core.util.readMqttString
 import io.github.nicolasfara.mktt.core.util.writeMqttByteString
 import io.github.nicolasfara.mktt.core.util.writeMqttString
-import io.github.nicolasfara.mktt.core.writeProperties
 import kotlinx.io.Sink
 import kotlinx.io.Source
 import kotlinx.io.bytestring.ByteString
 import kotlinx.io.bytestring.encodeToByteString
 
-data class WillMessage(
-    val topic: Topic,
-    val payload: ByteString,
-    val properties: WillProperties,
-)
+data class WillMessage(val topic: Topic, val payload: ByteString, val properties: WillProperties)
 
 fun buildWillMessage(topic: String, init: WillMessageBuilder.() -> Unit): WillMessage {
     val builder = WillMessageBuilder(topic)
@@ -64,12 +57,11 @@ class WillMessageBuilder(private val topic: String) {
         this.payload = byteString
     }
 
-    fun build(): WillMessage =
-        WillMessage(
-            Topic(topic),
-            payload,
-            propertiesBuilder.build(),
-        )
+    fun build(): WillMessage = WillMessage(
+        Topic(topic),
+        payload,
+        propertiesBuilder.build(),
+    )
 
     private companion object {
         val EMPTY_PAYLOAD = ByteString(ByteArray(0))

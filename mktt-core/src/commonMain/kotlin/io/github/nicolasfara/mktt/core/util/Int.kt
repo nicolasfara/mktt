@@ -7,7 +7,10 @@
 package io.github.nicolasfara.mktt.core.util
 
 import io.github.nicolasfara.mktt.core.MalformedPacketException
-import io.ktor.utils.io.*
+import io.ktor.utils.io.ByteReadChannel
+import io.ktor.utils.io.ByteWriteChannel
+import io.ktor.utils.io.readByte
+import io.ktor.utils.io.writeByte
 import kotlinx.io.Sink
 import kotlinx.io.Source
 

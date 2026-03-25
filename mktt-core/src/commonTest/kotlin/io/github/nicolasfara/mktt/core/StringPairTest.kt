@@ -1,9 +1,8 @@
 package io.github.nicolasfara.mktt.core
 
-import io.github.nicolasfara.mktt.core.readStringPair
-import io.github.nicolasfara.mktt.core.to
-import io.github.nicolasfara.mktt.core.write
-import io.ktor.utils.io.core.*
+import io.ktor.utils.io.core.buildPacket
+import io.ktor.utils.io.core.remaining
+import io.ktor.utils.io.core.writeFully
 import kotlin.test.Test
 import kotlin.test.assertEquals
 

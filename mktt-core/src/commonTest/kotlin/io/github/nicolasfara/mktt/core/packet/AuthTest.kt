@@ -1,6 +1,10 @@
 package io.github.nicolasfara.mktt.core.packet
 
-import io.github.nicolasfara.mktt.core.*
+import io.github.nicolasfara.mktt.core.AuthenticationData
+import io.github.nicolasfara.mktt.core.AuthenticationMethod
+import io.github.nicolasfara.mktt.core.ReasonString
+import io.github.nicolasfara.mktt.core.Success
+import io.github.nicolasfara.mktt.core.buildUserProperties
 import kotlinx.coroutines.test.runTest
 import kotlinx.io.bytestring.encodeToByteString
 import kotlin.test.Test

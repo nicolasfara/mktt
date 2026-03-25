@@ -1,9 +1,16 @@
 package io.github.nicolasfara.mktt.core.packet
 
-import io.github.nicolasfara.mktt.core.*
+import io.github.nicolasfara.mktt.core.CorrelationData
+import io.github.nicolasfara.mktt.core.MalformedPacketException
+import io.github.nicolasfara.mktt.core.MessageExpiryInterval
+import io.github.nicolasfara.mktt.core.PayloadFormatIndicator
+import io.github.nicolasfara.mktt.core.QoS
+import io.github.nicolasfara.mktt.core.SubscriptionIdentifier
+import io.github.nicolasfara.mktt.core.TopicAlias
+import io.github.nicolasfara.mktt.core.buildUserProperties
 import io.github.nicolasfara.mktt.core.util.toResponseTopic
 import io.github.nicolasfara.mktt.core.util.toTopic
-import io.ktor.utils.io.core.*
+import io.ktor.utils.io.core.toByteArray
 import kotlinx.coroutines.test.runTest
 import kotlinx.io.bytestring.ByteString
 import kotlinx.io.bytestring.encodeToByteString

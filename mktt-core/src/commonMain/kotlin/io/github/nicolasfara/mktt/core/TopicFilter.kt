@@ -2,10 +2,7 @@ package io.github.nicolasfara.mktt.core
 
 import io.github.nicolasfara.mktt.core.util.MqttDslMarker
 
-data class TopicFilter(
-    val filter: Topic,
-    val subscriptionOptions: SubscriptionOptions = SubscriptionOptions.DEFAULT,
-) {
+data class TopicFilter(val filter: Topic, val subscriptionOptions: SubscriptionOptions = SubscriptionOptions.DEFAULT) {
     init {
         require(filter.isNotBlank()) { "Empty topics are not allowed in topic filters" }
     }
@@ -17,10 +14,7 @@ fun List<TopicFilter>.hasWildcard(): Boolean = any {
     it.filter.containsWildcard()
 }
 
-fun buildFilterList(
-    init: TopicFilterBuilder.() -> Unit,
-): List<TopicFilter> =
-    TopicFilterBuilder().also(init).build()
+fun buildFilterList(init: TopicFilterBuilder.() -> Unit): List<TopicFilter> = TopicFilterBuilder().also(init).build()
 
 @MqttDslMarker
 class TopicFilterBuilder {

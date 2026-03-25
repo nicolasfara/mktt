@@ -1,7 +1,15 @@
 package io.github.nicolasfara.mktt.core.packet
 
-import io.github.nicolasfara.mktt.core.*
+import io.github.nicolasfara.mktt.core.GrantedQoS0
+import io.github.nicolasfara.mktt.core.NormalDisconnection
+import io.github.nicolasfara.mktt.core.ReasonCode
+import io.github.nicolasfara.mktt.core.ReasonString
+import io.github.nicolasfara.mktt.core.ServerReference
+import io.github.nicolasfara.mktt.core.SessionExpiryInterval
+import io.github.nicolasfara.mktt.core.Success
+import io.github.nicolasfara.mktt.core.UserProperties
 import io.github.nicolasfara.mktt.core.asArray
+import io.github.nicolasfara.mktt.core.malformedWhen
 import io.github.nicolasfara.mktt.core.readProperties
 import io.github.nicolasfara.mktt.core.singleOrNull
 import io.github.nicolasfara.mktt.core.writeProperties
@@ -40,27 +48,26 @@ internal fun Sink.write(disconnect: Disconnect) {
     }
 }
 
-internal fun Source.readDisconnect(remainingLength: Int): Disconnect =
-    if (remainingLength == 0) {
-        Disconnect(NormalDisconnection)
-    } else {
-        val reason = ReasonCode.from(
-            readByte(),
-            defaultSuccessReason = NormalDisconnection,
-        )
+internal fun Source.readDisconnect(remainingLength: Int): Disconnect = if (remainingLength == 0) {
+    Disconnect(NormalDisconnection)
+} else {
+    val reason = ReasonCode.from(
+        readByte(),
+        defaultSuccessReason = NormalDisconnection,
+    )
 
-        if (remainingLength == 1) {
-            Disconnect(reason)
-        } else {
-            val properties = readProperties()
-            Disconnect(
-                reason = reason,
-                sessionExpiryInterval = properties.singleOrNull<SessionExpiryInterval>(),
-                reasonString = properties.singleOrNull<ReasonString>(),
-                userProperties = UserProperties.from(
-                    properties,
-                ),
-                serverReference = properties.singleOrNull<ServerReference>(),
-            )
-        }
+    if (remainingLength == 1) {
+        Disconnect(reason)
+    } else {
+        val properties = readProperties()
+        Disconnect(
+            reason = reason,
+            sessionExpiryInterval = properties.singleOrNull<SessionExpiryInterval>(),
+            reasonString = properties.singleOrNull<ReasonString>(),
+            userProperties = UserProperties.from(
+                properties,
+            ),
+            serverReference = properties.singleOrNull<ServerReference>(),
+        )
     }
+}

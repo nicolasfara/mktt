@@ -1,6 +1,10 @@
 package io.github.nicolasfara.mktt.core
 
-import kotlin.test.*
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 class TopicTest {
 
