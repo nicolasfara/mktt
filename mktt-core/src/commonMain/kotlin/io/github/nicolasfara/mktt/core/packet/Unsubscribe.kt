@@ -13,11 +13,18 @@ import kotlinx.io.Source
 import kotlinx.io.readUShort
 import kotlinx.io.writeUShort
 
+/**
+ * MQTT UNSUBSCRIBE packet used to remove topic filter subscriptions.
+ *
+ * @property packetIdentifier packet identifier of this unsubscribe request.
+ * @property topics topic filters to unsubscribe from.
+ * @property userProperties optional user properties attached to this packet.
+ */
 data class Unsubscribe(
     override val packetIdentifier: UShort,
     val topics: List<Topic>,
     val userProperties: UserProperties = UserProperties.EMPTY,
-) : AbstractPacket(PacketType.UNSUBSCRIBE),
+) : BasePacket(PacketType.UNSUBSCRIBE),
     PacketIdentifierPacket {
 
     init {

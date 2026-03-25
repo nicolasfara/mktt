@@ -4,19 +4,22 @@ import io.github.nicolasfara.mktt.core.QoS
 import io.github.nicolasfara.mktt.core.Success
 import io.github.nicolasfara.mktt.core.Topic
 import io.github.nicolasfara.mktt.core.TopicFilter
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.test.runTest
+import kotlin.coroutines.ContinuationInterceptor
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.runTest
 
 class MqttClientIntegrationTest {
     @Test
     fun `publish and receive over local mosquitto`() = runTest {
         val container = startContainerOrSkip() ?: return@runTest
+        val dispatcher = coroutineContext[ContinuationInterceptor] as CoroutineDispatcher
         try {
             val topic = "mktt/integration/${System.nanoTime()}"
-            val publisher = newClient(container, "publisher")
-            val subscriber = newClient(container, "subscriber")
+            val publisher = newClient(container, "publisher", dispatcher)
+            val subscriber = newClient(container, "subscriber", dispatcher)
 
             subscriber.connect()
             subscriber.subscribe(
@@ -52,9 +55,11 @@ class MqttClientIntegrationTest {
     @Test
     fun `connect over tls to local mosquitto`() = runTest {
         val container = startContainerOrSkip() ?: return@runTest
+        val dispatcher = coroutineContext[ContinuationInterceptor] as CoroutineDispatcher
         try {
             val client =
                 MqttClient(container.host, container.tlsPort) {
+                    this.dispatcher = dispatcher
                     clientId = "tls-client"
                     username = MosquittoContainer.USER
                     password = MosquittoContainer.PASSWORD
@@ -74,12 +79,16 @@ class MqttClientIntegrationTest {
         }
     }
 
-    private fun newClient(container: MosquittoContainer, clientId: String): MqttClient =
-        MqttClient(container.host, container.defaultPort) {
-            this.clientId = clientId
-            username = MosquittoContainer.USER
-            password = MosquittoContainer.PASSWORD
-        }
+    private fun newClient(
+        container: MosquittoContainer,
+        clientId: String,
+        dispatcher: CoroutineDispatcher,
+    ): MqttClient = MqttClient(container.host, container.defaultPort) {
+        this.dispatcher = dispatcher
+        this.clientId = clientId
+        username = MosquittoContainer.USER
+        password = MosquittoContainer.PASSWORD
+    }
 
     private fun startContainerOrSkip(): MosquittoContainer? {
         if (System.getenv("SKIP_INTEGRATION_TEST") == "true") {

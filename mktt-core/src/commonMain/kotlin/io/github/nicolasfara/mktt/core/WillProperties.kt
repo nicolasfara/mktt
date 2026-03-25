@@ -1,15 +1,21 @@
 package io.github.nicolasfara.mktt.core
 
-import io.github.nicolasfara.mktt.core.asArray
-import io.github.nicolasfara.mktt.core.single
-import io.github.nicolasfara.mktt.core.singleOrNull
-import io.github.nicolasfara.mktt.core.toMessageExpiryInterval
-import io.github.nicolasfara.mktt.core.toWillDelayInterval
 import io.github.nicolasfara.mktt.core.util.MqttDslMarker
-import kotlinx.io.bytestring.ByteString
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.ZERO
+import kotlinx.io.bytestring.ByteString
 
+/**
+ * MQTT Will Properties as defined for CONNECT will-message payloads.
+ *
+ * @property willDelayInterval delay before publishing the will message.
+ * @property payloadFormatIndicator optional payload format indicator.
+ * @property messageExpiryInterval optional message-expiry interval.
+ * @property contentType optional content type.
+ * @property responseTopic optional response topic.
+ * @property correlationData optional correlation data.
+ * @property userProperties optional user properties.
+ */
 data class WillProperties(
     val willDelayInterval: WillDelayInterval,
     val payloadFormatIndicator: PayloadFormatIndicator?,
@@ -32,6 +38,7 @@ data class WillProperties(
     }
 }
 
+/** Builds a [WillProperties] instance using [WillPropertiesBuilder]. */
 fun buildWillProperties(init: WillPropertiesBuilder.() -> Unit): WillProperties {
     val builder = WillPropertiesBuilder()
     builder.init()
@@ -69,6 +76,7 @@ class WillPropertiesBuilder {
         userPropertiesBuilder.init()
     }
 
+    /** Builds the configured [WillProperties]. */
     fun build(): WillProperties = WillProperties(
         willDelayInterval = willDelayInterval.toWillDelayInterval(),
         payloadFormatIndicator = payloadFormatIndicator,

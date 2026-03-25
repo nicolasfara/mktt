@@ -6,6 +6,7 @@ import io.github.nicolasfara.mktt.core.InFlightPublish
 import io.github.nicolasfara.mktt.core.InFlightPubrel
 import io.github.nicolasfara.mktt.core.KeepAliveTimeout
 import io.github.nicolasfara.mktt.core.MalformedPacketException
+import io.github.nicolasfara.mktt.core.MqttException
 import io.github.nicolasfara.mktt.core.NormalDisconnection
 import io.github.nicolasfara.mktt.core.QoS
 import io.github.nicolasfara.mktt.core.ReasonCode
@@ -42,6 +43,14 @@ import io.github.nicolasfara.mktt.core.packet.Unsubscribe
 import io.github.nicolasfara.mktt.core.packet.isResponseFor
 import io.github.nicolasfara.mktt.core.toReasonString
 import io.github.nicolasfara.mktt.core.util.Logger
+import kotlin.collections.map
+import kotlin.collections.set
+import kotlin.concurrent.atomics.AtomicInt
+import kotlin.concurrent.atomics.ExperimentalAtomicApi
+import kotlin.concurrent.atomics.updateAndFetch
+import kotlin.coroutines.cancellation.CancellationException
+import kotlin.mapCatching
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
@@ -59,15 +68,11 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.withTimeoutOrNull
-import kotlin.collections.map
-import kotlin.collections.set
-import kotlin.concurrent.atomics.AtomicInt
-import kotlin.concurrent.atomics.ExperimentalAtomicApi
-import kotlin.concurrent.atomics.updateAndFetch
-import kotlin.coroutines.cancellation.CancellationException
-import kotlin.mapCatching
-import kotlin.time.Duration.Companion.seconds
 
+/**
+ * MQTT v5 client that manages connection lifecycle, subscriptions, publishes,
+ * and packet-level request/response coordination over a configurable [MqttEngine].
+ */
 class MqttClient internal constructor(
     private val config: MqttClientConfig,
     private val engine: MqttEngine,
@@ -83,12 +88,19 @@ class MqttClient internal constructor(
             MqttConnectionState.Disconnected,
         )
 
+    /**
+     * A shared flow of all incoming PUBLISH messages received from the server.
+     * Subscribers will receive every message that arrives after they start collecting.
+     * Use [messages] to filter by a specific [TopicFilter].
+     */
     val incomingPublishes: SharedFlow<MqttPublishMessage>
         get() = _incomingPublishes.asSharedFlow()
 
     /**
-     * Returns the maximum QoS level allowed by the server, defaults to [io.github.nicolasfara.mktt.core.QoS.EXACTLY_ONE] as long as no CONNACK packet
-     * has been received.
+     * Returns the maximum QoS level allowed by the server.
+     *
+     * Defaults to [io.github.nicolasfara.mktt.core.QoS.EXACTLY_ONE] as long as no
+     * CONNACK packet has been received.
      */
     val maxQos: QoS
         get() = _maxQos
@@ -103,7 +115,7 @@ class MqttClient internal constructor(
     private var _clientId = config.clientId
 
     /**
-     * The server topic alias maximum value as contained the CONNACK message from the server (or the default value of 0)
+     * The server topic alias maximum value from the CONNACK message (or the default value of 0).
      */
     val serverTopicAliasMaximum: TopicAliasMaximum
         get() = _serverTopicAliasMaximum
@@ -181,15 +193,15 @@ class MqttClient internal constructor(
 
     // A replay cache is crucial here to prevent a race condition where a response packet arrives
     // before the corresponding `awaitResponseOf` call is able to subscribe to the flow. Without a
-    // replay cache, such a packet would be lost. A capacity of 16 is chosen to safely handle
-    // bursts of responses from concurrent requests.
-    private val receivedPackets = MutableSharedFlow<Packet>(replay = 16)
+    // replay cache, such a packet would be lost. A capacity of RESPONSE_REPLAY_CACHE_CAPACITY is
+    // chosen to safely handle bursts of responses from concurrent requests.
+    private val receivedPackets = MutableSharedFlow<Packet>(replay = RESPONSE_REPLAY_CACHE_CAPACITY)
 
     @OptIn(ExperimentalAtomicApi::class)
     private val packetIdentifier = AtomicInt(0)
 
     // Initialize with the default receive maximum
-    private var sendQuota = Semaphore(65535)
+    private var sendQuota = Semaphore(DEFAULT_RECEIVE_MAXIMUM)
 
     private val publishReceivedPackets = mutableMapOf<UShort, Pubrec>()
 
@@ -228,13 +240,21 @@ class MqttClient internal constructor(
         if (cleanStart) {
             session.clear()
         }
-        return try {
-            engine.start().getOrElse { throw it }
+        try {
+            engine.start().fold(
+                onSuccess = {},
+                onFailure = { throw it },
+            )
+
             val connack = awaitResponseOf<Connack>(
-                PacketType.CONNACK,
+                { packet -> packet.type == PacketType.CONNACK },
             ) {
                 engine.send(createConnect(cleanStart))
-            }.getOrElse { throw it }
+            }.fold(
+                onSuccess = { it },
+                onFailure = { throw it },
+            )
+
             inspectConnack(connack)
 
             if (connack.isSessionPresent) {
@@ -242,11 +262,12 @@ class MqttClient internal constructor(
             } else {
                 session.clear()
             }
-            connack
-        } catch (throwable: Throwable) {
-            _connectionState.value =
-                MqttConnectionState.ConnectionError(throwable)
-            throw throwable
+            return connack
+        } catch (ex: CancellationException) {
+            throw ex
+        } catch (ex: MqttException) {
+            _connectionState.value = MqttConnectionState.ConnectionError(ex)
+            throw ex
         }
     }
 
@@ -297,6 +318,13 @@ class MqttClient internal constructor(
         }).getOrElse { throw it }
     }
 
+    /**
+     * Sends an UNSUBSCRIBE request to the MQTT server for the list of topic filters contained in [filters].
+     *
+     * @param filters the topic filters to unsubscribe from.
+     * @param userProperties optional user properties to include in the UNSUBSCRIBE packet.
+     * @return the UNSUBACK packet sent by the server in response to the unsubscribe request.
+     */
     suspend fun unsubscribe(
         filters: List<TopicFilter>,
         userProperties: UserProperties = UserProperties.EMPTY,
@@ -317,13 +345,17 @@ class MqttClient internal constructor(
     /**
      * Sends the specified [io.github.nicolasfara.mktt.client.PublishRequest] to the server.
      *
-     * In case the server announced a [io.github.nicolasfara.mktt.core.QoS] value lower than the one requested, the QoS of the published packet will be
-     * automatically downgraded. The actual QoS can be determined from either [maxQos] or from [io.github.nicolasfara.mktt.client.qoS]
+     * If the server announced a [io.github.nicolasfara.mktt.core.QoS] value lower
+     * than the one requested, the QoS of the published packet will be
+     * automatically downgraded. The actual QoS can be determined from either
+     * [maxQos] or [io.github.nicolasfara.mktt.client.qoS].
      *
-     * When this method successfully returns, all handshake packets required by the actual `QoS` will be exchanged
-     * between this client and the server. When the server does not respond within
-     * [ackMessageTimeout][de.kempmobil.ktor.mqtt.MqttClientConfigBuilder.ackMessageTimeout] the result will be a
-     * failure with a [io.github.nicolasfara.mktt.core.HandshakeFailedException].
+     * When this method successfully returns, all handshake packets required by the
+     * actual `QoS` will be exchanged between this client and the server. When the
+     * server does not respond within
+     * [ackMessageTimeout][de.kempmobil.ktor.mqtt.MqttClientConfigBuilder.ackMessageTimeout],
+     * the result will be a failure with a
+     * [io.github.nicolasfara.mktt.core.HandshakeFailedException].
      *
      * All returned exceptions are of type [MqttException] resp. its subtypes.
      */
@@ -336,7 +368,10 @@ class MqttClient internal constructor(
 
         return createPublish(request).mapCatching { publish ->
             when (publish.qoS) {
-                QoS.AT_MOST_ONCE -> sendAtMostOnceMessage(publish)
+                QoS.AT_MOST_ONCE -> {
+                    engine.send(publish).onFailure { throw it }
+                    AtMostOncePublishResponse(publish)
+                }
 
                 QoS.AT_LEAST_ONCE -> sendAtLeastOnceMessage(
                     session.store(publish),
@@ -349,6 +384,13 @@ class MqttClient internal constructor(
         }.getOrElse { throw it }
     }
 
+    /**
+     * Sends a DISCONNECT packet to the server and closes the connection.
+     *
+     * @param reasonCode the reason code for the disconnection. Defaults to [NormalDisconnection].
+     * @param reasonString an optional human-readable string describing the reason for disconnection.
+     * @param sessionExpiryInterval an optional session expiry interval to override the one set in the CONNECT packet.
+     */
     suspend fun disconnect(
         reasonCode: DisconnectReason = NormalDisconnection,
         reasonString: String? = null,
@@ -359,6 +401,12 @@ class MqttClient internal constructor(
         _connectionState.value = MqttConnectionState.Disconnected
     }
 
+    /**
+     * Returns a [Flow] of incoming PUBLISH messages whose topic matches the given [filter].
+     *
+     * @param filter the topic filter used to select matching incoming messages.
+     * @return a filtered flow of [MqttPublishMessage] matching [filter].
+     */
     fun messages(filter: TopicFilter): Flow<MqttPublishMessage> = incomingPublishes.filter { publish ->
         filter.matches(publish.topic)
     }
@@ -418,7 +466,8 @@ class MqttClient internal constructor(
             val actualQoS = request.desiredQoS.coerceAtMost(maxQos) // MQTT-3.2.2-11
             if (actualQoS != request.desiredQoS) {
                 Logger.i {
-                    "Publish QoS for ${request.topic} was ${request.desiredQoS} but was downgraded to $actualQoS due to server requirements"
+                    "Publish QoS for ${request.topic} was ${request.desiredQoS} " +
+                        "but was downgraded to $actualQoS due to server requirements"
                 }
             }
             Result.success(
@@ -454,11 +503,6 @@ class MqttClient internal constructor(
                 ),
             )
         }
-
-    private suspend fun sendAtMostOnceMessage(publish: Publish): PublishResponse {
-        engine.send(publish).onFailure { throw it }
-        return AtMostOncePublishResponse(publish)
-    }
 
     private suspend fun sendAtLeastOnceMessage(inFlight: InFlightPublish): PublishResponse {
         acquireSendQuotaSafe()
@@ -560,7 +604,7 @@ class MqttClient internal constructor(
                         delay(keepAlive)
                         val result =
                             awaitResponseOf<Pingresp>(
-                                PacketType.PINGRESP,
+                                { packet -> packet.type == PacketType.PINGRESP },
                             ) {
                                 engine.send(Pingreq)
                             }
@@ -633,7 +677,7 @@ class MqttClient internal constructor(
                 Logger.w(ex) {
                     "Error resuming session, will try next time: $packet"
                 }
-            } catch (ex: Exception) {
+            } catch (ex: MqttException) {
                 Logger.e(ex) {
                     "Error resuming session, re-trying next time"
                 }
@@ -685,7 +729,9 @@ class MqttClient internal constructor(
                     }
 
                     QoS.EXACTLY_ONE -> {
-                        val id = packet.packetIdentifier!!
+                        val id = requireNotNull(packet.packetIdentifier) {
+                            "QoS EXACTLY_ONE PUBLISH packet must have a packet identifier"
+                        }
                         if (publishReceivedPackets.containsKey(id)) {
                             // Must resend the PUBREC packet
                             publishReceivedPackets[id]?.let {
@@ -737,14 +783,7 @@ class MqttClient internal constructor(
     }
 
     private suspend fun acquireSendQuotaSafe() {
-        try {
-            sendQuota.acquire()
-        } catch (ex: CancellationException) {
-            throw ConnectionException(
-                "PUBLISH cancelled while waiting for send quota",
-                ex,
-            )
-        }
+        sendQuota.acquire()
     }
 
     private fun releaseSendQuotaSafe() {
@@ -783,11 +822,6 @@ class MqttClient internal constructor(
         return waitForResponse.await()
     }
 
-    private suspend inline fun <reified P : Packet> awaitResponseOf(
-        type: PacketType,
-        crossinline request: suspend () -> Result<Unit>,
-    ): Result<P> = awaitResponseOf({ packet: P -> packet.type == type }, request)
-
     @OptIn(ExperimentalAtomicApi::class)
     internal fun nextPacketIdentifier(): UShort = packetIdentifier.updateAndFetch { p ->
         val next = p + 1
@@ -799,6 +833,21 @@ class MqttClient internal constructor(
     }.also {
         Logger.v { "Next packet identifier: $it" }
     }.toUShort()
+
+    /** Holds internal constants used by [MqttClient]. */
+    companion object {
+        /**
+         * Replay cache capacity for the shared flow of received packets.
+         * Sized to safely absorb bursts of responses from concurrent requests.
+         */
+        private const val RESPONSE_REPLAY_CACHE_CAPACITY = 16
+
+        /**
+         * The default receive maximum as defined by the MQTT 5 specification (section 3.3.4).
+         * When the server does not specify a receive maximum in its CONNACK, this value is used.
+         */
+        private const val DEFAULT_RECEIVE_MAXIMUM = 65535
+    }
 }
 
 /**

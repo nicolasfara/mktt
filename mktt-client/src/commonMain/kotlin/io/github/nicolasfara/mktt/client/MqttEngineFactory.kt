@@ -2,15 +2,26 @@ package io.github.nicolasfara.mktt.client
 
 import io.github.nicolasfara.mktt.core.util.MqttDslMarker
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.Dispatchers
 
+/**
+ * Factory used to create transport engines for the MQTT client.
+ */
 interface MqttEngineFactory<out T : MqttEngineConfig> {
 
+    /**
+     * Creates a new engine by applying [block] to a fresh engine configuration instance.
+     */
     fun create(block: T.() -> Unit): MqttEngine
 }
 
+/**
+ * Base DSL configuration used by [MqttEngineFactory] implementations.
+ */
 @MqttDslMarker
 open class MqttEngineConfig {
 
-    var dispatcher: CoroutineDispatcher = Dispatchers.Default
+    /**
+     * Dispatcher used by engine internals.
+     */
+    lateinit var dispatcher: CoroutineDispatcher
 }

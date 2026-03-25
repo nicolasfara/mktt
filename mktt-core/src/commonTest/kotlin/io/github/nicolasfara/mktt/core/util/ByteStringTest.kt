@@ -3,11 +3,11 @@ package io.github.nicolasfara.mktt.core.util
 import io.github.nicolasfara.mktt.core.MalformedPacketException
 import io.ktor.utils.io.core.buildPacket
 import io.ktor.utils.io.core.writeFully
-import kotlinx.io.Buffer
-import kotlinx.io.bytestring.ByteString
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlinx.io.Buffer
+import kotlinx.io.bytestring.ByteString
 
 class ByteStringTest {
 

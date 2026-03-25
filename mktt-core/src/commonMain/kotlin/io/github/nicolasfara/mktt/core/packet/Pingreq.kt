@@ -1,6 +1,7 @@
 package io.github.nicolasfara.mktt.core.packet
 
-object Pingreq : AbstractPacket(PacketType.PINGREQ) {
+/** MQTT PINGREQ packet used by a client to keep the connection alive. */
+object Pingreq : BasePacket(PacketType.PINGREQ) {
     override fun toString(): String = "Pingreq"
 }
 

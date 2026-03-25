@@ -18,6 +18,9 @@ import kotlin.concurrent.atomics.incrementAndFetch
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
+/**
+ * In-memory [SessionStore] implementation used to track in-flight MQTT packets.
+ */
 open class InMemorySessionStore(private val clock: Clock = Clock.System) : SessionStore {
 
     private val outgoingPackets =
@@ -60,8 +63,9 @@ open class InMemorySessionStore(private val clock: Clock = Clock.System) : Sessi
     }
 
     override fun rememberIncomingPacketId(publish: Publish): Boolean {
-        val packetIdentifier = publish.packetIdentifier
-        require(packetIdentifier != null) { "Packets without packet identifier cannot be part of a transaction" }
+        val packetIdentifier = requireNotNull(publish.packetIdentifier) {
+            "Packets without packet identifier cannot be part of a transaction"
+        }
 
         return !incomingPackets.add(packetIdentifier)
     }
@@ -104,14 +108,14 @@ private class AtomicMap<K, V> {
     }
 
     fun remove(key: K) {
-        while (true) {
+        var done = false
+        while (!done) {
             val current = ref.load()
             if (!current.containsKey(key)) {
-                break // Nothing to remove
-            }
-            val updated = current - key
-            if (ref.compareAndSet(current, updated)) {
-                break
+                done = true
+            } else {
+                val updated = current - key
+                done = ref.compareAndSet(current, updated)
             }
         }
     }

@@ -21,16 +21,50 @@ typealias DisconnectReason = ReasonCode
 typealias Subscription = TopicFilter
 typealias PublishResult = PublishResponse
 
+/**
+ * Observable connection lifecycle states of [MqttClient].
+ */
 sealed interface MqttConnectionState {
+    /**
+     * Connection handshake is in progress.
+     */
     data object Connecting : MqttConnectionState
 
+    /**
+     * Connection is established and the broker accepted CONNECT.
+     *
+     * @property connack the successful CONNACK packet.
+     */
     data class Connected(val connack: ConnAck) : MqttConnectionState
 
+    /**
+     * Client is not connected to the broker.
+     */
     data object Disconnected : MqttConnectionState
 
+    /**
+     * Connection attempt or active session failed.
+     *
+     * @property cause the failure cause.
+     */
     data class ConnectionError(val cause: Throwable) : MqttConnectionState
 }
 
+/**
+ * Incoming publish message exposed by [MqttClient].
+ *
+ * @property topic topic name of the publish packet.
+ * @property payload payload bytes.
+ * @property qos quality of service used by the sender.
+ * @property retained whether the retained flag is set.
+ * @property duplicate whether the duplicate delivery flag is set.
+ * @property responseTopic optional response topic.
+ * @property correlationData optional correlation data.
+ * @property contentType optional content type.
+ * @property payloadFormatIndicator optional payload format indicator.
+ * @property subscriptionIdentifier optional matching subscription identifier.
+ * @property userProperties user properties carried by the packet.
+ */
 data class MqttPublishMessage(
     val topic: Topic,
     val payload: ByteArray,
@@ -44,6 +78,9 @@ data class MqttPublishMessage(
     val subscriptionIdentifier: SubscriptionIdentifier? = null,
     val userProperties: UserProperties = UserProperties.EMPTY,
 ) {
+    /**
+     * Decodes [payload] as UTF-8 text.
+     */
     fun payloadAsString(): String = payload.decodeToString()
 
     override fun equals(other: Any?): Boolean {
@@ -63,20 +100,19 @@ data class MqttPublishMessage(
             userProperties == other.userProperties
     }
 
-    override fun hashCode(): Int {
-        var result = topic.hashCode()
-        result = 31 * result + payload.contentHashCode()
-        result = 31 * result + qos.hashCode()
-        result = 31 * result + retained.hashCode()
-        result = 31 * result + duplicate.hashCode()
-        result = 31 * result + (responseTopic?.hashCode() ?: 0)
-        result = 31 * result + (correlationData?.hashCode() ?: 0)
-        result = 31 * result + (contentType?.hashCode() ?: 0)
-        result = 31 * result + (payloadFormatIndicator?.hashCode() ?: 0)
-        result = 31 * result + (subscriptionIdentifier?.hashCode() ?: 0)
-        result = 31 * result + userProperties.hashCode()
-        return result
-    }
+    override fun hashCode(): Int = combinedHashCode(
+        topic,
+        payload.contentHashCode(),
+        qos,
+        retained,
+        duplicate,
+        responseTopic,
+        correlationData,
+        contentType,
+        payloadFormatIndicator,
+        subscriptionIdentifier,
+        userProperties,
+    )
 }
 
 internal fun io.github.nicolasfara.mktt.core.packet.Publish.toIncomingMessage(): MqttPublishMessage =
@@ -94,6 +130,9 @@ internal fun io.github.nicolasfara.mktt.core.packet.Publish.toIncomingMessage():
         userProperties = userProperties,
     )
 
+/**
+ * Checks whether this filter matches the provided [topic].
+ */
 fun TopicFilter.matches(topic: Topic): Boolean {
     val rawFilter = if (filter.isShared()) filter.shareNameAndFilter().second.name else filter.name
     return topicMatchesFilter(rawFilter, topic.name)
@@ -106,9 +145,14 @@ private fun topicMatchesFilter(filter: String, topic: String): Boolean {
     var filterIndex = 0
     var topicIndex = 0
 
-    while (filterIndex < filterLevels.size && topicIndex < topicLevels.size) {
+    var matches = true
+    while (matches && filterIndex < filterLevels.size && topicIndex < topicLevels.size) {
         when (val level = filterLevels[filterIndex]) {
-            "#" -> return filterIndex == filterLevels.lastIndex
+            "#" -> {
+                matches = filterIndex == filterLevels.lastIndex
+                filterIndex = filterLevels.size
+                topicIndex = topicLevels.size
+            }
 
             "+" -> {
                 filterIndex += 1
@@ -117,7 +161,7 @@ private fun topicMatchesFilter(filter: String, topic: String): Boolean {
 
             else -> {
                 if (level != topicLevels[topicIndex]) {
-                    return false
+                    matches = false
                 }
                 filterIndex += 1
                 topicIndex += 1
@@ -125,9 +169,8 @@ private fun topicMatchesFilter(filter: String, topic: String): Boolean {
         }
     }
 
-    return when {
-        filterIndex == filterLevels.size && topicIndex == topicLevels.size -> true
-        filterIndex == filterLevels.lastIndex && filterLevels[filterIndex] == "#" -> true
-        else -> false
-    }
+    return matches && (
+        (filterIndex == filterLevels.size && topicIndex == topicLevels.size) ||
+            (filterIndex == filterLevels.lastIndex && filterLevels[filterIndex] == "#")
+        )
 }

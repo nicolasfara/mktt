@@ -11,11 +11,11 @@ import io.github.nicolasfara.mktt.core.buildUserProperties
 import io.github.nicolasfara.mktt.core.util.toResponseTopic
 import io.github.nicolasfara.mktt.core.util.toTopic
 import io.ktor.utils.io.core.toByteArray
+import kotlin.test.Test
+import kotlin.test.assertFailsWith
 import kotlinx.coroutines.test.runTest
 import kotlinx.io.bytestring.ByteString
 import kotlinx.io.bytestring.encodeToByteString
-import kotlin.test.Test
-import kotlin.test.assertFailsWith
 
 class PublishTest {
 

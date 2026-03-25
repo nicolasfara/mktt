@@ -2,8 +2,8 @@ package io.github.nicolasfara.mktt.core.packet
 
 import io.github.nicolasfara.mktt.core.buildUserProperties
 import io.github.nicolasfara.mktt.core.topics
-import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
+import kotlinx.coroutines.test.runTest
 
 class UnsubscribeTest {
 

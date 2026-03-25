@@ -1,8 +1,8 @@
 package io.github.nicolasfara.mktt.client
 
+import kotlin.test.assertEquals
 import org.testcontainers.containers.GenericContainer
 import org.testcontainers.images.builder.ImageFromDockerfile
-import kotlin.test.assertEquals
 
 internal class MosquittoContainer {
     private val container = GenericContainer(

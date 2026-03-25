@@ -3,10 +3,10 @@ package io.github.nicolasfara.mktt.core.util
 import io.github.nicolasfara.mktt.core.util.readVariableByteInt
 import io.github.nicolasfara.mktt.core.util.variableByteIntSize
 import io.github.nicolasfara.mktt.core.util.writeVariableByteInt
-import kotlinx.io.Buffer
-import kotlinx.io.readByteString
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlinx.io.Buffer
+import kotlinx.io.readByteString
 
 class IntTest {
 

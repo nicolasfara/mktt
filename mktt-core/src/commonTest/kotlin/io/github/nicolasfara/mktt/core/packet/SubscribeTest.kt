@@ -5,8 +5,8 @@ import io.github.nicolasfara.mktt.core.RetainHandling
 import io.github.nicolasfara.mktt.core.SubscriptionIdentifier
 import io.github.nicolasfara.mktt.core.buildFilterList
 import io.github.nicolasfara.mktt.core.buildUserProperties
-import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
+import kotlinx.coroutines.test.runTest
 
 class SubscribeTest {
 

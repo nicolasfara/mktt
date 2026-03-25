@@ -21,12 +21,12 @@ import io.github.nicolasfara.mktt.core.TopicAliasMaximum
 import io.github.nicolasfara.mktt.core.WildcardSubscriptionAvailable
 import io.github.nicolasfara.mktt.core.buildUserProperties
 import io.ktor.utils.io.core.buildPacket
-import kotlinx.coroutines.test.runTest
-import kotlinx.io.bytestring.encodeToByteString
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlinx.coroutines.test.runTest
+import kotlinx.io.bytestring.encodeToByteString
 
 class ConnackTest {
 

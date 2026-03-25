@@ -57,13 +57,17 @@ data class ReasonCode internal constructor(val code: Int, val name: String) {
 
     override fun toString(): String = "$code $name"
 
+    /** Factory methods for converting wire reason codes. */
     companion object {
+        /**
+         * Converts a wire-encoded reason code to [ReasonCode].
+         */
         fun from(code: Byte, defaultSuccessReason: ReasonCode = Success): ReasonCode {
             check(defaultSuccessReason.code == 0) {
                 "The default success reason must be one of 'Success', NormalDisconnection' or 'GrantedQoS0'"
             }
 
-            return when (code.toInt() and 0xFF) {
+            return when (code.toInt() and REASON_CODE_BYTE_MASK) {
                 0 -> defaultSuccessReason
 
                 GrantedQoS1.code -> GrantedQoS1
@@ -157,11 +161,48 @@ data class ReasonCode internal constructor(val code: Int, val name: String) {
         }
     }
 
+    /** Compares this reason code numerically with [other]. */
     operator fun compareTo(other: ReasonCode): Int = this.code.compareTo(other.code)
 }
 
+private const val REASON_CODE_BYTE_MASK = 0xFF
+private const val REASON_CODE_DISCONNECT_WITH_WILL_MESSAGE = 4
+private const val REASON_CODE_NO_MATCHING_SUBSCRIBERS = 16
+private const val REASON_CODE_NO_SUBSCRIPTION_EXISTED = 17
+private const val REASON_CODE_CONTINUE_AUTHENTICATION = 24
+private const val REASON_CODE_RE_AUTHENTICATE = 25
+private const val REASON_CODE_UNSPECIFIED_ERROR = 128
+private const val REASON_CODE_MALFORMED_PACKET = 129
+private const val REASON_CODE_PROTOCOL_ERROR = 130
+private const val REASON_CODE_IMPLEMENTATION_SPECIFIC_ERROR = 131
+private const val REASON_CODE_UNSUPPORTED_PROTOCOL_VERSION = 132
+private const val REASON_CODE_CLIENT_IDENTIFIER_NOT_VALID = 133
+private const val REASON_CODE_BAD_USERNAME_OR_PASSWORD = 134
+private const val REASON_CODE_NOT_AUTHORIZED = 135
+private const val REASON_CODE_SERVER_UNAVAILABLE = 136
+private const val REASON_CODE_SERVER_BUSY = 137
+private const val REASON_CODE_BANNED = 138
+private const val REASON_CODE_SERVER_SHUTTING_DOWN = 139
+private const val REASON_CODE_BAD_AUTHENTICATION_METHOD = 140
+private const val REASON_CODE_KEEP_ALIVE_TIMEOUT = 141
+private const val REASON_CODE_SESSION_TAKEN_OVER = 142
+private const val REASON_CODE_TOPIC_FILTER_INVALID = 143
+private const val REASON_CODE_TOPIC_NAME_INVALID = 144
+private const val REASON_CODE_PACKET_IDENTIFIER_IN_USE = 145
+private const val REASON_CODE_PACKET_IDENTIFIER_NOT_FOUND = 146
+private const val REASON_CODE_RECEIVE_MAXIMUM_EXCEEDED = 147
+private const val REASON_CODE_TOPIC_ALIAS_INVALID = 148
+private const val REASON_CODE_PACKET_TOO_LARGE = 149
+private const val REASON_CODE_MESSAGE_RATE_TOO_HIGH = 150
+private const val REASON_CODE_QUOTA_EXCEEDED = 151
+private const val REASON_CODE_ADMINISTRATIVE_ACTION = 152
+private const val REASON_CODE_PAYLOAD_FORMAT_INVALID = 153
+private const val REASON_CODE_RETAIN_NOT_SUPPORTED = 154
+private const val REASON_CODE_QOS_NOT_SUPPORTED = 155
+private const val REASON_CODE_USE_ANOTHER_SERVER = 156
+
 /**
- * The Success reason code
+ * The Success reason code.
  */
 val Success: ReasonCode =
     ReasonCode(0, "Success")
@@ -194,238 +235,245 @@ val GrantedQoS2: ReasonCode =
  * The DisconnectWithWillMessage reason code.
  */
 val DisconnectWithWillMessage: ReasonCode =
-    ReasonCode(4, "Disconnect with Will Message")
+    ReasonCode(REASON_CODE_DISCONNECT_WITH_WILL_MESSAGE, "Disconnect with Will Message")
 
 /**
  * The NoMatchingSubscribers reason code.
  */
 val NoMatchingSubscribers: ReasonCode =
-    ReasonCode(16, "No matching subscribers")
+    ReasonCode(REASON_CODE_NO_MATCHING_SUBSCRIBERS, "No matching subscribers")
 
 /**
  * The NoSubscriptionExisted reason code.
  */
 val NoSubscriptionExisted: ReasonCode =
-    ReasonCode(17, "No subscription existed")
+    ReasonCode(REASON_CODE_NO_SUBSCRIPTION_EXISTED, "No subscription existed")
 
 /**
  * The ContinueAuthentication reason code.
  */
 val ContinueAuthentication: ReasonCode =
-    ReasonCode(24, "Continue authentication")
+    ReasonCode(REASON_CODE_CONTINUE_AUTHENTICATION, "Continue authentication")
 
 /**
  * The ReAuthenticate reason code.
  */
 val ReAuthenticate: ReasonCode =
-    ReasonCode(25, "Re-authenticate")
+    ReasonCode(REASON_CODE_RE_AUTHENTICATE, "Re-authenticate")
 
 /**
  * The UnspecifiedError reason code.
  */
 val UnspecifiedError: ReasonCode =
-    ReasonCode(128, "Unspecified error")
+    ReasonCode(REASON_CODE_UNSPECIFIED_ERROR, "Unspecified error")
 
 /**
  * The MalformedPacket reason code.
  */
 val MalformedPacket: ReasonCode =
-    ReasonCode(129, "Malformed Packet")
+    ReasonCode(REASON_CODE_MALFORMED_PACKET, "Malformed Packet")
 
 /**
  * The ProtocolError reason code.
  */
 val ProtocolError: ReasonCode =
-    ReasonCode(130, "Protocol Error")
+    ReasonCode(REASON_CODE_PROTOCOL_ERROR, "Protocol Error")
 
 /**
  * The ImplementationSpecificError reason code.
  */
 val ImplementationSpecificError: ReasonCode =
-    ReasonCode(131, "Implementation specific error")
+    ReasonCode(REASON_CODE_IMPLEMENTATION_SPECIFIC_ERROR, "Implementation specific error")
 
 /**
  * The UnsupportedProtocolVersion reason code.
  */
 val UnsupportedProtocolVersion: ReasonCode =
-    ReasonCode(132, "Unsupported Protocol Version")
+    ReasonCode(REASON_CODE_UNSUPPORTED_PROTOCOL_VERSION, "Unsupported Protocol Version")
 
 /**
  * The ClientIdentifierNotValid reason code.
  */
 val ClientIdentifierNotValid: ReasonCode =
-    ReasonCode(133, "Client Identifier not valid")
+    ReasonCode(REASON_CODE_CLIENT_IDENTIFIER_NOT_VALID, "Client Identifier not valid")
 
 /**
  * The BadUserNameOrPassword reason code.
  */
 val BadUserNameOrPassword: ReasonCode =
-    ReasonCode(134, "Bad User Name or Password")
+    ReasonCode(REASON_CODE_BAD_USERNAME_OR_PASSWORD, "Bad User Name or Password")
 
 /**
  * The NotAuthorized reason code.
  */
 val NotAuthorized: ReasonCode =
-    ReasonCode(135, "Not authorized")
+    ReasonCode(REASON_CODE_NOT_AUTHORIZED, "Not authorized")
 
 /**
  * The ServerUnavailable reason code.
  */
 val ServerUnavailable: ReasonCode =
-    ReasonCode(136, "Server unavailable")
+    ReasonCode(REASON_CODE_SERVER_UNAVAILABLE, "Server unavailable")
 
 /**
  * The ServerBusy reason code.
  */
 val ServerBusy: ReasonCode =
-    ReasonCode(137, "Server busy")
+    ReasonCode(REASON_CODE_SERVER_BUSY, "Server busy")
 
 /**
  * The Banned reason code.
  */
 val Banned: ReasonCode =
-    ReasonCode(138, "Banned")
+    ReasonCode(REASON_CODE_BANNED, "Banned")
 
 /**
  * The ServerShuttingDown reason code.
  */
 val ServerShuttingDown: ReasonCode =
-    ReasonCode(139, "Server shutting down")
+    ReasonCode(REASON_CODE_SERVER_SHUTTING_DOWN, "Server shutting down")
 
 /**
  * The BadAuthenticationMethod reason code.
  */
 val BadAuthenticationMethod: ReasonCode =
-    ReasonCode(140, "Bad authentication method")
+    ReasonCode(REASON_CODE_BAD_AUTHENTICATION_METHOD, "Bad authentication method")
 
 /**
  * The KeepAliveTimeout reason code.
  */
 val KeepAliveTimeout: ReasonCode =
-    ReasonCode(141, "Keep Alive timeout")
+    ReasonCode(REASON_CODE_KEEP_ALIVE_TIMEOUT, "Keep Alive timeout")
 
 /**
  * The SessionTakenOver reason code.
  */
 val SessionTakenOver: ReasonCode =
-    ReasonCode(142, "Session taken over")
+    ReasonCode(REASON_CODE_SESSION_TAKEN_OVER, "Session taken over")
 
 /**
  * The TopicFilterInvalid reason code.
  */
 val TopicFilterInvalid: ReasonCode =
-    ReasonCode(143, "Topic Filter invalid")
+    ReasonCode(REASON_CODE_TOPIC_FILTER_INVALID, "Topic Filter invalid")
 
 /**
  * The TopicNameInvalid reason code.
  */
 val TopicNameInvalid: ReasonCode =
-    ReasonCode(144, "Topic Name invalid")
+    ReasonCode(REASON_CODE_TOPIC_NAME_INVALID, "Topic Name invalid")
 
 /**
  * The PacketIdentifierInUse reason code.
  */
 val PacketIdentifierInUse: ReasonCode =
-    ReasonCode(145, "Packet Identifier in use")
+    ReasonCode(REASON_CODE_PACKET_IDENTIFIER_IN_USE, "Packet Identifier in use")
 
 /**
  * The PacketIdentifierNotFound reason code.
  */
 val PacketIdentifierNotFound: ReasonCode =
-    ReasonCode(146, "Packet Identifier not found")
+    ReasonCode(REASON_CODE_PACKET_IDENTIFIER_NOT_FOUND, "Packet Identifier not found")
 
 /**
  * The ReceiveMaximumExceeded reason code.
  */
 val ReceiveMaximumExceeded: ReasonCode =
-    ReasonCode(147, "Receive Maximum exceeded")
+    ReasonCode(REASON_CODE_RECEIVE_MAXIMUM_EXCEEDED, "Receive Maximum exceeded")
 
 /**
  * The TopicAliasInvalid reason code.
  */
 val TopicAliasInvalid: ReasonCode =
-    ReasonCode(148, "Topic Alias invalid")
+    ReasonCode(REASON_CODE_TOPIC_ALIAS_INVALID, "Topic Alias invalid")
 
 /**
  * The PacketTooLarge reason code.
  */
 val PacketTooLarge: ReasonCode =
-    ReasonCode(149, "Packet too large")
+    ReasonCode(REASON_CODE_PACKET_TOO_LARGE, "Packet too large")
 
 /**
  * The MessageRateTooHigh reason code.
  */
 val MessageRateTooHigh: ReasonCode =
-    ReasonCode(150, "Message rate too high")
+    ReasonCode(REASON_CODE_MESSAGE_RATE_TOO_HIGH, "Message rate too high")
 
 /**
  * The QuotaExceeded reason code.
  */
 val QuotaExceeded: ReasonCode =
-    ReasonCode(151, "Quota exceeded")
+    ReasonCode(REASON_CODE_QUOTA_EXCEEDED, "Quota exceeded")
 
 /**
  * The AdministrativeAction reason code.
  */
 val AdministrativeAction: ReasonCode =
-    ReasonCode(152, "Administrative action")
+    ReasonCode(REASON_CODE_ADMINISTRATIVE_ACTION, "Administrative action")
 
 /**
  * The AdministrativeAction reason code.
  */
 val PayloadFormatInvalid: ReasonCode =
-    ReasonCode(153, "Payload format invalid")
+    ReasonCode(REASON_CODE_PAYLOAD_FORMAT_INVALID, "Payload format invalid")
 
 /**
  * The RetainNotSupported reason code.
  */
 val RetainNotSupported: ReasonCode =
-    ReasonCode(154, "Retain not supported")
+    ReasonCode(REASON_CODE_RETAIN_NOT_SUPPORTED, "Retain not supported")
 
 /**
  * The QoSNotSupported reason code.
  */
 val QoSNotSupported: ReasonCode =
-    ReasonCode(155, "QoS not supported")
+    ReasonCode(REASON_CODE_QOS_NOT_SUPPORTED, "QoS not supported")
 
 /**
  * The UseAnotherServer reason code.
  */
 val UseAnotherServer: ReasonCode =
-    ReasonCode(156, "Use another server")
+    ReasonCode(REASON_CODE_USE_ANOTHER_SERVER, "Use another server")
+
+private const val REASON_CODE_SERVER_MOVED = 157
+private const val REASON_CODE_SHARED_SUBSCRIPTIONS_NOT_SUPPORTED = 158
+private const val REASON_CODE_CONNECTION_RATE_EXCEEDED = 159
+private const val REASON_CODE_MAXIMUM_CONNECT_TIME = 160
+private const val REASON_CODE_SUBSCRIPTION_IDENTIFIERS_NOT_SUPPORTED = 161
+private const val REASON_CODE_WILDCARD_SUBSCRIPTIONS_NOT_SUPPORTED = 162
 
 /**
  * The ServerMoved reason code.
  */
 val ServerMoved: ReasonCode =
-    ReasonCode(157, "Server moved")
+    ReasonCode(REASON_CODE_SERVER_MOVED, "Server moved")
 
 /**
  * The SharedSubscriptionsNotSupported reason code.
  */
 val SharedSubscriptionsNotSupported: ReasonCode =
-    ReasonCode(158, "Shared Subscriptions not supported")
+    ReasonCode(REASON_CODE_SHARED_SUBSCRIPTIONS_NOT_SUPPORTED, "Shared Subscriptions not supported")
 
 /**
  * The ConnectionRateExceeded reason code.
  */
 val ConnectionRateExceeded: ReasonCode =
-    ReasonCode(159, "Connection rate exceeded")
+    ReasonCode(REASON_CODE_CONNECTION_RATE_EXCEEDED, "Connection rate exceeded")
 
 /**
  * The MaximumConnectTime reason code.
  */
 val MaximumConnectTime: ReasonCode =
-    ReasonCode(160, "Maximum connect time")
+    ReasonCode(REASON_CODE_MAXIMUM_CONNECT_TIME, "Maximum connect time")
 
 /**
  * The SubscriptionIdentifiersNotSupported reason code.
  */
 val SubscriptionIdentifiersNotSupported: ReasonCode =
-    ReasonCode(161, "Subscription Identifiers not supported")
+    ReasonCode(REASON_CODE_SUBSCRIPTION_IDENTIFIERS_NOT_SUPPORTED, "Subscription Identifiers not supported")
 
 /**
  * The WildcardSubscriptionsNotSupported reason code.
  */
 val WildcardSubscriptionsNotSupported: ReasonCode =
-    ReasonCode(162, "Wildcard Subscriptions not supported")
+    ReasonCode(REASON_CODE_WILDCARD_SUBSCRIPTIONS_NOT_SUPPORTED, "Wildcard Subscriptions not supported")
