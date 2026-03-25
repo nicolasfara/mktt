@@ -1,9 +1,6 @@
 package io.github.nicolasfara.mktt.core.packet
 
-public object Pingresp : io.github.nicolasfara.mktt.core.packet.AbstractPacket(
-    _root_ide_package_.io.github.nicolasfara.mktt.core.packet.PacketType.PINGRESP,
-) {
-
+object Pingresp : AbstractPacket(PacketType.PINGRESP) {
     override fun toString(): String = "Pingresp"
 }
 

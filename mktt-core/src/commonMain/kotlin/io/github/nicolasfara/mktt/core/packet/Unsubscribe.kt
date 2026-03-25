@@ -11,17 +11,15 @@ import kotlinx.io.Source
 import kotlinx.io.readUShort
 import kotlinx.io.writeUShort
 
-public data class Unsubscribe(
-    public override val packetIdentifier: UShort,
-    public val topics: List<io.github.nicolasfara.mktt.core.Topic>,
-    public val userProperties: io.github.nicolasfara.mktt.core.UserProperties = _root_ide_package_.io.github.nicolasfara.mktt.core.UserProperties.Companion.EMPTY,
-) : io.github.nicolasfara.mktt.core.packet.AbstractPacket(
-    _root_ide_package_.io.github.nicolasfara.mktt.core.packet.PacketType.UNSUBSCRIBE,
-),
-    io.github.nicolasfara.mktt.core.packet.PacketIdentifierPacket {
+data class Unsubscribe(
+    override val packetIdentifier: UShort,
+    val topics: List<Topic>,
+    val userProperties: UserProperties = UserProperties.EMPTY,
+) : AbstractPacket(PacketType.UNSUBSCRIBE),
+    PacketIdentifierPacket {
 
     init {
-        _root_ide_package_.io.github.nicolasfara.mktt.core.wellFormedWhen(topics.isNotEmpty()) {
+        wellFormedWhen(topics.isNotEmpty()) {
             "Empty topic list in UNSUBSCRIBE"
         }
     }
@@ -29,7 +27,7 @@ public data class Unsubscribe(
     override val headerFlags: Int = 2
 }
 
-internal fun Sink.write(unsubscribe: io.github.nicolasfara.mktt.core.packet.Unsubscribe) {
+internal fun Sink.write(unsubscribe: Unsubscribe) {
     with(unsubscribe) {
         writeUShort(packetIdentifier)
         writeProperties(*userProperties.asArray)
@@ -41,17 +39,17 @@ internal fun Sink.write(unsubscribe: io.github.nicolasfara.mktt.core.packet.Unsu
     }
 }
 
-internal fun Source.readUnsubscribe(): io.github.nicolasfara.mktt.core.packet.Unsubscribe {
+internal fun Source.readUnsubscribe(): Unsubscribe {
     val packetIdentifier = readUShort()
     val properties = readProperties()
     val topics = buildList {
         while (!exhausted()) {
-            add(_root_ide_package_.io.github.nicolasfara.mktt.core.Topic(readMqttString()))
+            add(Topic(readMqttString()))
         }
     }
-    return _root_ide_package_.io.github.nicolasfara.mktt.core.packet.Unsubscribe(
+    return Unsubscribe(
         packetIdentifier,
         topics,
-        _root_ide_package_.io.github.nicolasfara.mktt.core.UserProperties.Companion.from(properties),
+        UserProperties.from(properties),
     )
 }

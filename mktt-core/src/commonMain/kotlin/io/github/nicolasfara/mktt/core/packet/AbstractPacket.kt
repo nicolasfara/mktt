@@ -1,7 +1,5 @@
 package io.github.nicolasfara.mktt.core.packet
 
-public abstract class AbstractPacket(final override val type: io.github.nicolasfara.mktt.core.packet.PacketType) :
-    io.github.nicolasfara.mktt.core.packet.Packet {
-
+abstract class AbstractPacket(final override val type: PacketType) : Packet {
     override val headerFlags: Int = 0
 }

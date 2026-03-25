@@ -61,7 +61,7 @@ class StringTest {
     fun `fail with MalformedPacketException when string is too large`() {
         val tooLarge = (CharArray(65_536) { 'x' }).concatToString()
 
-        assertFailsWith<io.github.nicolasfara.mktt.core.MalformedPacketException> { Buffer().writeMqttString(tooLarge) }
+        assertFailsWith<MalformedPacketException> { Buffer().writeMqttString(tooLarge) }
     }
 
     @Test

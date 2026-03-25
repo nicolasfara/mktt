@@ -10,18 +10,16 @@ import kotlinx.io.Source
 import kotlinx.io.readUShort
 import kotlinx.io.writeUShort
 
-public data class Unsuback(
+data class Unsuback(
     override val packetIdentifier: UShort,
-    val reasons: List<io.github.nicolasfara.mktt.core.ReasonCode>,
-    val reasonString: io.github.nicolasfara.mktt.core.ReasonString? = null,
-    val userProperties: io.github.nicolasfara.mktt.core.UserProperties = _root_ide_package_.io.github.nicolasfara.mktt.core.UserProperties.Companion.EMPTY,
-) : io.github.nicolasfara.mktt.core.packet.AbstractPacket(
-    _root_ide_package_.io.github.nicolasfara.mktt.core.packet.PacketType.UNSUBACK,
-),
-    io.github.nicolasfara.mktt.core.packet.PacketIdentifierPacket {
+    val reasons: List<ReasonCode>,
+    val reasonString: ReasonString? = null,
+    val userProperties: UserProperties = UserProperties.EMPTY,
+) : AbstractPacket(PacketType.UNSUBACK),
+    PacketIdentifierPacket {
 
     init {
-        _root_ide_package_.io.github.nicolasfara.mktt.core.wellFormedWhen(reasons.isNotEmpty()) {
+        wellFormedWhen(reasons.isNotEmpty()) {
             "Reason codes must not be empty in UNSUBACK"
         }
     }
@@ -30,13 +28,13 @@ public data class Unsuback(
 /**
  * Returns `true` when all reason codes of this UNSUBACK are either [io.github.nicolasfara.mktt.core.Success] or [io.github.nicolasfara.mktt.core.NoSubscriptionExisted].
  */
-public val io.github.nicolasfara.mktt.core.packet.Unsuback.isUnsubscribed: Boolean
+val Unsuback.isUnsubscribed: Boolean
     get() = reasons.all {
-        it.code == _root_ide_package_.io.github.nicolasfara.mktt.core.Success.code ||
-            it.code == _root_ide_package_.io.github.nicolasfara.mktt.core.NoSubscriptionExisted.code
+        it.code == Success.code ||
+            it.code == NoSubscriptionExisted.code
     }
 
-internal fun Sink.write(unsuback: io.github.nicolasfara.mktt.core.packet.Unsuback) {
+internal fun Sink.write(unsuback: Unsuback) {
     with(unsuback) {
         writeUShort(packetIdentifier)
         writeProperties(reasonString, *userProperties.asArray)
@@ -48,19 +46,19 @@ internal fun Sink.write(unsuback: io.github.nicolasfara.mktt.core.packet.Unsubac
     }
 }
 
-internal fun Source.readUnsuback(): io.github.nicolasfara.mktt.core.packet.Unsuback {
+internal fun Source.readUnsuback(): Unsuback {
     val packetIdentifier = readUShort()
     val properties = readProperties()
     val reasons = buildList {
         while (!exhausted()) {
-            add(_root_ide_package_.io.github.nicolasfara.mktt.core.ReasonCode.Companion.from(readByte()))
+            add(ReasonCode.from(readByte()))
         }
     }
 
-    return _root_ide_package_.io.github.nicolasfara.mktt.core.packet.Unsuback(
+    return Unsuback(
         packetIdentifier = packetIdentifier,
-        reasonString = properties.singleOrNull<io.github.nicolasfara.mktt.core.ReasonString>(),
-        userProperties = _root_ide_package_.io.github.nicolasfara.mktt.core.UserProperties.Companion.from(properties),
+        reasonString = properties.singleOrNull<ReasonString>(),
+        userProperties = UserProperties.from(properties),
         reasons = reasons,
     )
 }

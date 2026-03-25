@@ -42,7 +42,7 @@ internal fun Source.readVariableByteInt(): Int {
         val encodedByte = readByte().toInt()
         value += (encodedByte and 127) * multiplier
         if (multiplier > 128 * 128 * 128) {
-            throw _root_ide_package_.io.github.nicolasfara.mktt.core.MalformedPacketException(
+            throw MalformedPacketException(
                 "malformed variable byte integer",
             )
         }
@@ -59,7 +59,7 @@ internal suspend fun ByteReadChannel.readVariableByteInt(): Int {
         val encodedByte = readByte().toInt()
         value += (encodedByte and 127) * multiplier
         if (multiplier > 128 * 128 * 128) {
-            throw _root_ide_package_.io.github.nicolasfara.mktt.core.MalformedPacketException(
+            throw MalformedPacketException(
                 "malformed variable byte integer",
             )
         }

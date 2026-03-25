@@ -10,38 +10,31 @@ import kotlinx.io.bytestring.ByteString
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.ZERO
 
-public data class WillProperties(
-    public val willDelayInterval: io.github.nicolasfara.mktt.core.WillDelayInterval,
-    public val payloadFormatIndicator: io.github.nicolasfara.mktt.core.PayloadFormatIndicator?,
-    public val messageExpiryInterval: io.github.nicolasfara.mktt.core.MessageExpiryInterval?,
-    public val contentType: io.github.nicolasfara.mktt.core.ContentType?,
-    public val responseTopic: io.github.nicolasfara.mktt.core.ResponseTopic?,
-    public val correlationData: io.github.nicolasfara.mktt.core.CorrelationData?,
-    public val userProperties: io.github.nicolasfara.mktt.core.UserProperties,
+data class WillProperties(
+    val willDelayInterval: WillDelayInterval,
+    val payloadFormatIndicator: PayloadFormatIndicator?,
+    val messageExpiryInterval: MessageExpiryInterval?,
+    val contentType: ContentType?,
+    val responseTopic: ResponseTopic?,
+    val correlationData: CorrelationData?,
+    val userProperties: UserProperties,
 ) {
     internal companion object {
-
-        internal fun from(
-            properties: List<io.github.nicolasfara.mktt.core.Property<*>>,
-        ): io.github.nicolasfara.mktt.core.WillProperties =
-            _root_ide_package_.io.github.nicolasfara.mktt.core.WillProperties(
-                willDelayInterval = properties.single<io.github.nicolasfara.mktt.core.WillDelayInterval>(),
-                payloadFormatIndicator = properties.singleOrNull<io.github.nicolasfara.mktt.core.PayloadFormatIndicator>(),
-                messageExpiryInterval = properties.singleOrNull<io.github.nicolasfara.mktt.core.MessageExpiryInterval>(),
-                contentType = properties.singleOrNull<io.github.nicolasfara.mktt.core.ContentType>(),
-                responseTopic = properties.singleOrNull<io.github.nicolasfara.mktt.core.ResponseTopic>(),
-                correlationData = properties.singleOrNull<io.github.nicolasfara.mktt.core.CorrelationData>(),
-                userProperties = _root_ide_package_.io.github.nicolasfara.mktt.core.UserProperties.Companion.from(
-                    properties,
-                ),
+        internal fun from(properties: List<Property<*>>): WillProperties =
+            WillProperties(
+                willDelayInterval = properties.single<WillDelayInterval>(),
+                payloadFormatIndicator = properties.singleOrNull<PayloadFormatIndicator>(),
+                messageExpiryInterval = properties.singleOrNull<MessageExpiryInterval>(),
+                contentType = properties.singleOrNull<ContentType>(),
+                responseTopic = properties.singleOrNull<ResponseTopic>(),
+                correlationData = properties.singleOrNull<CorrelationData>(),
+                userProperties = UserProperties.from(properties),
             )
     }
 }
 
-public fun buildWillProperties(
-    init: io.github.nicolasfara.mktt.core.WillPropertiesBuilder.() -> Unit,
-): io.github.nicolasfara.mktt.core.WillProperties {
-    val builder = _root_ide_package_.io.github.nicolasfara.mktt.core.WillPropertiesBuilder()
+fun buildWillProperties(init: WillPropertiesBuilder.() -> Unit): WillProperties {
+    val builder = WillPropertiesBuilder()
     builder.init()
     return builder.build()
 }
@@ -59,33 +52,33 @@ public fun buildWillProperties(
  * @property correlationData used by the sender of the Request Message to identify which request the Response Message is
  *           for when it is received
  */
-@io.github.nicolasfara.mktt.core.util.MqttDslMarker
-public class WillPropertiesBuilder {
-    public var willDelayInterval: Duration = ZERO
-    public var payloadFormatIndicator: io.github.nicolasfara.mktt.core.PayloadFormatIndicator? = null
-    public var messageExpiryInterval: Duration? = null
-    public var contentType: String? = null
-    public var responseTopic: String? = null
-    public var correlationData: ByteString? = null
+@MqttDslMarker
+class WillPropertiesBuilder {
+    var willDelayInterval: Duration = ZERO
+    var payloadFormatIndicator: PayloadFormatIndicator? = null
+    var messageExpiryInterval: Duration? = null
+    var contentType: String? = null
+    var responseTopic: String? = null
+    var correlationData: ByteString? = null
 
-    private val userPropertiesBuilder = _root_ide_package_.io.github.nicolasfara.mktt.core.UserPropertiesBuilder()
+    private val userPropertiesBuilder = UserPropertiesBuilder()
 
     /**
      * Creates the user properties of this will properties.
      */
-    public fun userProperties(init: io.github.nicolasfara.mktt.core.UserPropertiesBuilder.() -> Unit) {
+    fun userProperties(init: UserPropertiesBuilder.() -> Unit) {
         userPropertiesBuilder.init()
     }
 
-    public fun build(): io.github.nicolasfara.mktt.core.WillProperties =
-        _root_ide_package_.io.github.nicolasfara.mktt.core.WillProperties(
+    fun build(): WillProperties =
+        WillProperties(
             willDelayInterval = willDelayInterval.toWillDelayInterval(),
             payloadFormatIndicator = payloadFormatIndicator,
             messageExpiryInterval = messageExpiryInterval?.toMessageExpiryInterval(),
-            contentType = contentType?.let { _root_ide_package_.io.github.nicolasfara.mktt.core.ContentType(it) },
-            responseTopic = responseTopic?.let { _root_ide_package_.io.github.nicolasfara.mktt.core.ResponseTopic(it) },
+            contentType = contentType?.let { ContentType(it) },
+            responseTopic = responseTopic?.let { ResponseTopic(it) },
             correlationData = correlationData?.let {
-                _root_ide_package_.io.github.nicolasfara.mktt.core.CorrelationData(
+                CorrelationData(
                     it,
                 )
             },
@@ -93,7 +86,7 @@ public class WillPropertiesBuilder {
         )
 }
 
-internal fun io.github.nicolasfara.mktt.core.WillProperties.asArray(): Array<io.github.nicolasfara.mktt.core.Property<*>?> =
+internal fun WillProperties.asArray(): Array<Property<*>?> =
     arrayOf(
         willDelayInterval,
         payloadFormatIndicator,

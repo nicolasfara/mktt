@@ -13,17 +13,17 @@ import kotlinx.io.writeUShort
 /**
  * Base class for PUBACK, PUBREC, PUBREL and PUBCOMP.
  */
-public sealed class PublishResponsePacket(
-    type: io.github.nicolasfara.mktt.core.packet.PacketType,
-    public final override val packetIdentifier: UShort,
-    public val reason: io.github.nicolasfara.mktt.core.ReasonCode,
-    public val reasonString: io.github.nicolasfara.mktt.core.ReasonString? = null,
-    public val userProperties: io.github.nicolasfara.mktt.core.UserProperties = _root_ide_package_.io.github.nicolasfara.mktt.core.UserProperties.Companion.EMPTY,
-) : io.github.nicolasfara.mktt.core.packet.AbstractPacket(type),
-    io.github.nicolasfara.mktt.core.packet.PacketIdentifierPacket {
+sealed class PublishResponsePacket(
+    type: PacketType,
+    final override val packetIdentifier: UShort,
+    val reason: ReasonCode,
+    val reasonString: ReasonString? = null,
+    val userProperties: UserProperties = UserProperties.EMPTY,
+) : AbstractPacket(type),
+    PacketIdentifierPacket {
 
     init {
-        _root_ide_package_.io.github.nicolasfara.mktt.core.wellFormedWhen(packetIdentifier != 0.toUShort()) {
+        wellFormedWhen(packetIdentifier != 0.toUShort()) {
             "A zero packet identifier is not allowed for PUBACK, PUBREC , PUBREL, or PUBCOMP [MQTT-2.2.1-5]"
         }
     }
@@ -32,7 +32,7 @@ public sealed class PublishResponsePacket(
         if (this === other) return true
         if (other == null || this::class != other::class) return false
 
-        other as io.github.nicolasfara.mktt.core.packet.PublishResponsePacket
+        other as PublishResponsePacket
 
         if (packetIdentifier != other.packetIdentifier) return false
         if (reason != other.reason) return false
@@ -54,36 +54,28 @@ public sealed class PublishResponsePacket(
         "${this::class.simpleName}(packetIdentifier=$packetIdentifier, reason=$reason, reasonString=$reasonString, userProperties=$userProperties)"
 }
 
-public class Puback(
+class Puback(
     packetIdentifier: UShort,
-    reason: io.github.nicolasfara.mktt.core.ReasonCode,
-    reasonString: io.github.nicolasfara.mktt.core.ReasonString? = null,
-    userProperties: io.github.nicolasfara.mktt.core.UserProperties = _root_ide_package_.io.github.nicolasfara.mktt.core.UserProperties.Companion.EMPTY,
-) : io.github.nicolasfara.mktt.core.packet.PublishResponsePacket(
-    _root_ide_package_.io.github.nicolasfara.mktt.core.packet.PacketType.PUBACK,
-    packetIdentifier,
-    reason,
-    reasonString,
-    userProperties,
-) {
+    reason: ReasonCode,
+    reasonString: ReasonString? = null,
+    userProperties: UserProperties = UserProperties.EMPTY,
+) : PublishResponsePacket(PacketType.PUBACK, packetIdentifier, reason, reasonString, userProperties) {
 
-    public companion object {
-
-        public fun from(
-            publish: io.github.nicolasfara.mktt.core.packet.Publish,
-            reason: io.github.nicolasfara.mktt.core.ReasonCode = _root_ide_package_.io.github.nicolasfara.mktt.core.Success,
+    companion object {
+        fun from(
+            publish: Publish,
+            reason: ReasonCode = Success,
             reasonString: String? = null,
-        ): io.github.nicolasfara.mktt.core.packet.Puback {
+        ): Puback {
             val packetIdentifier = publish.packetIdentifier
             require(packetIdentifier != null) {
                 "Cannot create a PUBACK packet from a PUBLISH packet without packet identifier: $this"
             }
-
-            return _root_ide_package_.io.github.nicolasfara.mktt.core.packet.Puback(
+            return Puback(
                 packetIdentifier = packetIdentifier,
                 reason = reason,
                 reasonString = reasonString?.let {
-                    _root_ide_package_.io.github.nicolasfara.mktt.core.ReasonString(it)
+                    ReasonString(it)
                 },
                 userProperties = publish.userProperties,
             )
@@ -91,36 +83,28 @@ public class Puback(
     }
 }
 
-public class Pubrec(
+class Pubrec(
     packetIdentifier: UShort,
-    reason: io.github.nicolasfara.mktt.core.ReasonCode,
-    reasonString: io.github.nicolasfara.mktt.core.ReasonString? = null,
-    userProperties: io.github.nicolasfara.mktt.core.UserProperties = _root_ide_package_.io.github.nicolasfara.mktt.core.UserProperties.Companion.EMPTY,
-) : io.github.nicolasfara.mktt.core.packet.PublishResponsePacket(
-    _root_ide_package_.io.github.nicolasfara.mktt.core.packet.PacketType.PUBREC,
-    packetIdentifier,
-    reason,
-    reasonString,
-    userProperties,
-) {
+    reason: ReasonCode,
+    reasonString: ReasonString? = null,
+    userProperties: UserProperties = UserProperties.EMPTY,
+) : PublishResponsePacket(PacketType.PUBREC, packetIdentifier, reason, reasonString, userProperties) {
 
-    public companion object {
-
-        public fun from(
-            publish: io.github.nicolasfara.mktt.core.packet.Publish,
-            reason: io.github.nicolasfara.mktt.core.ReasonCode = _root_ide_package_.io.github.nicolasfara.mktt.core.Success,
+    companion object {
+        fun from(
+            publish: Publish,
+            reason: ReasonCode = Success,
             reasonString: String? = null,
-        ): io.github.nicolasfara.mktt.core.packet.Pubrec {
+        ): Pubrec {
             val packetIdentifier = publish.packetIdentifier
             require(packetIdentifier != null) {
                 "Cannot create a PUBREC packet from a PUBLISH packet without packet identifier: $this"
             }
-
-            return _root_ide_package_.io.github.nicolasfara.mktt.core.packet.Pubrec(
+            return Pubrec(
                 packetIdentifier = packetIdentifier,
                 reason = reason,
                 reasonString = reasonString?.let {
-                    _root_ide_package_.io.github.nicolasfara.mktt.core.ReasonString(it)
+                    ReasonString(it)
                 },
                 userProperties = publish.userProperties,
             )
@@ -128,39 +112,31 @@ public class Pubrec(
     }
 }
 
-public class Pubrel(
+class Pubrel(
     packetIdentifier: UShort,
-    reason: io.github.nicolasfara.mktt.core.ReasonCode,
-    reasonString: io.github.nicolasfara.mktt.core.ReasonString? = null,
-    userProperties: io.github.nicolasfara.mktt.core.UserProperties = _root_ide_package_.io.github.nicolasfara.mktt.core.UserProperties.Companion.EMPTY,
-) : io.github.nicolasfara.mktt.core.packet.PublishResponsePacket(
-    _root_ide_package_.io.github.nicolasfara.mktt.core.packet.PacketType.PUBREL,
-    packetIdentifier,
-    reason,
-    reasonString,
-    userProperties,
-) {
+    reason: ReasonCode,
+    reasonString: ReasonString? = null,
+    userProperties: UserProperties = UserProperties.EMPTY,
+) : PublishResponsePacket(PacketType.PUBREL, packetIdentifier, reason, reasonString, userProperties) {
 
     // Note: this is the only response packet with a header flag!
     override val headerFlags: Int = 2
 
-    public companion object {
-
-        public fun from(
-            publish: io.github.nicolasfara.mktt.core.packet.Publish,
-            reason: io.github.nicolasfara.mktt.core.ReasonCode = _root_ide_package_.io.github.nicolasfara.mktt.core.Success,
+    companion object {
+        fun from(
+            publish: Publish,
+            reason: ReasonCode = Success,
             reasonString: String? = null,
-        ): io.github.nicolasfara.mktt.core.packet.Pubrel {
+        ): Pubrel {
             val packetIdentifier = publish.packetIdentifier
             require(packetIdentifier != null) {
                 "Cannot create a PUBREL packet from a PUBLISH packet without packet identifier: $this"
             }
-
-            return _root_ide_package_.io.github.nicolasfara.mktt.core.packet.Pubrel(
+            return Pubrel(
                 packetIdentifier = packetIdentifier,
                 reason = reason,
                 reasonString = reasonString?.let {
-                    _root_ide_package_.io.github.nicolasfara.mktt.core.ReasonString(it)
+                    ReasonString(it)
                 },
                 userProperties = publish.userProperties,
             )
@@ -168,53 +144,36 @@ public class Pubrel(
     }
 }
 
-public class Pubcomp(
+class Pubcomp(
     packetIdentifier: UShort,
-    reason: io.github.nicolasfara.mktt.core.ReasonCode,
-    reasonString: io.github.nicolasfara.mktt.core.ReasonString? = null,
-    userProperties: io.github.nicolasfara.mktt.core.UserProperties = _root_ide_package_.io.github.nicolasfara.mktt.core.UserProperties.Companion.EMPTY,
-) : io.github.nicolasfara.mktt.core.packet.PublishResponsePacket(
-    _root_ide_package_.io.github.nicolasfara.mktt.core.packet.PacketType.PUBCOMP,
-    packetIdentifier,
-    reason,
-    reasonString,
-    userProperties,
-) {
+    reason: ReasonCode,
+    reasonString: ReasonString? = null,
+    userProperties: UserProperties = UserProperties.EMPTY,
+) : PublishResponsePacket(PacketType.PUBCOMP, packetIdentifier, reason, reasonString, userProperties) {
 
-    public companion object {
-
-        public fun from(
-            publish: io.github.nicolasfara.mktt.core.packet.Publish,
-            reason: io.github.nicolasfara.mktt.core.ReasonCode = _root_ide_package_.io.github.nicolasfara.mktt.core.Success,
-            reasonString: String? = null,
-        ): io.github.nicolasfara.mktt.core.packet.Pubcomp {
+    companion object {
+        fun from(publish: Publish, reason: ReasonCode = Success, reasonString: String? = null): Pubcomp {
             val packetIdentifier = publish.packetIdentifier
             require(packetIdentifier != null) {
                 "Cannot create a PUBCOMP packet from a PUBLISH packet without packet identifier: $this"
             }
-
-            return _root_ide_package_.io.github.nicolasfara.mktt.core.packet.Pubcomp(
+            return Pubcomp(
                 packetIdentifier = packetIdentifier,
                 reason = reason,
                 reasonString = reasonString?.let {
-                    _root_ide_package_.io.github.nicolasfara.mktt.core.ReasonString(it)
+                    ReasonString(it)
                 },
                 userProperties = publish.userProperties,
             )
         }
 
-        public fun from(
-            publish: io.github.nicolasfara.mktt.core.packet.PublishResponsePacket,
-            reason: io.github.nicolasfara.mktt.core.ReasonCode = _root_ide_package_.io.github.nicolasfara.mktt.core.Success,
-            reasonString: String? = null,
-        ): io.github.nicolasfara.mktt.core.packet.Pubcomp {
+        fun from(publish: PublishResponsePacket, reason: ReasonCode = Success, reasonString: String? = null): Pubcomp {
             val packetIdentifier = publish.packetIdentifier
-
-            return _root_ide_package_.io.github.nicolasfara.mktt.core.packet.Pubcomp(
+            return Pubcomp(
                 packetIdentifier = packetIdentifier,
                 reason = reason,
                 reasonString = reasonString?.let {
-                    _root_ide_package_.io.github.nicolasfara.mktt.core.ReasonString(it)
+                    ReasonString(it)
                 },
                 userProperties = publish.userProperties,
             )
@@ -222,24 +181,23 @@ public class Pubcomp(
     }
 }
 
-internal interface PublishResponseFactory<T : io.github.nicolasfara.mktt.core.packet.PublishResponsePacket> {
-
+internal interface PublishResponseFactory<T : PublishResponsePacket> {
     operator fun invoke(
         packetIdentifier: UShort,
-        reason: io.github.nicolasfara.mktt.core.ReasonCode,
-        reasonString: io.github.nicolasfara.mktt.core.ReasonString? = null,
-        userProperties: io.github.nicolasfara.mktt.core.UserProperties = _root_ide_package_.io.github.nicolasfara.mktt.core.UserProperties.Companion.EMPTY,
+        reason: ReasonCode,
+        reasonString: ReasonString? = null,
+        userProperties: UserProperties = UserProperties.EMPTY,
     ): T
 }
 
 internal val PubackFactory = object :
-    io.github.nicolasfara.mktt.core.packet.PublishResponseFactory<io.github.nicolasfara.mktt.core.packet.Puback> {
+    PublishResponseFactory<Puback> {
     override fun invoke(
         packetIdentifier: UShort,
-        reason: io.github.nicolasfara.mktt.core.ReasonCode,
-        reasonString: io.github.nicolasfara.mktt.core.ReasonString?,
-        userProperties: io.github.nicolasfara.mktt.core.UserProperties,
-    ) = _root_ide_package_.io.github.nicolasfara.mktt.core.packet.Puback(
+        reason: ReasonCode,
+        reasonString: ReasonString?,
+        userProperties: UserProperties,
+    ) = Puback(
         packetIdentifier,
         reason,
         reasonString,
@@ -248,13 +206,13 @@ internal val PubackFactory = object :
 }
 
 internal val PubrecFactory = object :
-    io.github.nicolasfara.mktt.core.packet.PublishResponseFactory<io.github.nicolasfara.mktt.core.packet.Pubrec> {
+    PublishResponseFactory<Pubrec> {
     override fun invoke(
         packetIdentifier: UShort,
-        reason: io.github.nicolasfara.mktt.core.ReasonCode,
-        reasonString: io.github.nicolasfara.mktt.core.ReasonString?,
-        userProperties: io.github.nicolasfara.mktt.core.UserProperties,
-    ) = _root_ide_package_.io.github.nicolasfara.mktt.core.packet.Pubrec(
+        reason: ReasonCode,
+        reasonString: ReasonString?,
+        userProperties: UserProperties,
+    ) = Pubrec(
         packetIdentifier,
         reason,
         reasonString,
@@ -263,13 +221,13 @@ internal val PubrecFactory = object :
 }
 
 internal val PubrelFactory = object :
-    io.github.nicolasfara.mktt.core.packet.PublishResponseFactory<io.github.nicolasfara.mktt.core.packet.Pubrel> {
+    PublishResponseFactory<Pubrel> {
     override fun invoke(
         packetIdentifier: UShort,
-        reason: io.github.nicolasfara.mktt.core.ReasonCode,
-        reasonString: io.github.nicolasfara.mktt.core.ReasonString?,
-        userProperties: io.github.nicolasfara.mktt.core.UserProperties,
-    ) = _root_ide_package_.io.github.nicolasfara.mktt.core.packet.Pubrel(
+        reason: ReasonCode,
+        reasonString: ReasonString?,
+        userProperties: UserProperties,
+    ) = Pubrel(
         packetIdentifier,
         reason,
         reasonString,
@@ -278,13 +236,13 @@ internal val PubrelFactory = object :
 }
 
 internal val PubcompFactory = object :
-    io.github.nicolasfara.mktt.core.packet.PublishResponseFactory<io.github.nicolasfara.mktt.core.packet.Pubcomp> {
+    PublishResponseFactory<Pubcomp> {
     override fun invoke(
         packetIdentifier: UShort,
-        reason: io.github.nicolasfara.mktt.core.ReasonCode,
-        reasonString: io.github.nicolasfara.mktt.core.ReasonString?,
-        userProperties: io.github.nicolasfara.mktt.core.UserProperties,
-    ) = _root_ide_package_.io.github.nicolasfara.mktt.core.packet.Pubcomp(
+        reason: ReasonCode,
+        reasonString: ReasonString?,
+        userProperties: UserProperties,
+    ) = Pubcomp(
         packetIdentifier,
         reason,
         reasonString,
@@ -292,10 +250,10 @@ internal val PubcompFactory = object :
     )
 }
 
-internal fun Sink.write(publishResponse: io.github.nicolasfara.mktt.core.packet.PublishResponsePacket) {
+internal fun Sink.write(publishResponse: PublishResponsePacket) {
     with(publishResponse) {
         writeUShort(packetIdentifier)
-        if (reason != _root_ide_package_.io.github.nicolasfara.mktt.core.Success || reasonString != null ||
+        if (reason != Success || reasonString != null ||
             userProperties.isNotEmpty()
         ) {
             writeByte(reason.code.toByte())
@@ -307,13 +265,11 @@ internal fun Sink.write(publishResponse: io.github.nicolasfara.mktt.core.packet.
     }
 }
 
-internal fun <T : io.github.nicolasfara.mktt.core.packet.PublishResponsePacket> Source.readPublishResponse(
-    createResponse: io.github.nicolasfara.mktt.core.packet.PublishResponseFactory<T>,
-): T {
+internal fun <T : PublishResponsePacket> Source.readPublishResponse(createResponse: PublishResponseFactory<T>): T {
     val packetIdentifier = readUShort()
 
     return if (!exhausted()) {
-        val reason = _root_ide_package_.io.github.nicolasfara.mktt.core.ReasonCode.Companion.from(readByte())
+        val reason = ReasonCode.from(readByte())
         val properties = if (!exhausted()) {
             readProperties()
         } else {
@@ -322,12 +278,12 @@ internal fun <T : io.github.nicolasfara.mktt.core.packet.PublishResponsePacket> 
         createResponse(
             packetIdentifier = packetIdentifier,
             reason = reason,
-            reasonString = properties.singleOrNull<io.github.nicolasfara.mktt.core.ReasonString>(),
-            userProperties = _root_ide_package_.io.github.nicolasfara.mktt.core.UserProperties.Companion.from(
+            reasonString = properties.singleOrNull<ReasonString>(),
+            userProperties = UserProperties.from(
                 properties,
             ),
         )
     } else {
-        createResponse(packetIdentifier, _root_ide_package_.io.github.nicolasfara.mktt.core.Success)
+        createResponse(packetIdentifier, Success)
     }
 }

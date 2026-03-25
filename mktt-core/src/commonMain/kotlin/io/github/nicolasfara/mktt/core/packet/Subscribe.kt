@@ -14,18 +14,16 @@ import kotlinx.io.Source
 import kotlinx.io.readUShort
 import kotlinx.io.writeUShort
 
-public data class Subscribe(
-    public override val packetIdentifier: UShort,
-    public val filters: List<io.github.nicolasfara.mktt.core.TopicFilter>,
-    public val subscriptionIdentifier: io.github.nicolasfara.mktt.core.SubscriptionIdentifier? = null,
-    public val userProperties: io.github.nicolasfara.mktt.core.UserProperties = _root_ide_package_.io.github.nicolasfara.mktt.core.UserProperties.Companion.EMPTY,
-) : io.github.nicolasfara.mktt.core.packet.AbstractPacket(
-    _root_ide_package_.io.github.nicolasfara.mktt.core.packet.PacketType.SUBSCRIBE,
-),
-    io.github.nicolasfara.mktt.core.packet.PacketIdentifierPacket {
+data class Subscribe(
+    override val packetIdentifier: UShort,
+    val filters: List<TopicFilter>,
+    val subscriptionIdentifier: SubscriptionIdentifier? = null,
+    val userProperties: UserProperties = UserProperties.EMPTY,
+) : AbstractPacket(PacketType.SUBSCRIBE),
+    PacketIdentifierPacket {
 
     init {
-        _root_ide_package_.io.github.nicolasfara.mktt.core.malformedWhen(filters.isEmpty()) {
+        malformedWhen(filters.isEmpty()) {
             "SUBSCRIBE MUST contain at least one Topic Filter [MQTT-3.8.3-2]"
         }
     }
@@ -33,7 +31,7 @@ public data class Subscribe(
     override val headerFlags: Int = 2
 }
 
-internal fun Sink.write(subscribe: io.github.nicolasfara.mktt.core.packet.Subscribe) {
+internal fun Sink.write(subscribe: Subscribe) {
     with(subscribe) {
         writeUShort(subscribe.packetIdentifier)
         writeProperties(
@@ -49,7 +47,7 @@ internal fun Sink.write(subscribe: io.github.nicolasfara.mktt.core.packet.Subscr
     }
 }
 
-internal fun Source.readSubscribe(): io.github.nicolasfara.mktt.core.packet.Subscribe {
+internal fun Source.readSubscribe(): Subscribe {
     val packetIdentifier = readUShort()
     val properties = readProperties()
     val filters = buildList {
@@ -57,25 +55,22 @@ internal fun Source.readSubscribe(): io.github.nicolasfara.mktt.core.packet.Subs
             val filter = readMqttString()
             val options = readByte().toSubscriptionOptions()
             add(
-                _root_ide_package_.io.github.nicolasfara.mktt.core.TopicFilter(
-                    _root_ide_package_.io.github.nicolasfara.mktt.core.Topic(
-                        filter,
-                    ),
+                TopicFilter(
+                    Topic(filter),
                     options,
                 ),
             )
         }
     }
-
-    return _root_ide_package_.io.github.nicolasfara.mktt.core.packet.Subscribe(
+    return Subscribe(
         packetIdentifier = packetIdentifier,
         filters = filters,
-        subscriptionIdentifier = properties.singleOrNull<io.github.nicolasfara.mktt.core.SubscriptionIdentifier>(),
-        userProperties = _root_ide_package_.io.github.nicolasfara.mktt.core.UserProperties.Companion.from(properties),
+        subscriptionIdentifier = properties.singleOrNull<SubscriptionIdentifier>(),
+        userProperties = UserProperties.from(properties),
     )
 }
 
-private val io.github.nicolasfara.mktt.core.SubscriptionOptions.bits: Byte
+private val SubscriptionOptions.bits: Byte
     get() {
         var bits = qoS.value
         if (isNoLocal) bits = bits or 4
@@ -85,16 +80,15 @@ private val io.github.nicolasfara.mktt.core.SubscriptionOptions.bits: Byte
         return bits.toByte()
     }
 
-private fun Byte.toSubscriptionOptions(): io.github.nicolasfara.mktt.core.SubscriptionOptions {
+private fun Byte.toSubscriptionOptions(): SubscriptionOptions {
     val bits = toInt()
-    val qoS = _root_ide_package_.io.github.nicolasfara.mktt.core.QoS.Companion.from(bits and 3)
+    val qoS = QoS.from(bits and 3)
     val isNoLocal = (bits and 4) shr 2 != 0
     val retainAsPublished = (bits and 8) shr 3 != 0
-
-    return _root_ide_package_.io.github.nicolasfara.mktt.core.SubscriptionOptions(
+    return SubscriptionOptions(
         qoS,
         isNoLocal,
         retainAsPublished,
-        _root_ide_package_.io.github.nicolasfara.mktt.core.RetainHandling.Companion.from((bits and 48) shr 4),
+        RetainHandling.from((bits and 48) shr 4),
     )
 }

@@ -5,7 +5,6 @@ package io.github.nicolasfara.mktt.core.packet
  * SUBSCRIBE, SUBACK, UNSUBSCRIBE and UNSUBACK. (Does not include PUBLISH, as the packet identifier is not always
  * required for PUBLISH packets.)
  */
-public interface PacketIdentifierPacket : io.github.nicolasfara.mktt.core.packet.Packet {
-
-    public val packetIdentifier: UShort
+interface PacketIdentifierPacket : Packet {
+    val packetIdentifier: UShort
 }

@@ -49,7 +49,7 @@ class ByteStringTest {
     fun `fail with MalformedPacketException when byte string is too large`() {
         val tooLarge = ByteString(ByteArray(65_536))
 
-        assertFailsWith<io.github.nicolasfara.mktt.core.MalformedPacketException> {
+        assertFailsWith<MalformedPacketException> {
             Buffer().writeMqttByteString(tooLarge)
         }
     }

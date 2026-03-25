@@ -11,7 +11,7 @@ import io.github.nicolasfara.mktt.core.packet.Pubrel
  * 2. Packet identifiers of incoming QoS 2 PUBLISH packets that have been received but for which the
  *    QoS 2 exchange has not yet been completed.
  */
-public interface SessionStore {
+interface SessionStore {
 
     // ---- Outgoing Message Flow (Client -> Server) ----
 
@@ -24,9 +24,7 @@ public interface SessionStore {
      * @return an in-flight packet with the current time as timestamp and the original packet.
      * @throws IllegalArgumentException if the packet identifier is null.
      */
-    public fun store(
-        source: io.github.nicolasfara.mktt.core.packet.Publish,
-    ): io.github.nicolasfara.mktt.core.InFlightPublish
+    fun store(source: Publish): InFlightPublish
 
     /**
      * Replaces a stored outgoing in-flight PUBLISH packet with an in-flight PUBREL packet. This is part of the QoS 2
@@ -38,9 +36,7 @@ public interface SessionStore {
      * @return The created PUBREL in-flight packet
      * @throws NoSuchElementException if no corresponding PUBLISH packet is found in the store.
      */
-    public fun replace(
-        source: io.github.nicolasfara.mktt.core.InFlightPublish,
-    ): io.github.nicolasfara.mktt.core.InFlightPubrel
+    fun replace(source: InFlightPublish): InFlightPubrel
 
     /**
      * Removes an outgoing in-flight PUBLISH or PUBREL packet from the store.
@@ -49,14 +45,14 @@ public interface SessionStore {
      *
      * @param packet The packet that has been acknowledged.
      */
-    public fun acknowledge(packet: io.github.nicolasfara.mktt.core.InFlightPacket)
+    fun acknowledge(packet: InFlightPacket)
 
     /**
      * Returns the list of all unacknowledged packet of this packet store (PUBLISH and PUBREL). The list must be sorted
      * in the same order as the packets were added to this, and it must not include PUBLISH packets which are expired
      * due to their message expiry interval.
      */
-    public fun unacknowledgedPackets(): List<io.github.nicolasfara.mktt.core.InFlightPacket>
+    fun unacknowledgedPackets(): List<InFlightPacket>
 
     // ---- Incoming Message Flow (Server -> Client) ----
 
@@ -68,7 +64,7 @@ public interface SessionStore {
      * @param publish The received QoS 2 PUBLISH packet.
      * @return `true` if the identifier was not already present, `false` otherwise (indicating a re-delivery).
      */
-    public fun rememberIncomingPacketId(publish: io.github.nicolasfara.mktt.core.packet.Publish): Boolean
+    fun rememberIncomingPacketId(publish: Publish): Boolean
 
     /**
      * Checks if the packet identifier from an incoming QoS 2 PUBLISH is already stored.
@@ -76,7 +72,7 @@ public interface SessionStore {
      * @param publish The PUBLISH packet that contains the packet identifier to check.
      * @return `true` if the identifier is already stored, `false` otherwise.
      */
-    public fun hasIncomingPacketId(publish: io.github.nicolasfara.mktt.core.packet.Publish): Boolean
+    fun hasIncomingPacketId(publish: Publish): Boolean
 
     /**
      * Removes the packet identifier of an incoming QoS 2 PUBLISH packet from the store. This is called after the client
@@ -84,10 +80,10 @@ public interface SessionStore {
      *
      * @param pubrel the PUBREL packet that has been acknowledged.
      */
-    public fun releaseIncomingPacketId(pubrel: io.github.nicolasfara.mktt.core.packet.Pubrel)
+    fun releaseIncomingPacketId(pubrel: Pubrel)
 
     /**
      * Clears all persisted session state. This should be called when the client connects with `cleanStart = true`.
      */
-    public fun clear()
+    fun clear()
 }

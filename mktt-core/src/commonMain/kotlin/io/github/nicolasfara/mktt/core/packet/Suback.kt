@@ -10,23 +10,19 @@ import kotlinx.io.Source
 import kotlinx.io.readUShort
 import kotlinx.io.writeUShort
 
-public data class Suback(
+data class Suback(
     override val packetIdentifier: UShort,
-    val reasons: List<io.github.nicolasfara.mktt.core.ReasonCode>,
-    val reasonString: io.github.nicolasfara.mktt.core.ReasonString? = null,
-    val userProperties: io.github.nicolasfara.mktt.core.UserProperties = _root_ide_package_.io.github.nicolasfara.mktt.core.UserProperties.Companion.EMPTY,
-) : io.github.nicolasfara.mktt.core.packet.AbstractPacket(
-    _root_ide_package_.io.github.nicolasfara.mktt.core.packet.PacketType.SUBACK,
-),
-    io.github.nicolasfara.mktt.core.packet.PacketIdentifierPacket {
+    val reasons: List<ReasonCode>,
+    val reasonString: ReasonString? = null,
+    val userProperties: UserProperties = UserProperties.EMPTY,
+) : AbstractPacket(PacketType.SUBACK),
+    PacketIdentifierPacket {
 
     init {
-        _root_ide_package_.io.github.nicolasfara.mktt.core.malformedWhen(reasons.isEmpty()) {
+        malformedWhen(reasons.isEmpty()) {
             "Reason codes must not be empty in SUBACK"
         }
-        _root_ide_package_.io.github.nicolasfara.mktt.core.malformedWhen(
-            reasons.contains(_root_ide_package_.io.github.nicolasfara.mktt.core.Success),
-        ) {
+        malformedWhen(reasons.contains(Success)) {
             "Reason code 'Success' is not allowed for SUBACK"
         }
     }
@@ -35,10 +31,10 @@ public data class Suback(
 /**
  * Returns `true` when this SUBACK packet contains a reason code which not indicates a success.
  */
-public val io.github.nicolasfara.mktt.core.packet.Suback.hasFailure: Boolean
-    get() = reasons.any { it.code > _root_ide_package_.io.github.nicolasfara.mktt.core.GrantedQoS2.code }
+val Suback.hasFailure: Boolean
+    get() = reasons.any { it.code > GrantedQoS2.code }
 
-internal fun Sink.write(suback: io.github.nicolasfara.mktt.core.packet.Suback) {
+internal fun Sink.write(suback: Suback) {
     with(suback) {
         writeUShort(packetIdentifier)
         writeProperties(reasonString, *userProperties.asArray)
@@ -50,24 +46,24 @@ internal fun Sink.write(suback: io.github.nicolasfara.mktt.core.packet.Suback) {
     }
 }
 
-internal fun Source.readSuback(): io.github.nicolasfara.mktt.core.packet.Suback {
+internal fun Source.readSuback(): Suback {
     val packetIdentifier = readUShort()
     val properties = readProperties()
     val reasons = buildList {
         while (!exhausted()) {
             add(
-                _root_ide_package_.io.github.nicolasfara.mktt.core.ReasonCode.Companion.from(
+                ReasonCode.from(
                     readByte(),
-                    defaultSuccessReason = _root_ide_package_.io.github.nicolasfara.mktt.core.GrantedQoS0,
+                    defaultSuccessReason = GrantedQoS0,
                 ),
             )
         }
     }
 
-    return _root_ide_package_.io.github.nicolasfara.mktt.core.packet.Suback(
+    return Suback(
         packetIdentifier = packetIdentifier,
-        reasonString = properties.singleOrNull<io.github.nicolasfara.mktt.core.ReasonString>(),
-        userProperties = _root_ide_package_.io.github.nicolasfara.mktt.core.UserProperties.Companion.from(properties),
+        reasonString = properties.singleOrNull<ReasonString>(),
+        userProperties = UserProperties.from(properties),
         reasons = reasons,
     )
 }

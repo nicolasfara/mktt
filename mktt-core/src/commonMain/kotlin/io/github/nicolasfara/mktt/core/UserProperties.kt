@@ -8,7 +8,7 @@ import kotlinx.io.Sink
  * Represents the user properties of the MQTT specification. Note that unlike in `Map<String, String>` the names of the
  * user properties may occur more than once.
  */
-public data class UserProperties(public val values: List<io.github.nicolasfara.mktt.core.StringPair>) {
+data class UserProperties(val values: List<StringPair>) {
 
     // Note: not using a map for storing key/value pairs, as the key might appear more than once in a user property!
 
@@ -18,35 +18,35 @@ public data class UserProperties(public val values: List<io.github.nicolasfara.m
      *
      * @see getAll
      */
-    public operator fun get(name: String): String? = values.firstOrNull { it.name == name }?.value
+    operator fun get(name: String): String? = values.firstOrNull { it.name == name }?.value
 
     /**
      * Returns all values of the properties with the specified name.
      */
-    public fun getAll(name: String): List<String> = values.filter { it.name == name }.map { it.value }
+    fun getAll(name: String): List<String> = values.filter { it.name == name }.map { it.value }
 
-    public fun containsKey(name: String): Boolean = values.find { it.name == name } != null
+    fun containsKey(name: String): Boolean = values.find { it.name == name } != null
 
-    public fun containsValue(value: String): Boolean = values.find { it.value == value } != null
+    fun containsValue(value: String): Boolean = values.find { it.value == value } != null
 
-    public fun isNotEmpty(): Boolean = values.isNotEmpty()
+    fun isNotEmpty(): Boolean = values.isNotEmpty()
 
-    public companion object {
+    companion object {
 
         /**
          * An empty list of user properties.
          */
-        public val EMPTY: io.github.nicolasfara.mktt.core.UserProperties =
-            _root_ide_package_.io.github.nicolasfara.mktt.core.UserProperties(values = emptyList())
+        val EMPTY: UserProperties =
+            UserProperties(values = emptyList())
 
         internal fun from(
-            properties: List<io.github.nicolasfara.mktt.core.Property<*>>,
-        ): io.github.nicolasfara.mktt.core.UserProperties =
-            with(properties.filterIsInstance<io.github.nicolasfara.mktt.core.UserProperty>()) {
+            properties: List<Property<*>>,
+        ): UserProperties =
+            with(properties.filterIsInstance<UserProperty>()) {
                 if (isEmpty()) {
                     EMPTY
                 } else {
-                    _root_ide_package_.io.github.nicolasfara.mktt.core.UserProperties(map { it.value })
+                    UserProperties(map { it.value })
                 }
             }
     }
@@ -62,10 +62,8 @@ public data class UserProperties(public val values: List<io.github.nicolasfara.m
  * }
  * ```
  */
-public fun buildUserProperties(
-    init: io.github.nicolasfara.mktt.core.UserPropertiesBuilder.() -> Unit,
-): io.github.nicolasfara.mktt.core.UserProperties {
-    val builder = _root_ide_package_.io.github.nicolasfara.mktt.core.UserPropertiesBuilder()
+fun buildUserProperties(init: UserPropertiesBuilder.() -> Unit): UserProperties {
+    val builder = UserPropertiesBuilder()
     builder.init()
     return builder.build()
 }
@@ -73,10 +71,10 @@ public fun buildUserProperties(
 /**
  * DSL for creating MQTT user properties. Note that the same name is allowed to appear more than once in user properties.
  */
-@io.github.nicolasfara.mktt.core.util.MqttDslMarker
-public class UserPropertiesBuilder {
+@MqttDslMarker
+class UserPropertiesBuilder {
 
-    private val userProperties = mutableListOf<io.github.nicolasfara.mktt.core.StringPair>()
+    private val userProperties = mutableListOf<StringPair>()
 
     /**
      * Shortcut for adding key and value to this builder. Hence
@@ -88,24 +86,24 @@ public class UserPropertiesBuilder {
      * ```
      * adds 2 properties.
      */
-    public infix fun String.to(value: String) {
-        userProperties.add(_root_ide_package_.io.github.nicolasfara.mktt.core.StringPair(this, value))
+    infix fun String.to(value: String) {
+        userProperties.add(StringPair(this, value))
     }
 
     /**
      * Adds a property with the specified key and value to this builder.
      */
-    public fun add(key: String, value: String) {
-        userProperties.add(_root_ide_package_.io.github.nicolasfara.mktt.core.StringPair(key, value))
+    fun add(key: String, value: String) {
+        userProperties.add(StringPair(key, value))
     }
 
     /**
      * Adds all key/value pairs from the list to this builder.
      */
-    public fun addAll(properties: List<Pair<String, String>>) {
+    fun addAll(properties: List<Pair<String, String>>) {
         userProperties.addAll(
             properties.map {
-                _root_ide_package_.io.github.nicolasfara.mktt.core.StringPair(
+                StringPair(
                     it.first,
                     it.second,
                 )
@@ -113,17 +111,17 @@ public class UserPropertiesBuilder {
         )
     }
 
-    public fun build(): io.github.nicolasfara.mktt.core.UserProperties = if (userProperties.isEmpty()) {
-        _root_ide_package_.io.github.nicolasfara.mktt.core.UserProperties.Companion.EMPTY
+    fun build(): UserProperties = if (userProperties.isEmpty()) {
+        UserProperties.EMPTY
     } else {
-        _root_ide_package_.io.github.nicolasfara.mktt.core.UserProperties(userProperties)
+        UserProperties(userProperties)
     }
 }
 
-internal val io.github.nicolasfara.mktt.core.UserProperties.asArray: Array<io.github.nicolasfara.mktt.core.UserProperty>
-    get() = values.map { _root_ide_package_.io.github.nicolasfara.mktt.core.UserProperty(it) }.toTypedArray()
+internal val UserProperties.asArray: Array<UserProperty>
+    get() = values.map { UserProperty(it) }.toTypedArray()
 
-internal fun Sink.write(userProperties: io.github.nicolasfara.mktt.core.UserProperties) {
+internal fun Sink.write(userProperties: UserProperties) {
     if (userProperties.values.isNotEmpty()) {
         userProperties.values.forEach { this.write(it) }
     }

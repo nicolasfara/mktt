@@ -13,7 +13,7 @@ class ServerReferenceTest {
             "",
             "   ",
         ).forEach { str ->
-            assertEquals(0, _root_ide_package_.io.github.nicolasfara.mktt.core.ServerReference(str).servers.size)
+            assertEquals(0, ServerReference(str).servers.size)
         }
     }
 
@@ -25,7 +25,7 @@ class ServerReferenceTest {
             "10.10.151.22:8883" to InetSocketAddress("10.10.151.22", 8883),
             "[fe80::9610:3eff:fe1c]:1883" to InetSocketAddress("fe80::9610:3eff:fe1c", 1883),
         ).forEach {
-            val servers = _root_ide_package_.io.github.nicolasfara.mktt.core.ServerReference(it.first).servers
+            val servers = ServerReference(it.first).servers
             assertEquals(1, servers.size)
             assertEquals(it.second, servers[0])
         }
@@ -40,7 +40,7 @@ class ServerReferenceTest {
             InetSocketAddress("10.10.151.22", 8883),
             InetSocketAddress("fe80::9610:3eff:fe1c", 1883),
         )
-        val ref = _root_ide_package_.io.github.nicolasfara.mktt.core.ServerReference(str)
+        val ref = ServerReference(str)
 
         assertEquals(expected, ref.servers)
     }
@@ -49,8 +49,8 @@ class ServerReferenceTest {
     fun `fail gracefully when server reference cannot be parsed`() {
         assertEquals(
             0,
-            _root_ide_package_.io.github.nicolasfara.mktt.core.ServerReference("a.b.c:not_a_number").servers.size,
+            ServerReference("a.b.c:not_a_number").servers.size,
         )
-        assertEquals(0, _root_ide_package_.io.github.nicolasfara.mktt.core.ServerReference("[fe80::9610").servers.size)
+        assertEquals(0, ServerReference("[fe80::9610").servers.size)
     }
 }

@@ -9,17 +9,17 @@ import kotlin.toUShort
 
 private const val MAX_TEXT_SIZE = 65_535
 
-public fun String.toTopic(): io.github.nicolasfara.mktt.core.Topic =
-    _root_ide_package_.io.github.nicolasfara.mktt.core.Topic(this)
+fun String.toTopic(): Topic =
+    Topic(this)
 
-public fun String.toResponseTopic(): io.github.nicolasfara.mktt.core.ResponseTopic =
-    _root_ide_package_.io.github.nicolasfara.mktt.core.ResponseTopic(this)
+fun String.toResponseTopic(): ResponseTopic =
+    ResponseTopic(this)
 
-public fun String.toResponseInformation(): io.github.nicolasfara.mktt.core.ResponseInformation =
-    _root_ide_package_.io.github.nicolasfara.mktt.core.ResponseInformation(this)
+fun String.toResponseInformation(): ResponseInformation =
+    ResponseInformation(this)
 
-public fun String.toReasonString(): io.github.nicolasfara.mktt.core.ReasonString =
-    _root_ide_package_.io.github.nicolasfara.mktt.core.ReasonString(this)
+fun String.toReasonString(): ReasonString =
+    ReasonString(this)
 
 /**
  * Writes the specified string as an MQTT string, hence writing first the size of the string, then the ZTF-8 encoded
@@ -29,11 +29,11 @@ public fun String.toReasonString(): io.github.nicolasfara.mktt.core.ReasonString
  */
 internal fun Sink.writeMqttString(text: String) {
     val size = text.utf8Size()
-    if (size > _root_ide_package_.io.github.nicolasfara.mktt.core.util.MAX_TEXT_SIZE) {
-        throw _root_ide_package_.io.github.nicolasfara.mktt.core.MalformedPacketException(
+    if (size > MAX_TEXT_SIZE) {
+        throw MalformedPacketException(
             "Text '${text.substring(
                 0..100,
-            )}...' is too large: $size (max allowed size: ${_root_ide_package_.io.github.nicolasfara.mktt.core.util.MAX_TEXT_SIZE})",
+            )}...' is too large: $size (max allowed size: ${MAX_TEXT_SIZE})",
         )
     }
 
@@ -62,7 +62,7 @@ internal fun String.utf8Size(beginIndex: Int = 0, endIndex: Int = length): Int {
             // 11-bit character with 2 bytes
             count += 2
             i++
-        } else if (c < 0xd800 || c > 0xdfff) {
+        } else if (c !in 0xd800..0xdfff) {
             // 16-bit character with 3 bytes
             count += 3
             i++

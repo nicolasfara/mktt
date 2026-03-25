@@ -12,12 +12,11 @@ private const val MAX_BYTES_SIZE = 65_535
  * @throws io.github.nicolasfara.mktt.core.MalformedPacketException when the byte string is larger than 65,535 bytes.
  */
 internal fun Sink.writeMqttByteString(bytes: ByteString) {
-    if (bytes.size > _root_ide_package_.io.github.nicolasfara.mktt.core.util.MAX_BYTES_SIZE) {
-        throw _root_ide_package_.io.github.nicolasfara.mktt.core.MalformedPacketException(
-            "ByteString is too long: ${bytes.size} (max allowed size: ${_root_ide_package_.io.github.nicolasfara.mktt.core.util.MAX_BYTES_SIZE})",
+    if (bytes.size > MAX_BYTES_SIZE) {
+        throw MalformedPacketException(
+            "ByteString is too long: ${bytes.size} (max allowed size: ${MAX_BYTES_SIZE})",
         )
     }
-
     writeShort(bytes.size.toShort())
     write(bytes)
 }

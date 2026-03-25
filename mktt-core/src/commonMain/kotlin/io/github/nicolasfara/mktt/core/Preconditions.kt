@@ -13,7 +13,7 @@ internal inline fun wellFormedWhen(condition: Boolean, lazyMessage: () -> Any) {
     }
     if (!condition) {
         val message = lazyMessage()
-        throw _root_ide_package_.io.github.nicolasfara.mktt.core.MalformedPacketException(message.toString())
+        throw MalformedPacketException(message.toString())
     }
 }
 
@@ -24,6 +24,6 @@ internal inline fun malformedWhen(condition: Boolean, lazyMessage: () -> Any) {
     }
     if (condition) {
         val message = lazyMessage()
-        throw _root_ide_package_.io.github.nicolasfara.mktt.core.MalformedPacketException(message.toString())
+        throw MalformedPacketException(message.toString())
     }
 }

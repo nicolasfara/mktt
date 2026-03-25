@@ -8,38 +8,36 @@ import io.github.nicolasfara.mktt.core.writeProperties
 import kotlinx.io.Sink
 import kotlinx.io.Source
 
-public data class Connack(
+data class Connack(
     val isSessionPresent: Boolean,
-    val reason: io.github.nicolasfara.mktt.core.ReasonCode,
-    val sessionExpiryInterval: io.github.nicolasfara.mktt.core.SessionExpiryInterval? = null,
-    val receiveMaximum: io.github.nicolasfara.mktt.core.ReceiveMaximum? = null,
-    val maximumQoS: io.github.nicolasfara.mktt.core.MaximumQoS? = null,
-    val retainAvailable: io.github.nicolasfara.mktt.core.RetainAvailable? = null,
-    val maximumPacketSize: io.github.nicolasfara.mktt.core.MaximumPacketSize? = null,
-    val assignedClientIdentifier: io.github.nicolasfara.mktt.core.AssignedClientIdentifier? = null,
-    val topicAliasMaximum: io.github.nicolasfara.mktt.core.TopicAliasMaximum? = null,
-    val reasonString: io.github.nicolasfara.mktt.core.ReasonString? = null,
-    val userProperties: io.github.nicolasfara.mktt.core.UserProperties = _root_ide_package_.io.github.nicolasfara.mktt.core.UserProperties.Companion.EMPTY,
-    val wildcardSubscriptionAvailable: io.github.nicolasfara.mktt.core.WildcardSubscriptionAvailable? = null,
-    val subscriptionIdentifierAvailable: io.github.nicolasfara.mktt.core.SubscriptionIdentifierAvailable? = null,
-    val sharedSubscriptionAvailable: io.github.nicolasfara.mktt.core.SharedSubscriptionAvailable? = null,
-    val serverKeepAlive: io.github.nicolasfara.mktt.core.ServerKeepAlive? = null,
-    val responseInformation: io.github.nicolasfara.mktt.core.ResponseInformation? = null,
-    val serverReference: io.github.nicolasfara.mktt.core.ServerReference? = null,
-    val authenticationMethod: io.github.nicolasfara.mktt.core.AuthenticationMethod? = null,
-    val authenticationData: io.github.nicolasfara.mktt.core.AuthenticationData? = null,
-) : io.github.nicolasfara.mktt.core.packet.AbstractPacket(
-    _root_ide_package_.io.github.nicolasfara.mktt.core.packet.PacketType.CONNACK,
-) {
+    val reason: ReasonCode,
+    val sessionExpiryInterval: SessionExpiryInterval? = null,
+    val receiveMaximum: ReceiveMaximum? = null,
+    val maximumQoS: MaximumQoS? = null,
+    val retainAvailable: RetainAvailable? = null,
+    val maximumPacketSize: MaximumPacketSize? = null,
+    val assignedClientIdentifier: AssignedClientIdentifier? = null,
+    val topicAliasMaximum: TopicAliasMaximum? = null,
+    val reasonString: ReasonString? = null,
+    val userProperties: UserProperties = UserProperties.EMPTY,
+    val wildcardSubscriptionAvailable: WildcardSubscriptionAvailable? = null,
+    val subscriptionIdentifierAvailable: SubscriptionIdentifierAvailable? = null,
+    val sharedSubscriptionAvailable: SharedSubscriptionAvailable? = null,
+    val serverKeepAlive: ServerKeepAlive? = null,
+    val responseInformation: ResponseInformation? = null,
+    val serverReference: ServerReference? = null,
+    val authenticationMethod: AuthenticationMethod? = null,
+    val authenticationData: AuthenticationData? = null,
+) : AbstractPacket(PacketType.CONNACK) {
 
     /**
      * Determines whether this CONNACK represents a successful connection attempt.
      */
-    public val isSuccess: Boolean
+    val isSuccess: Boolean
         get() = reason.code == 0
 }
 
-internal fun Sink.write(connack: io.github.nicolasfara.mktt.core.packet.Connack) {
+internal fun Sink.write(connack: Connack) {
     with(connack) {
         writeByte(if (isSessionPresent) 1 else 0)
         writeByte(reason.code.toByte())
@@ -69,30 +67,30 @@ internal fun Sink.write(connack: io.github.nicolasfara.mktt.core.packet.Connack)
  * Constructs a Connack packet from this byte read packet. Expects the packet to start at the remaining length (byte 2)
  * of the fixed header of the Connack packet.
  */
-internal fun Source.readConnack(): io.github.nicolasfara.mktt.core.packet.Connack {
+internal fun Source.readConnack(): Connack {
     val isSessionPresent = readByte() == 1.toByte()
-    val reason = _root_ide_package_.io.github.nicolasfara.mktt.core.ReasonCode.Companion.from(readByte())
+    val reason = ReasonCode.from(readByte())
     val properties = readProperties()
 
-    return _root_ide_package_.io.github.nicolasfara.mktt.core.packet.Connack(
+    return Connack(
         isSessionPresent = isSessionPresent,
         reason = reason,
-        sessionExpiryInterval = properties.singleOrNull<io.github.nicolasfara.mktt.core.SessionExpiryInterval>(),
-        receiveMaximum = properties.singleOrNull<io.github.nicolasfara.mktt.core.ReceiveMaximum>(),
-        maximumQoS = properties.singleOrNull<io.github.nicolasfara.mktt.core.MaximumQoS>(),
-        retainAvailable = properties.singleOrNull<io.github.nicolasfara.mktt.core.RetainAvailable>(),
-        maximumPacketSize = properties.singleOrNull<io.github.nicolasfara.mktt.core.MaximumPacketSize>(),
-        assignedClientIdentifier = properties.singleOrNull<io.github.nicolasfara.mktt.core.AssignedClientIdentifier>(),
-        topicAliasMaximum = properties.singleOrNull<io.github.nicolasfara.mktt.core.TopicAliasMaximum>(),
-        reasonString = properties.singleOrNull<io.github.nicolasfara.mktt.core.ReasonString>(),
-        userProperties = _root_ide_package_.io.github.nicolasfara.mktt.core.UserProperties.Companion.from(properties),
-        wildcardSubscriptionAvailable = properties.singleOrNull<io.github.nicolasfara.mktt.core.WildcardSubscriptionAvailable>(),
-        subscriptionIdentifierAvailable = properties.singleOrNull<io.github.nicolasfara.mktt.core.SubscriptionIdentifierAvailable>(),
-        sharedSubscriptionAvailable = properties.singleOrNull<io.github.nicolasfara.mktt.core.SharedSubscriptionAvailable>(),
-        serverKeepAlive = properties.singleOrNull<io.github.nicolasfara.mktt.core.ServerKeepAlive>(),
-        responseInformation = properties.singleOrNull<io.github.nicolasfara.mktt.core.ResponseInformation>(),
-        serverReference = properties.singleOrNull<io.github.nicolasfara.mktt.core.ServerReference>(),
-        authenticationMethod = properties.singleOrNull<io.github.nicolasfara.mktt.core.AuthenticationMethod>(),
-        authenticationData = properties.singleOrNull<io.github.nicolasfara.mktt.core.AuthenticationData>(),
+        sessionExpiryInterval = properties.singleOrNull<SessionExpiryInterval>(),
+        receiveMaximum = properties.singleOrNull<ReceiveMaximum>(),
+        maximumQoS = properties.singleOrNull<MaximumQoS>(),
+        retainAvailable = properties.singleOrNull<RetainAvailable>(),
+        maximumPacketSize = properties.singleOrNull<MaximumPacketSize>(),
+        assignedClientIdentifier = properties.singleOrNull<AssignedClientIdentifier>(),
+        topicAliasMaximum = properties.singleOrNull<TopicAliasMaximum>(),
+        reasonString = properties.singleOrNull<ReasonString>(),
+        userProperties = UserProperties.from(properties),
+        wildcardSubscriptionAvailable = properties.singleOrNull<WildcardSubscriptionAvailable>(),
+        subscriptionIdentifierAvailable = properties.singleOrNull<SubscriptionIdentifierAvailable>(),
+        sharedSubscriptionAvailable = properties.singleOrNull<SharedSubscriptionAvailable>(),
+        serverKeepAlive = properties.singleOrNull<ServerKeepAlive>(),
+        responseInformation = properties.singleOrNull<ResponseInformation>(),
+        serverReference = properties.singleOrNull<ServerReference>(),
+        authenticationMethod = properties.singleOrNull<AuthenticationMethod>(),
+        authenticationData = properties.singleOrNull<AuthenticationData>(),
     )
 }

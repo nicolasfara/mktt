@@ -1,9 +1,6 @@
 package io.github.nicolasfara.mktt.core.packet
 
-public object Pingreq : io.github.nicolasfara.mktt.core.packet.AbstractPacket(
-    _root_ide_package_.io.github.nicolasfara.mktt.core.packet.PacketType.PINGREQ,
-) {
-
+object Pingreq : AbstractPacket(PacketType.PINGREQ) {
     override fun toString(): String = "Pingreq"
 }
 

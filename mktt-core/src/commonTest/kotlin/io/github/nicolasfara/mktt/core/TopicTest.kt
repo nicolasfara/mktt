@@ -15,9 +15,9 @@ class TopicTest {
             "sport/tennis/player1/#" to true,
             "sport/tennis/+" to true,
         ).forEach {
-            _root_ide_package_.kotlin.test.assertEquals(
+            assertEquals(
                 it.second,
-                _root_ide_package_.io.github.nicolasfara.mktt.core.Topic(it.first).containsWildcard(),
+                Topic(it.first).containsWildcard(),
                 "'${it.first}' wildcard not matching",
             )
         }
@@ -25,35 +25,35 @@ class TopicTest {
 
     @Test
     fun `shared filter detected`() {
-        assertFalse(_root_ide_package_.io.github.nicolasfara.mktt.core.Topic("abc/def").isShared()) // Not a share
-        assertFalse(_root_ide_package_.io.github.nicolasfara.mktt.core.Topic($$"$share").isShared()) // Missing share name
-        assertFalse(_root_ide_package_.io.github.nicolasfara.mktt.core.Topic($$"$share/").isShared()) // Missing share name
-        assertFalse(_root_ide_package_.io.github.nicolasfara.mktt.core.Topic($$"$share/name#").isShared()) // Invalid share name
-        assertFalse(_root_ide_package_.io.github.nicolasfara.mktt.core.Topic($$"$share/name+/filter").isShared()) // Invalid share name
-        assertFalse(_root_ide_package_.io.github.nicolasfara.mktt.core.Topic($$"$share/name/").isShared()) // Missing filter
+        assertFalse(Topic("abc/def").isShared()) // Not a share
+        assertFalse(Topic($$"$share").isShared()) // Missing share name
+        assertFalse(Topic($$"$share/").isShared()) // Missing share name
+        assertFalse(Topic($$"$share/name#").isShared()) // Invalid share name
+        assertFalse(Topic($$"$share/name+/filter").isShared()) // Invalid share name
+        assertFalse(Topic($$"$share/name/").isShared()) // Missing filter
 
-        assertTrue(_root_ide_package_.io.github.nicolasfara.mktt.core.Topic($$"$share/name/filter").isShared())
-        assertTrue(_root_ide_package_.io.github.nicolasfara.mktt.core.Topic($$"$share/name/filter#").isShared())
-        assertTrue(_root_ide_package_.io.github.nicolasfara.mktt.core.Topic($$"$share/name/filter/+").isShared())
+        assertTrue(Topic($$"$share/name/filter").isShared())
+        assertTrue(Topic($$"$share/name/filter#").isShared())
+        assertTrue(Topic($$"$share/name/filter/+").isShared())
     }
 
     @Test
     fun `return share name and filter`() {
-        val (name, filter) = _root_ide_package_.io.github.nicolasfara.mktt.core.Topic(
+        val (name, filter) = Topic(
             $$"$share/consumer1/sport/tennis/+",
         )
             .shareNameAndFilter()
         assertEquals("consumer1", name)
-        assertEquals(_root_ide_package_.io.github.nicolasfara.mktt.core.Topic("sport/tennis/+"), filter)
+        assertEquals(Topic("sport/tennis/+"), filter)
 
         assertFailsWith<IllegalStateException> {
-            _root_ide_package_.io.github.nicolasfara.mktt.core.Topic("abc/def").shareNameAndFilter()
+            Topic("abc/def").shareNameAndFilter()
         }
     }
 
     @Test
     fun `toString returns topic name only`() {
         val name = "test/topic"
-        assertEquals(name, _root_ide_package_.io.github.nicolasfara.mktt.core.Topic(name).toString())
+        assertEquals(name, Topic(name).toString())
     }
 }

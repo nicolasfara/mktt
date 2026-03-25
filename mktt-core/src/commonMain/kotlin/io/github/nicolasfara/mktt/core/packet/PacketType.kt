@@ -2,9 +2,7 @@
 
 package io.github.nicolasfara.mktt.core.packet
 
-import io.github.nicolasfara.mktt.core.MalformedPacketException
-
-public enum class PacketType(internal val value: Int) {
+enum class PacketType(internal val value: Int) {
     CONNECT(1),
     CONNACK(2),
     PUBLISH(3),
@@ -22,14 +20,13 @@ public enum class PacketType(internal val value: Int) {
     AUTH(15),
     ;
 
-    public companion object {
-
+    companion object {
         private val HeaderFormat = HexFormat { number.prefix = "0x" }
 
         /**
          * Converts the upper 4 bits of the specified MQTT header field into an instance of this.
          */
-        public fun from(header: Byte): io.github.nicolasfara.mktt.core.packet.PacketType {
+        fun from(header: Byte): PacketType {
             val value = (header.toInt() and 0xFF) shr 4
             return entries.firstOrNull { it.value == value }
                 ?: throw _root_ide_package_.io.github.nicolasfara.mktt.core.MalformedPacketException(
