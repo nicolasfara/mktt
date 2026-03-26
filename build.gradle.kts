@@ -24,3 +24,15 @@ tasks.withType<Test>().configureEach {
         showStackTraces = true
     }
 }
+
+tasks.register("unitTest") {
+    group = "verification"
+    description = "Runs unit tests for all modules."
+    dependsOn(":mktt-core:allTests", ":mktt-client:unitTest")
+}
+
+tasks.register("integrationTest") {
+    group = "verification"
+    description = "Runs integration tests for modules that expose them."
+    dependsOn(":mktt-client:jvmIntegrationTest")
+}

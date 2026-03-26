@@ -67,4 +67,22 @@ suspend fun sample() {
 ## Testing
 
 - `mktt-core` is covered by deterministic packet/property round-trip tests.
-- `mktt-client` uses fake-engine common tests for client logic and a small JVM Mosquitto container suite for integration coverage.
+- `mktt-client` keeps fast unit tests in `commonTest`/`jvmTest` and runs broker-based checks in `jvmIntegrationTest`.
+
+Run unit tests:
+
+```bash
+./gradlew unitTest
+```
+
+Run integration tests against the local Mosquitto container scaffold (`mktt-client/src/jvmIntegrationTest/resources`):
+
+```bash
+MKTT_RUN_INTEGRATION_TESTS=true ./gradlew integrationTest
+```
+
+Optional public broker test (opt-in only):
+
+```bash
+MKTT_RUN_INTEGRATION_TESTS=true MKTT_RUN_REMOTE_BROKER_TESTS=true ./gradlew integrationTest
+```
