@@ -16,13 +16,22 @@ import io.github.nicolasfara.mktt.core.writeProperties
 import kotlinx.io.Sink
 import kotlinx.io.Source
 
+/**
+ * MQTT DISCONNECT packet used to close a connection gracefully.
+ *
+ * @property reason disconnection reason code.
+ * @property sessionExpiryInterval optional session expiry interval override.
+ * @property reasonString optional human-readable disconnection reason.
+ * @property userProperties optional user properties attached to this packet.
+ * @property serverReference optional server reference for reconnect guidance.
+ */
 data class Disconnect(
     val reason: ReasonCode,
     val sessionExpiryInterval: SessionExpiryInterval? = null,
     val reasonString: ReasonString? = null,
     val userProperties: UserProperties = UserProperties.EMPTY,
     val serverReference: ServerReference? = null,
-) : AbstractPacket(PacketType.DISCONNECT) {
+) : BasePacket(PacketType.DISCONNECT) {
 
     init {
         malformedWhen(reason == Success || reason == GrantedQoS0) {

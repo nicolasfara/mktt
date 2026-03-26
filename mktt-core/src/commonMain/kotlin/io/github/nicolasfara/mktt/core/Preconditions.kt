@@ -4,7 +4,8 @@ import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 
 /**
- * Throws a [io.github.nicolasfara.mktt.core.MalformedPacketException] when `condition` is `false`, with the specified message as the exception message.
+ * Throws a [io.github.nicolasfara.mktt.core.MalformedPacketException] when
+ * `condition` is `false`, with the specified message as the exception message.
  */
 @OptIn(ExperimentalContracts::class)
 internal inline fun wellFormedWhen(condition: Boolean, lazyMessage: () -> Any) {

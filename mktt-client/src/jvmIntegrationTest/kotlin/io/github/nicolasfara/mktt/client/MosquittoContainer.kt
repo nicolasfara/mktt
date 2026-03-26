@@ -1,8 +1,8 @@
 package io.github.nicolasfara.mktt.client
 
+import kotlin.test.assertEquals
 import org.testcontainers.containers.GenericContainer
 import org.testcontainers.images.builder.ImageFromDockerfile
-import kotlin.test.assertEquals
 
 internal class MosquittoContainer {
     private val container = GenericContainer(
@@ -13,16 +13,16 @@ internal class MosquittoContainer {
             .withFileFromClasspath("ca.crt", "ca.crt")
             .withFileFromClasspath("server.key", "server.key")
             .withFileFromClasspath("server.crt", "server.crt"),
-    ).withExposedPorts(1883, 1884, 8883)
+    ).withExposedPorts(BROKER_PORT, AUTHENTICATED_BROKER_PORT, TLS_BROKER_PORT)
 
     val host: String
         get() = container.host
 
     val defaultPort: Int
-        get() = container.getMappedPort(1884)
+        get() = container.getMappedPort(AUTHENTICATED_BROKER_PORT)
 
     val tlsPort: Int
-        get() = container.getMappedPort(8883)
+        get() = container.getMappedPort(TLS_BROKER_PORT)
 
     fun start() {
         container.start()
@@ -50,10 +50,15 @@ internal class MosquittoContainer {
             "-m",
             payload,
         )
-        assertEquals(0, result.exitCode, result.stderr)
+        assertEquals(COMMAND_SUCCESS_EXIT_CODE, result.exitCode, result.stderr)
     }
 
     companion object {
+        private const val BROKER_PORT = 1883
+        private const val AUTHENTICATED_BROKER_PORT = 1884
+        private const val TLS_BROKER_PORT = 8883
+        private const val COMMAND_SUCCESS_EXIT_CODE = 0
+
         const val USER = "mqtt-test-user"
         const val PASSWORD = "3n63hLKRV31fHf41NF95"
     }

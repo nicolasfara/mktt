@@ -13,11 +13,26 @@ import io.github.nicolasfara.mktt.core.UserPropertiesBuilder
 import io.github.nicolasfara.mktt.core.toMessageExpiryInterval
 import io.github.nicolasfara.mktt.core.util.MqttDslMarker
 import io.github.nicolasfara.mktt.core.util.toTopic
-import kotlinx.io.bytestring.ByteString
-import kotlinx.io.bytestring.encodeToByteString
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
+import kotlinx.io.bytestring.ByteString
+import kotlinx.io.bytestring.encodeToByteString
 
+/**
+ * Immutable request used to publish a message.
+ *
+ * @property topic destination topic.
+ * @property desiredQoS requested quality of service.
+ * @property payload payload bytes.
+ * @property isRetainMessage whether the retain flag should be set.
+ * @property messageExpiryInterval optional expiry interval.
+ * @property topicAlias optional topic alias.
+ * @property responseTopic optional response topic.
+ * @property correlationData optional correlation data.
+ * @property contentType optional payload content type.
+ * @property payloadFormatIndicator optional payload format hint.
+ * @property userProperties user properties to include in PUBLISH.
+ */
 data class PublishRequest(
     val topic: Topic,
     val desiredQoS: QoS = QoS.AT_MOST_ONCE,
@@ -56,22 +71,24 @@ data class PublishRequest(
             userProperties == other.userProperties
     }
 
-    override fun hashCode(): Int {
-        var result = topic.hashCode()
-        result = 31 * result + desiredQoS.hashCode()
-        result = 31 * result + payload.contentHashCode()
-        result = 31 * result + isRetainMessage.hashCode()
-        result = 31 * result + (messageExpiryInterval?.hashCode() ?: 0)
-        result = 31 * result + (topicAlias?.hashCode() ?: 0)
-        result = 31 * result + (responseTopic?.hashCode() ?: 0)
-        result = 31 * result + (correlationData?.hashCode() ?: 0)
-        result = 31 * result + (contentType?.hashCode() ?: 0)
-        result = 31 * result + (payloadFormatIndicator?.hashCode() ?: 0)
-        result = 31 * result + userProperties.hashCode()
-        return result
-    }
+    override fun hashCode(): Int = combinedHashCode(
+        topic,
+        desiredQoS,
+        payload.contentHashCode(),
+        isRetainMessage,
+        messageExpiryInterval,
+        topicAlias,
+        responseTopic,
+        correlationData,
+        contentType,
+        payloadFormatIndicator,
+        userProperties,
+    )
 }
 
+/**
+ * Builds a [PublishRequest] for [topicName] using the DSL [init] block.
+ */
 fun PublishRequest(
     topicName: String,
     topicAlias: UShort? = null,
@@ -81,19 +98,52 @@ fun PublishRequest(
     topicAlias,
 ).apply(init).build()
 
+/**
+ * DSL builder for [PublishRequest].
+ */
 @MqttDslMarker
 class PublishRequestBuilder(private val topic: Topic, private val topicAlias: UShort? = null) {
+    /**
+     * Requested quality of service.
+     */
     var desiredQoS: QoS = QoS.AT_MOST_ONCE
+
+    /**
+     * Whether to set the retain flag.
+     */
     var isRetainMessage: Boolean = false
+
+    /**
+     * Optional message expiry interval.
+     */
     var messageExpiryInterval: Duration? = 5.minutes
+
+    /**
+     * Optional response topic.
+     */
     var responseTopic: String? = null
+
+    /**
+     * Optional correlation data.
+     */
     var correlationData: ByteArray? = null
+
+    /**
+     * Optional content type.
+     */
     var contentType: String? = null
+
+    /**
+     * Optional payload format indicator.
+     */
     var payloadFormatIndicator: PayloadFormatIndicator? = null
 
     private var payload: ByteArray = byteArrayOf()
     private var userProperties: UserProperties = UserProperties.EMPTY
 
+    /**
+     * Sets payload bytes from UTF-8 [text].
+     */
     fun payload(text: String) {
         val byteString = text.encodeToByteString()
         payload = byteString.toByteArray(0, byteString.size)
@@ -101,14 +151,23 @@ class PublishRequestBuilder(private val topic: Topic, private val topicAlias: US
             PayloadFormatIndicator.UTF_8
     }
 
+    /**
+     * Sets payload bytes from [bytes].
+     */
     fun payload(bytes: ByteArray) {
         payload = bytes.copyOf()
     }
 
+    /**
+     * Configures user properties for the publish packet.
+     */
     fun userProperties(init: UserPropertiesBuilder.() -> Unit) {
         userProperties = UserPropertiesBuilder().apply(init).build()
     }
 
+    /**
+     * Builds a [PublishRequest] from the current builder state.
+     */
     fun build(): PublishRequest = PublishRequest(
         topic = topic,
         desiredQoS = desiredQoS,

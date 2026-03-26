@@ -16,35 +16,119 @@ import io.github.nicolasfara.mktt.core.WillMessage
 import io.github.nicolasfara.mktt.core.WillMessageBuilder
 import io.github.nicolasfara.mktt.core.toSessionExpiryInterval
 import io.github.nicolasfara.mktt.core.util.MqttDslMarker
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.Dispatchers
-import kotlinx.io.bytestring.ByteString
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.io.bytestring.ByteString
 
+/**
+ * Immutable MQTT client configuration used by [MqttClient].
+ */
 interface MqttClientConfig {
+    /**
+     * Engine responsible for socket I/O.
+     */
     val engine: MqttEngine
+
+    /**
+     * Dispatcher used by client coroutines.
+     */
     val dispatcher: CoroutineDispatcher
+
+    /**
+     * MQTT client identifier.
+     */
     val clientId: String
+
+    /**
+     * Timeout used while waiting for acknowledgment packets.
+     */
     val ackMessageTimeout: Duration
+
+    /**
+     * Optional Last Will and Testament message.
+     */
     val willMessage: WillMessage?
+
+    /**
+     * QoS used for the will message.
+     */
     val willQqS: QoS
+
+    /**
+     * Whether the will message is sent as retained.
+     */
     val retainWillMessage: Boolean
+
+    /**
+     * Keep-alive interval in seconds.
+     */
     val keepAliveSeconds: UShort
+
+    /**
+     * Optional user name for authentication.
+     */
     val username: String?
+
+    /**
+     * Optional password for authentication.
+     */
     val password: String?
+
+    /**
+     * Session expiry interval advertised in CONNECT.
+     */
     val sessionExpiryInterval: SessionExpiryInterval?
+
+    /**
+     * Optional receive maximum advertised in CONNECT.
+     */
     val receiveMaximum: ReceiveMaximum?
+
+    /**
+     * Optional maximum packet size advertised in CONNECT.
+     */
     val maximumPacketSize: MaximumPacketSize?
+
+    /**
+     * Topic alias maximum advertised in CONNECT.
+     */
     val topicAliasMaximum: TopicAliasMaximum
+
+    /**
+     * Whether response information is requested from the server.
+     */
     val requestResponseInformation: RequestResponseInformation
+
+    /**
+     * Whether problem information is requested from the server.
+     */
     val requestProblemInformation: RequestProblemInformation
+
+    /**
+     * Optional enhanced authentication method.
+     */
     val authenticationMethod: AuthenticationMethod?
+
+    /**
+     * Optional enhanced authentication data.
+     */
     val authenticationData: AuthenticationData?
+
+    /**
+     * User properties included in CONNECT.
+     */
     val userProperties: UserProperties
+
+    /**
+     * Provider used to allocate a new session store instance.
+     */
     val sessionStoreProvider: () -> SessionStore
 }
 
+/**
+ * Builds an immutable [MqttClientConfig] using the provided [connectionFactory] and DSL [init] block.
+ */
 fun <T : MqttEngineConfig> buildConfig(
     connectionFactory: MqttEngineFactory<T>,
     init: MqttClientConfigBuilder<T>.() -> Unit,
@@ -52,44 +136,128 @@ fun <T : MqttEngineConfig> buildConfig(
     connectionFactory,
 ).apply(init).build()
 
+/**
+ * DSL builder used to assemble [MqttClientConfig].
+ *
+ * TODO: the coroutine dispatcher should be contextual (Danilo)
+ */
 @MqttDslMarker
 class MqttClientConfigBuilder<out T : MqttEngineConfig>(private val engineFactory: MqttEngineFactory<T>) {
     private var userPropertiesBuilder: UserPropertiesBuilder? = null
     private var willMessageBuilder: WillMessageBuilder? = null
-    private var engine: MqttEngine? = null
+    private var connectionBlock: (T.() -> Unit)? = null
 
-    var dispatcher: CoroutineDispatcher = Dispatchers.Default
+    /**
+     * Dispatcher used by [MqttClient].
+     *
+     * TODO: this is a questionable design choice. The dispatcher could be injected as context parameter (Danilo)
+     */
+    lateinit var dispatcher: CoroutineDispatcher
+
+    /**
+     * Timeout for handshake acknowledgments.
+     */
     var ackMessageTimeout: Duration = 7.seconds
+
+    /**
+     * MQTT client identifier. Empty means broker-assigned when supported.
+     */
     var clientId: String = ""
+
+    /**
+     * Keep-alive interval in seconds.
+     */
     var keepAliveSeconds: UShort = 0u
+
+    /**
+     * Optional user name for authentication.
+     */
     var username: String? = null
+
+    /**
+     * Optional password for authentication.
+     */
     var password: String? = null
+
+    /**
+     * Optional session expiry interval.
+     */
     var sessionExpiryInterval: Duration? = null
+
+    /**
+     * Optional receive maximum value.
+     */
     var receiveMaximum: UShort? = null
+
+    /**
+     * Optional maximum packet size value.
+     */
     var maximumPacketSize: UInt? = null
+
+    /**
+     * Topic alias maximum value.
+     */
     var topicAliasMaximum: UShort = 0u
+
+    /**
+     * Whether to request response information from the server.
+     */
     var requestResponseInformation: Boolean = false
+
+    /**
+     * Whether to request problem information from the server.
+     */
     var requestProblemInformation: Boolean = true
+
+    /**
+     * Optional enhanced authentication method.
+     */
     var authenticationMethod: String? = null
+
+    /**
+     * Optional enhanced authentication data.
+     */
     var authenticationData: ByteString? = null
+
+    /**
+     * Creates a session store for each client instance.
+     */
     var sessionStoreProvider: () -> SessionStore = {
         InMemorySessionStore()
     }
 
+    /**
+     * Configures the underlying transport engine.
+     */
     fun connection(init: T.() -> Unit) {
-        engine = engineFactory.create(init)
+        connectionBlock = init
     }
 
+    /**
+     * Adds CONNECT user properties.
+     */
     fun userProperties(init: UserPropertiesBuilder.() -> Unit) {
         userPropertiesBuilder = UserPropertiesBuilder().apply(init)
     }
 
+    /**
+     * Configures the Last Will and Testament message for the given [topic].
+     */
     fun willMessage(topic: String, init: WillMessageBuilder.() -> Unit) {
         willMessageBuilder = WillMessageBuilder(topic).apply(init)
     }
 
+    /**
+     * Builds an immutable [MqttClientConfig].
+     */
     fun build(): MqttClientConfig {
-        val resolvedEngine = engine ?: engineFactory.create { }
+        check(::dispatcher.isInitialized) {
+            "dispatcher must be configured explicitly"
+        }
+        val resolvedEngine = engineFactory.create {
+            dispatcher = this@MqttClientConfigBuilder.dispatcher
+            connectionBlock?.invoke(this)
+        }
         return MqttClientConfigImpl(
             engine = resolvedEngine,
             dispatcher = dispatcher,

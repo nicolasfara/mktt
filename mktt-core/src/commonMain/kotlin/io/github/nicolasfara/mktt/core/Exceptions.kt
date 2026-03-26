@@ -2,6 +2,9 @@ package io.github.nicolasfara.mktt.core
 
 import io.github.nicolasfara.mktt.core.packet.Publish
 
+/**
+ * Base exception type for MQTT client and protocol errors.
+ */
 open class MqttException internal constructor(message: String? = null, cause: Throwable? = null) :
     RuntimeException(message, cause)
 
@@ -27,8 +30,15 @@ class TimeoutException(message: String) : MqttException(message)
 class TopicAliasException(message: String?) : MqttException(message)
 
 /**
- * Indicates that the handshake procedure for [io.github.nicolasfara.mktt.core.QoS.AT_LEAST_ONCE] or for [io.github.nicolasfara.mktt.core.QoS.EXACTLY_ONE] has failed for the specified
- * source packet. This exception is never raised when publishing [io.github.nicolasfara.mktt.core.QoS.AT_MOST_ONCE] packets. The failed packets will
+ * Indicates that the handshake procedure for
+ * [io.github.nicolasfara.mktt.core.QoS.AT_LEAST_ONCE] or
+ * [io.github.nicolasfara.mktt.core.QoS.EXACTLY_ONE] has failed for the
+ * specified source packet.
+ *
+ * This exception is never raised when publishing
+ * [io.github.nicolasfara.mktt.core.QoS.AT_MOST_ONCE] packets. The failed packets will
  * be retransmitted upon reconnection to the server.
+ *
+ * @property source publish packet whose handshake failed.
  */
 class HandshakeFailedException(message: String, val source: Publish) : MqttException(message)

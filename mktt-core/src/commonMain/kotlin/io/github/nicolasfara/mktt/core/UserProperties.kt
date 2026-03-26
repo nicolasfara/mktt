@@ -1,20 +1,25 @@
 package io.github.nicolasfara.mktt.core
 
 import io.github.nicolasfara.mktt.core.util.MqttDslMarker
-import io.github.nicolasfara.mktt.core.write
 import kotlinx.io.Sink
 
 /**
- * Represents the user properties of the MQTT specification. Note that unlike in `Map<String, String>` the names of the
+ * Represents the user properties of the MQTT specification.
+ *
+ * Note that unlike in `Map<String, String>`, the names of the
  * user properties may occur more than once.
  */
-data class UserProperties(val values: List<StringPair>) {
+data class UserProperties(
+    /** Underlying list of user-property key/value entries. */
+    val values: List<StringPair>,
+) {
 
     // Note: not using a map for storing key/value pairs, as the key might appear more than once in a user property!
 
     /**
-     * Returns the first occurrence of the user property with the specified name or `null` if this user property doesn't
-     * contain the specified name
+     * Returns the first occurrence of the user property with the specified name,
+     * or `null` if this user property doesn't
+     * contain the specified name.
      *
      * @see getAll
      */
@@ -25,12 +30,16 @@ data class UserProperties(val values: List<StringPair>) {
      */
     fun getAll(name: String): List<String> = values.filter { it.name == name }.map { it.value }
 
-    fun containsKey(name: String): Boolean = values.find { it.name == name } != null
+    /** Returns `true` if at least one property exists with the given name. */
+    fun containsKey(name: String): Boolean = values.any { it.name == name }
 
-    fun containsValue(value: String): Boolean = values.find { it.value == value } != null
+    /** Returns `true` if at least one property exists with the given value. */
+    fun containsValue(value: String): Boolean = values.any { it.value == value }
 
+    /** Returns `true` when this set of user properties is not empty. */
     fun isNotEmpty(): Boolean = values.isNotEmpty()
 
+    /** Holds shared factory helpers and constants for [UserProperties]. */
     companion object {
 
         /**
@@ -67,7 +76,10 @@ fun buildUserProperties(init: UserPropertiesBuilder.() -> Unit): UserProperties 
 }
 
 /**
- * DSL for creating MQTT user properties. Note that the same name is allowed to appear more than once in user properties.
+ * DSL for creating MQTT user properties.
+ *
+ * Note that the same name is allowed to appear more than once in
+ * user properties.
  */
 @MqttDslMarker
 class UserPropertiesBuilder {
@@ -109,6 +121,7 @@ class UserPropertiesBuilder {
         )
     }
 
+    /** Builds a [UserProperties] instance from the values added to this builder. */
     fun build(): UserProperties = if (userProperties.isEmpty()) {
         UserProperties.EMPTY
     } else {

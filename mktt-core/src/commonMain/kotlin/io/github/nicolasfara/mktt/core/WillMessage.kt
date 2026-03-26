@@ -10,8 +10,18 @@ import kotlinx.io.Source
 import kotlinx.io.bytestring.ByteString
 import kotlinx.io.bytestring.encodeToByteString
 
+/**
+ * Last-will message configuration sent in CONNECT packets.
+ *
+ * @property topic topic on which the will message will be published.
+ * @property payload binary payload of the will message.
+ * @property properties MQTT will properties.
+ */
 data class WillMessage(val topic: Topic, val payload: ByteString, val properties: WillProperties)
 
+/**
+ * Builds a [WillMessage] for the provided [topic].
+ */
 fun buildWillMessage(topic: String, init: WillMessageBuilder.() -> Unit): WillMessage {
     val builder = WillMessageBuilder(topic)
     builder.init()
@@ -19,10 +29,10 @@ fun buildWillMessage(topic: String, init: WillMessageBuilder.() -> Unit): WillMe
 }
 
 /**
- * Will message builder
+ * Will message builder.
  *
- * @property willOqS the QoS level to be used when publishing the Will Message
- * @property retainWillMessage specifies if the Will Message is to be retained when it is published
+ * @property willOqS the QoS level to be used when publishing the will message.
+ * @property retainWillMessage specifies whether the will message is retained when published.
  */
 @MqttDslMarker
 class WillMessageBuilder(private val topic: String) {
@@ -39,7 +49,10 @@ class WillMessageBuilder(private val topic: String) {
     }
 
     /**
-     * Convenience method to define a text as payload, also sets the [io.github.nicolasfara.mktt.core.PayloadFormatIndicator] of the will properties
+     * Convenience method to define a text as payload.
+     *
+     * Also sets the
+     * [io.github.nicolasfara.mktt.core.PayloadFormatIndicator] of the will properties
      * to `UTF_8`.
      */
     fun payload(text: String) {
@@ -57,6 +70,7 @@ class WillMessageBuilder(private val topic: String) {
         this.payload = byteString
     }
 
+    /** Builds the configured [WillMessage]. */
     fun build(): WillMessage = WillMessage(
         Topic(topic),
         payload,

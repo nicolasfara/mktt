@@ -15,15 +15,15 @@ import io.github.nicolasfara.mktt.core.buildWillMessage
 import io.github.nicolasfara.mktt.core.util.readMqttString
 import io.github.nicolasfara.mktt.core.util.readVariableByteInt
 import io.ktor.utils.io.core.buildPacket
-import kotlinx.coroutines.test.runTest
-import kotlinx.io.bytestring.ByteString
-import kotlinx.io.bytestring.encodeToByteString
-import kotlinx.io.readUInt
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.time.Duration.Companion.days
+import kotlinx.coroutines.test.runTest
+import kotlinx.io.bytestring.ByteString
+import kotlinx.io.bytestring.encodeToByteString
+import kotlinx.io.readUInt
 
 class ConnectTest {
 

@@ -30,21 +30,21 @@ class TopicTest {
     @Test
     fun `shared filter detected`() {
         assertFalse(Topic("abc/def").isShared()) // Not a share
-        assertFalse(Topic($$"$share").isShared()) // Missing share name
-        assertFalse(Topic($$"$share/").isShared()) // Missing share name
-        assertFalse(Topic($$"$share/name#").isShared()) // Invalid share name
-        assertFalse(Topic($$"$share/name+/filter").isShared()) // Invalid share name
-        assertFalse(Topic($$"$share/name/").isShared()) // Missing filter
+        assertFalse(Topic("\$share").isShared()) // Missing share name
+        assertFalse(Topic("\$share/").isShared()) // Missing share name
+        assertFalse(Topic("\$share/name#").isShared()) // Invalid share name
+        assertFalse(Topic("\$share/name+/filter").isShared()) // Invalid share name
+        assertFalse(Topic("\$share/name/").isShared()) // Missing filter
 
-        assertTrue(Topic($$"$share/name/filter").isShared())
-        assertTrue(Topic($$"$share/name/filter#").isShared())
-        assertTrue(Topic($$"$share/name/filter/+").isShared())
+        assertTrue(Topic("\$share/name/filter").isShared())
+        assertTrue(Topic("\$share/name/filter#").isShared())
+        assertTrue(Topic("\$share/name/filter/+").isShared())
     }
 
     @Test
     fun `return share name and filter`() {
         val (name, filter) = Topic(
-            $$"$share/consumer1/sport/tennis/+",
+            "\$share/consumer1/sport/tennis/+",
         )
             .shareNameAndFilter()
         assertEquals("consumer1", name)

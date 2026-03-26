@@ -1,20 +1,56 @@
 package io.github.nicolasfara.mktt.core.packet
 
-import io.github.nicolasfara.mktt.core.*
+import io.github.nicolasfara.mktt.core.ContentType
+import io.github.nicolasfara.mktt.core.CorrelationData
+import io.github.nicolasfara.mktt.core.MessageExpiryInterval
+import io.github.nicolasfara.mktt.core.PayloadFormatIndicator
+import io.github.nicolasfara.mktt.core.QoS
+import io.github.nicolasfara.mktt.core.ResponseTopic
+import io.github.nicolasfara.mktt.core.SubscriptionIdentifier
+import io.github.nicolasfara.mktt.core.Topic
+import io.github.nicolasfara.mktt.core.TopicAlias
+import io.github.nicolasfara.mktt.core.UserProperties
 import io.github.nicolasfara.mktt.core.asArray
-import io.github.nicolasfara.mktt.core.packet.isDupMessage
-import io.github.nicolasfara.mktt.core.packet.isRetainMessage
-import io.github.nicolasfara.mktt.core.packet.qoS
-import io.github.nicolasfara.mktt.core.packet.requiresPacketIdentifier
+import io.github.nicolasfara.mktt.core.malformedWhen
 import io.github.nicolasfara.mktt.core.readProperties
 import io.github.nicolasfara.mktt.core.singleOrNull
 import io.github.nicolasfara.mktt.core.util.readMqttString
 import io.github.nicolasfara.mktt.core.util.writeMqttString
+import io.github.nicolasfara.mktt.core.wellFormedWhen
 import io.github.nicolasfara.mktt.core.writeProperties
-import io.ktor.utils.io.core.*
-import kotlinx.io.*
+import io.ktor.utils.io.core.remaining
+import kotlinx.io.Sink
+import kotlinx.io.Source
 import kotlinx.io.bytestring.ByteString
+import kotlinx.io.readByteString
+import kotlinx.io.readUShort
+import kotlinx.io.write
+import kotlinx.io.writeUShort
 
+private const val RETAIN_FLAG_MASK = 0b0000_0001
+private const val QOS_MASK = 0b0000_0110
+private const val QOS_SHIFT = 1
+private const val DUP_FLAG_MASK = 0b0000_1000
+private const val DUP_FLAG_SHIFT = 3
+
+/**
+ * MQTT PUBLISH packet carrying an application message from client to server or server to client.
+ *
+ * @property isDupMessage whether this packet is a re-delivery of an earlier PUBLISH.
+ * @property qoS the quality of service level for this message.
+ * @property isRetainMessage whether the broker should retain this message as the latest value for the topic.
+ * @property packetIdentifier packet identifier for QoS 1 and QoS 2 publishes, `null` for QoS 0.
+ * @property topic topic name of this message.
+ * @property payloadFormatIndicator optional MQTT payload format indicator property.
+ * @property messageExpiryInterval optional message expiry interval property.
+ * @property topicAlias optional topic alias property.
+ * @property responseTopic optional response topic property.
+ * @property correlationData optional correlation data property.
+ * @property userProperties optional user properties attached to this packet.
+ * @property subscriptionIdentifier optional subscription identifier property.
+ * @property contentType optional content type property.
+ * @property payload binary payload of the published message.
+ */
 data class Publish(
     val isDupMessage: Boolean = false,
     val qoS: QoS = QoS.AT_MOST_ONCE,
@@ -30,7 +66,7 @@ data class Publish(
     val subscriptionIdentifier: SubscriptionIdentifier? = null,
     val contentType: ContentType? = null,
     val payload: ByteString,
-) : AbstractPacket(PacketType.PUBLISH) {
+) : BasePacket(PacketType.PUBLISH) {
     init {
         wellFormedWhen(topic.isNotBlank() || topicAlias != null) {
             "It is a Protocol Error if the Topic Name is zero length and there is no Topic Alias"
@@ -48,10 +84,10 @@ data class Publish(
 
     override val headerFlags: Int
         get() {
-            var bits = if (isRetainMessage) 1 else 0
-            bits = bits or (qoS.value shl 1)
+            var bits = if (isRetainMessage) RETAIN_FLAG_MASK else 0
+            bits = bits or (qoS.value shl QOS_SHIFT)
             if (isDupMessage) {
-                bits = bits or (1 shl 3)
+                bits = bits or DUP_FLAG_MASK
             }
             return bits
         }
@@ -59,9 +95,12 @@ data class Publish(
 
 internal fun Sink.write(publish: Publish) {
     with(publish) {
-        writeMqttString(topic.name)
+        this@write.writeMqttString(topic.name)
         if (qoS.requiresPacketIdentifier) {
-            writeUShort(packetIdentifier!!)
+            val identifier = requireNotNull(packetIdentifier) {
+                "PUBLISH packet identifier is required for QoS > 0"
+            }
+            writeUShort(identifier)
         }
         writeProperties(
             payloadFormatIndicator,
@@ -110,10 +149,10 @@ private val QoS.requiresPacketIdentifier: Boolean
     get() = this.value > 0
 
 private val Int.qoS: QoS
-    get() = QoS.from(((this and 6) shr 1))
+    get() = QoS.from((this and QOS_MASK) shr QOS_SHIFT)
 
 private val Int.isDupMessage: Boolean
-    get() = ((this and 8) shr 3) != 0
+    get() = ((this and DUP_FLAG_MASK) shr DUP_FLAG_SHIFT) != 0
 
 private val Int.isRetainMessage: Boolean
-    get() = (this and 1) != 0
+    get() = (this and RETAIN_FLAG_MASK) != 0

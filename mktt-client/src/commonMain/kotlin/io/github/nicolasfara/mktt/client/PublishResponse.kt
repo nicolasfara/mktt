@@ -31,7 +31,9 @@ sealed class PublishResponse {
      * - for EXACTLY_ONE this will be taken from the [io.github.nicolasfara.mktt.core.packet.Pubcomp] packet
      *
      * Note that even for a successful delivery to the server, the reason code might not always be zero (success). For
-     * example, when publishing with [io.github.nicolasfara.mktt.core.QoS.AT_LEAST_ONCE] to a topic without subscribers, the returned reason might be
+     * example, when publishing with
+     * [io.github.nicolasfara.mktt.core.QoS.AT_LEAST_ONCE] to a topic without subscribers, the
+     * returned reason might be
      * [io.github.nicolasfara.mktt.core.NoMatchingSubscribers].
      */
     abstract val reason: ReasonCode
@@ -54,6 +56,8 @@ data class AtMostOncePublishResponse(override val source: Publish) : PublishResp
 
 /**
  * The publish response for [io.github.nicolasfara.mktt.core.QoS.AT_LEAST_ONCE].
+ *
+ * @property puback PUBACK received from the server.
  */
 data class AtLeastOncePublishResponse(override val source: Publish, val puback: Puback) : PublishResponse() {
 
@@ -62,6 +66,8 @@ data class AtLeastOncePublishResponse(override val source: Publish, val puback: 
 
 /**
  * The publish response for [io.github.nicolasfara.mktt.core.QoS.EXACTLY_ONE].
+ *
+ * @property pubcomp PUBCOMP received from the server.
  */
 data class ExactlyOnePublishResponse(override val source: Publish, val pubcomp: Pubcomp) : PublishResponse() {
 

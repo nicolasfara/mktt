@@ -18,6 +18,22 @@ kotlin {
         compilerOptions {
             jvmTarget = JvmTarget.JVM_1_8
         }
+
+        compilations.create("integrationTest") {
+            associateWith(this@jvm.compilations.getByName("main"))
+        }
+
+        testRuns.create("integrationTest") {
+            setExecutionSourceFrom(compilations.getByName("integrationTest"))
+            executionTask.configure {
+                description = "Runs JVM integration tests against a local broker."
+                shouldRunAfter(testRuns.getByName("test").executionTask)
+                filter {
+                    includeTestsMatching("*IntegrationTest")
+                    includeTestsMatching("*IT")
+                }
+            }
+        }
     }
 
     linuxX64()
@@ -42,11 +58,27 @@ kotlin {
             implementation(libs.kotlin.test)
             implementation(libs.kotlinx.coroutines.test)
         }
-        jvmTest.dependencies {
-            implementation(libs.testcontainers)
-            implementation(libs.slf4j.simple)
+        named("jvmIntegrationTest") {
+            dependencies {
+                implementation(libs.kotlin.test)
+                implementation(libs.kotlinx.coroutines.test)
+                implementation(libs.testcontainers)
+                implementation(libs.slf4j.simple)
+            }
         }
     }
+}
+
+tasks.register("integrationTest") {
+    group = "verification"
+    description = "Runs mktt-client integration tests."
+    dependsOn("jvmIntegrationTest")
+}
+
+tasks.register("unitTest") {
+    group = "verification"
+    description = "Runs mktt-client unit tests."
+    dependsOn("jvmTest")
 }
 
 tasks.withType<Test>().configureEach {

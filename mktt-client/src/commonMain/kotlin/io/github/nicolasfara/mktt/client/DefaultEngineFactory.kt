@@ -16,6 +16,12 @@ internal class DefaultEngineFactory(private val host: String, private val port: 
     )
 }
 
+/**
+ * Engine configuration used by [DefaultEngine].
+ *
+ * @property host target MQTT broker host name.
+ * @property port target MQTT broker TCP port.
+ */
 class DefaultEngineConfig(val host: String, val port: Int) : MqttEngineConfig() {
     internal var tlsConfigBuilder: TLSConfigBuilder? = null
     internal var tcpOptions: (SocketOptions.TCPClientSocketOptions.() -> Unit) = { }
@@ -34,7 +40,7 @@ class DefaultEngineConfig(val host: String, val port: Int) : MqttEngineConfig() 
     }
 
     /**
-     * Configure the TCP options for this client
+     * Configure the TCP options for this client.
      *
      * @see SocketOptions.TCPClientSocketOptions
      */

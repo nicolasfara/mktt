@@ -18,13 +18,22 @@ import io.github.nicolasfara.mktt.core.writeProperties
 import kotlinx.io.Sink
 import kotlinx.io.Source
 
+/**
+ * MQTT AUTH packet used for extended authentication exchanges.
+ *
+ * @property reason authentication exchange reason code.
+ * @property authenticationMethod authentication method in use.
+ * @property authenticationData optional authentication payload.
+ * @property reasonString optional human-readable reason string.
+ * @property userProperties optional user properties attached to this packet.
+ */
 data class Auth(
     val reason: ReasonCode,
     val authenticationMethod: AuthenticationMethod,
     val authenticationData: AuthenticationData? = null,
     val reasonString: ReasonString? = null,
     val userProperties: UserProperties = EMPTY,
-) : AbstractPacket(PacketType.AUTH) {
+) : BasePacket(PacketType.AUTH) {
 
     init {
         wellFormedWhen(

@@ -16,6 +16,11 @@ import kotlinx.io.writeUShort
 
 /**
  * Base class for PUBACK, PUBREC, PUBREL and PUBCOMP.
+ *
+ * @property packetIdentifier identifier of the related PUBLISH flow.
+ * @property reason MQTT reason code carried by this response packet.
+ * @property reasonString optional human-readable reason string.
+ * @property userProperties optional user properties attached to the packet.
  */
 sealed class PublishResponsePacket(
     type: PacketType,
@@ -23,7 +28,7 @@ sealed class PublishResponsePacket(
     val reason: ReasonCode,
     val reasonString: ReasonString? = null,
     val userProperties: UserProperties = UserProperties.EMPTY,
-) : AbstractPacket(type),
+) : BasePacket(type),
     PacketIdentifierPacket {
 
     init {
@@ -58,6 +63,7 @@ sealed class PublishResponsePacket(
         "${this::class.simpleName}(packetIdentifier=$packetIdentifier, reason=$reason, reasonString=$reasonString, userProperties=$userProperties)"
 }
 
+/** MQTT PUBACK packet used for QoS 1 publish acknowledgment. */
 class Puback(
     packetIdentifier: UShort,
     reason: ReasonCode,
@@ -65,10 +71,13 @@ class Puback(
     userProperties: UserProperties = UserProperties.EMPTY,
 ) : PublishResponsePacket(PacketType.PUBACK, packetIdentifier, reason, reasonString, userProperties) {
 
+    /** Factory utilities for creating [Puback] packets. */
     companion object {
+        /**
+         * Creates a [Puback] from a [Publish] packet.
+         */
         fun from(publish: Publish, reason: ReasonCode = Success, reasonString: String? = null): Puback {
-            val packetIdentifier = publish.packetIdentifier
-            require(packetIdentifier != null) {
+            val packetIdentifier = requireNotNull(publish.packetIdentifier) {
                 "Cannot create a PUBACK packet from a PUBLISH packet without packet identifier: $this"
             }
             return Puback(
@@ -83,6 +92,7 @@ class Puback(
     }
 }
 
+/** MQTT PUBREC packet used in the QoS 2 publish flow. */
 class Pubrec(
     packetIdentifier: UShort,
     reason: ReasonCode,
@@ -90,10 +100,13 @@ class Pubrec(
     userProperties: UserProperties = UserProperties.EMPTY,
 ) : PublishResponsePacket(PacketType.PUBREC, packetIdentifier, reason, reasonString, userProperties) {
 
+    /** Factory utilities for creating [Pubrec] packets. */
     companion object {
+        /**
+         * Creates a [Pubrec] from a [Publish] packet.
+         */
         fun from(publish: Publish, reason: ReasonCode = Success, reasonString: String? = null): Pubrec {
-            val packetIdentifier = publish.packetIdentifier
-            require(packetIdentifier != null) {
+            val packetIdentifier = requireNotNull(publish.packetIdentifier) {
                 "Cannot create a PUBREC packet from a PUBLISH packet without packet identifier: $this"
             }
             return Pubrec(
@@ -108,6 +121,7 @@ class Pubrec(
     }
 }
 
+/** MQTT PUBREL packet used in the QoS 2 publish flow. */
 class Pubrel(
     packetIdentifier: UShort,
     reason: ReasonCode,
@@ -118,10 +132,13 @@ class Pubrel(
     // Note: this is the only response packet with a header flag!
     override val headerFlags: Int = 2
 
+    /** Factory utilities for creating [Pubrel] packets. */
     companion object {
+        /**
+         * Creates a [Pubrel] from a [Publish] packet.
+         */
         fun from(publish: Publish, reason: ReasonCode = Success, reasonString: String? = null): Pubrel {
-            val packetIdentifier = publish.packetIdentifier
-            require(packetIdentifier != null) {
+            val packetIdentifier = requireNotNull(publish.packetIdentifier) {
                 "Cannot create a PUBREL packet from a PUBLISH packet without packet identifier: $this"
             }
             return Pubrel(
@@ -136,6 +153,7 @@ class Pubrel(
     }
 }
 
+/** MQTT PUBCOMP packet used to complete the QoS 2 publish flow. */
 class Pubcomp(
     packetIdentifier: UShort,
     reason: ReasonCode,
@@ -143,10 +161,13 @@ class Pubcomp(
     userProperties: UserProperties = UserProperties.EMPTY,
 ) : PublishResponsePacket(PacketType.PUBCOMP, packetIdentifier, reason, reasonString, userProperties) {
 
+    /** Factory utilities for creating [Pubcomp] packets. */
     companion object {
+        /**
+         * Creates a [Pubcomp] from a [Publish] packet.
+         */
         fun from(publish: Publish, reason: ReasonCode = Success, reasonString: String? = null): Pubcomp {
-            val packetIdentifier = publish.packetIdentifier
-            require(packetIdentifier != null) {
+            val packetIdentifier = requireNotNull(publish.packetIdentifier) {
                 "Cannot create a PUBCOMP packet from a PUBLISH packet without packet identifier: $this"
             }
             return Pubcomp(
@@ -159,6 +180,9 @@ class Pubcomp(
             )
         }
 
+        /**
+         * Creates a [Pubcomp] from another [PublishResponsePacket].
+         */
         fun from(publish: PublishResponsePacket, reason: ReasonCode = Success, reasonString: String? = null): Pubcomp {
             val packetIdentifier = publish.packetIdentifier
             return Pubcomp(

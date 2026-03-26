@@ -14,8 +14,20 @@ import io.ktor.utils.io.writeByte
 import io.ktor.utils.io.writePacket
 import kotlinx.io.Sink
 
+private const val HEADER_FLAG_BIT_COUNT = 4
+private const val HEADER_FLAGS_MAX_EXCLUSIVE = 1 shl HEADER_FLAG_BIT_COUNT
+private const val PACKET_TYPE_SHIFT = HEADER_FLAG_BIT_COUNT
+
+/** Base type for all MQTT packets. */
 interface Packet {
+    /** MQTT control packet type. */
     val type: PacketType
+
+    /**
+     * Lower 4 bits of the fixed header.
+     *
+     * Values must fit in 4 bits.
+     */
     val headerFlags: Int
 }
 
@@ -28,7 +40,8 @@ inline fun <reified T : PacketIdentifierPacket> Packet.isResponseFor(packet: Pac
         (this as PacketIdentifierPacket).packetIdentifier
 
 /**
- * Determines whether this packet is of the specified type and its packet identifier is the same as the one of `publish`.
+ * Determines whether this packet is of the specified type and has the same
+ * packet identifier as `publish`.
  */
 inline fun <reified T : PacketIdentifierPacket> Packet.isResponseFor(publish: Publish): Boolean =
     T::class.isInstance(this) &&
@@ -103,6 +116,9 @@ suspend fun ByteWriteChannel.write(packet: Packet) {
     writePacket(bytes)
 }
 
+/**
+ * Writes the bytes of the specified packet to this sink.
+ */
 fun Sink.write(packet: Packet) {
     val bytes = buildPacket {
         writeBody(packet)
@@ -135,13 +151,17 @@ private fun Sink.writeBody(packet: Packet) {
 }
 
 private fun Sink.writeFixedHeader(packet: Packet, remainingLength: Int) {
-    check(packet.headerFlags < 16) { "Header flags may only contain 4 bits: ${packet.headerFlags}" }
-    writeByte(((packet.type.value shl 4) or packet.headerFlags).toByte())
+    check(packet.headerFlags < HEADER_FLAGS_MAX_EXCLUSIVE) {
+        "Header flags may only contain $HEADER_FLAG_BIT_COUNT bits: ${packet.headerFlags}"
+    }
+    writeByte(((packet.type.value shl PACKET_TYPE_SHIFT) or packet.headerFlags).toByte())
     writeVariableByteInt(remainingLength)
 }
 
 private suspend fun ByteWriteChannel.writeFixedHeader(packet: Packet, remainingLength: Int) {
-    check(packet.headerFlags < 16) { "Header flags may only contain 4 bits: ${packet.headerFlags}" }
-    writeByte(((packet.type.value shl 4) or packet.headerFlags).toByte())
+    check(packet.headerFlags < HEADER_FLAGS_MAX_EXCLUSIVE) {
+        "Header flags may only contain $HEADER_FLAG_BIT_COUNT bits: ${packet.headerFlags}"
+    }
+    writeByte(((packet.type.value shl PACKET_TYPE_SHIFT) or packet.headerFlags).toByte())
     writeVariableByteInt(remainingLength)
 }

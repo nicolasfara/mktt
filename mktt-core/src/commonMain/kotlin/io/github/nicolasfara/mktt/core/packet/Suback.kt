@@ -16,12 +16,20 @@ import kotlinx.io.Source
 import kotlinx.io.readUShort
 import kotlinx.io.writeUShort
 
+/**
+ * MQTT SUBACK packet sent by the server in response to a SUBSCRIBE request.
+ *
+ * @property packetIdentifier packet identifier matching the corresponding SUBSCRIBE request.
+ * @property reasons result reason code for each requested topic filter.
+ * @property reasonString optional human-readable diagnostic reason provided by the server.
+ * @property userProperties optional user properties attached to this packet.
+ */
 data class Suback(
     override val packetIdentifier: UShort,
     val reasons: List<ReasonCode>,
     val reasonString: ReasonString? = null,
     val userProperties: UserProperties = UserProperties.EMPTY,
-) : AbstractPacket(PacketType.SUBACK),
+) : BasePacket(PacketType.SUBACK),
     PacketIdentifierPacket {
 
     init {

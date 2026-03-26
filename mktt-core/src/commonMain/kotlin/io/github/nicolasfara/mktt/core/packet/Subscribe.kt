@@ -19,12 +19,28 @@ import kotlinx.io.Source
 import kotlinx.io.readUShort
 import kotlinx.io.writeUShort
 
+private const val QOS_MASK = 0b0000_0011
+private const val NO_LOCAL_MASK = 0b0000_0100
+private const val RETAIN_AS_PUBLISHED_MASK = 0b0000_1000
+private const val RETAIN_HANDLING_MASK = 0b0011_0000
+private const val NO_LOCAL_SHIFT = 2
+private const val RETAIN_AS_PUBLISHED_SHIFT = 3
+private const val RETAIN_HANDLING_SHIFT = 4
+
+/**
+ * MQTT SUBSCRIBE packet used to request one or more topic filter subscriptions.
+ *
+ * @property packetIdentifier packet identifier of this subscribe request.
+ * @property filters topic filters and options requested by the client.
+ * @property subscriptionIdentifier optional subscription identifier for this request.
+ * @property userProperties optional user properties attached to this packet.
+ */
 data class Subscribe(
     override val packetIdentifier: UShort,
     val filters: List<TopicFilter>,
     val subscriptionIdentifier: SubscriptionIdentifier? = null,
     val userProperties: UserProperties = UserProperties.EMPTY,
-) : AbstractPacket(PacketType.SUBSCRIBE),
+) : BasePacket(PacketType.SUBSCRIBE),
     PacketIdentifierPacket {
 
     init {
@@ -78,22 +94,23 @@ internal fun Source.readSubscribe(): Subscribe {
 private val SubscriptionOptions.bits: Byte
     get() {
         var bits = qoS.value
-        if (isNoLocal) bits = bits or 4
-        if (retainAsPublished) bits = bits or 8
-        bits = bits or (retainHandling.value shl 4)
+        if (isNoLocal) bits = bits or NO_LOCAL_MASK
+        if (retainAsPublished) bits = bits or RETAIN_AS_PUBLISHED_MASK
+        bits = bits or (retainHandling.value shl RETAIN_HANDLING_SHIFT)
 
         return bits.toByte()
     }
 
 private fun Byte.toSubscriptionOptions(): SubscriptionOptions {
     val bits = toInt()
-    val qoS = QoS.from(bits and 3)
-    val isNoLocal = (bits and 4) shr 2 != 0
-    val retainAsPublished = (bits and 8) shr 3 != 0
+    val qoS = QoS.from(bits and QOS_MASK)
+    val isNoLocal = (bits and NO_LOCAL_MASK) shr NO_LOCAL_SHIFT != 0
+    val retainAsPublished =
+        (bits and RETAIN_AS_PUBLISHED_MASK) shr RETAIN_AS_PUBLISHED_SHIFT != 0
     return SubscriptionOptions(
         qoS,
         isNoLocal,
         retainAsPublished,
-        RetainHandling.from((bits and 48) shr 4),
+        RetainHandling.from((bits and RETAIN_HANDLING_MASK) shr RETAIN_HANDLING_SHIFT),
     )
 }

@@ -1,3 +1,6 @@
+// We must provide our own exception handler for the TLS connection, otherwise errors (which might happen
+// due to an already closed connection) will get propagated to the parent's coroutine, which is not what
+// we want.
 package io.github.nicolasfara.mktt.client
 
 import io.github.nicolasfara.mktt.core.ConnectionException
@@ -11,6 +14,7 @@ import io.ktor.network.sockets.Socket
 import io.ktor.network.sockets.aSocket
 import io.ktor.network.sockets.openReadChannel
 import io.ktor.network.sockets.openWriteChannel
+import io.ktor.network.tls.tls
 import io.ktor.utils.io.ByteReadChannel
 import io.ktor.utils.io.ByteWriteChannel
 import io.ktor.utils.io.ClosedWriteChannelException
@@ -21,6 +25,7 @@ import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
@@ -32,12 +37,14 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlinx.io.EOFException
 
 /**
  * @property config the engine config
- * @param socketHandler use a [io.github.nicolasfara.mktt.client.SocketHandler] other than the default one, mainly used for testing
+ * @param socketHandler use a [io.github.nicolasfara.mktt.client.SocketHandler] other than
+ *   the default one, mainly used for testing
  * @param replay the size of the replay cache for [packetResults], mainly used for testing
  */
 internal class DefaultEngine(
@@ -57,7 +64,7 @@ internal class DefaultEngine(
 
     private val writeMutex = Mutex()
 
-    private var scope = CoroutineScope(config.dispatcher + SupervisorJob())
+    private val scope = CoroutineScope(config.dispatcher + SupervisorJob())
 
     private var sendChannel: ByteWriteChannel? = null
 
@@ -74,14 +81,23 @@ internal class DefaultEngine(
             socket
         }.await().also { socket ->
             sendChannel = socket.openWriteChannel()
-            // It's important to open the read channel here, if we do it in the job below exceptions will be ignored
+            // Open the read channel before launching the reader job to surface setup failures.
             val readChannel = socket.openReadChannel()
             receiverJob = scope.launch {
                 readChannel.incomingMessageLoop()
             }
         }
         Result.success(Unit)
-    } catch (ex: Exception) {
+    } catch (ex: CancellationException) {
+        throw ex
+    } catch (ex: ClosedWriteChannelException) {
+        Result.failure(
+            ConnectionException(
+                "Cannot connect to ${config.host}:${config.port}",
+                ex,
+            ),
+        )
+    } catch (ex: IllegalStateException) {
         Result.failure(
             ConnectionException(
                 "Cannot connect to ${config.host}:${config.port}",
@@ -115,37 +131,36 @@ internal class DefaultEngine(
     // --- Private methods ---------------------------------------------------------------------------------------------
 
     private suspend fun ByteReadChannel.incomingMessageLoop() {
-        while (!isClosedForRead) {
-            try {
-                _packetResults.emit(Result.success(readPacket()))
-            } catch (_: CancellationException) {
-                Logger.v {
-                    "Packet reader job has been cancelled, terminating..."
+        try {
+            while (!isClosedForRead) {
+                val shouldTerminate = try {
+                    _packetResults.emit(Result.success(readPacket()))
+                    false
+                } catch (_: ClosedReceiveChannelException) {
+                    Logger.v {
+                        "Read channel has been closed, terminating..."
+                    }
+                    true
+                } catch (_: EOFException) {
+                    Logger.v {
+                        "End of stream detected, terminating..."
+                    }
+                    true
+                } catch (ex: MalformedPacketException) {
+                    // Continue with the loop, so that the client can decide what to do.
+                    _packetResults.emit(Result.failure(ex))
+                    false
                 }
-                break
-            } catch (_: ClosedReceiveChannelException) {
-                Logger.v {
-                    "Read channel has been closed, terminating..."
+                if (shouldTerminate) {
+                    break
                 }
-                break
-            } catch (_: EOFException) {
-                Logger.v {
-                    "End of stream detected, terminating..."
-                }
-                break
-            } catch (ex: MalformedPacketException) {
-                // Continue with the loop, so that the client can decide what to do
-                _packetResults.emit(Result.failure(ex))
-            } catch (ex: Exception) {
-                Logger.w(throwable = ex) {
-                    "Read channel error detected, terminating..."
-                }
-                break
+            }
+        } finally {
+            Logger.d { "Incoming message loop terminated" }
+            withContext(NonCancellable) {
+                disconnected()
             }
         }
-
-        Logger.d { "Incoming message loop terminated" }
-        disconnected()
     }
 
     private suspend fun ByteWriteChannel.doSend(packet: Packet): Result<Unit> {
@@ -158,18 +173,14 @@ internal class DefaultEngine(
             }
             Result.success(Unit)
         } catch (ex: CancellationException) {
-            Logger.v {
-                "Packet writer job has been cancelled during write operation"
-            }
-            disconnected()
-            Result.failure(ex)
+            throw ex
         } catch (ex: ClosedWriteChannelException) {
             Logger.w(throwable = ex) {
                 "Write channel has been closed"
             }
             disconnected()
             Result.failure(ex)
-        } catch (ex: Exception) {
+        } catch (ex: IllegalStateException) {
             Logger.w(throwable = ex) {
                 "Write channel error detected"
             }
@@ -196,8 +207,10 @@ internal class DefaultEngine(
         override suspend fun openSocket(config: DefaultEngineConfig): Socket = with(config) {
             val tlsConfig = tlsConfigBuilder?.build()
             if (tlsConfig != null) {
-                // We must provide our own exception handler for the TLS connection, otherwise errors (which might happen
-                // due to an already closed connection) will get propagated to the parent's coroutine, which is not what
+                // We must provide our own exception handler for the TLS connection,
+                // otherwise errors (which might happen
+                // due to an already closed connection) will get propagated
+                // to the parent's coroutine, which is not what
                 // we want.
                 val handler = CoroutineExceptionHandler { _, exception ->
                     if (connected.value) {
@@ -208,11 +221,13 @@ internal class DefaultEngine(
                             disconnect()
                         }
                     }
-                    // When not connected, ignore this exception, as it is a result of being disconnected
+                    // When not connected, ignore this exception, as it is a
+                    // result of being disconnected.
                 }
                 val tlsContext = CoroutineName("TLS Handler") + config.dispatcher + handler
 
-                aSocket(selectorManager).tcp().connect(host, port, tcpOptions).tls(tlsContext, tlsConfig)
+                aSocket(selectorManager).tcp().connect(host, port, tcpOptions)
+                    .tls(tlsContext, tlsConfig)
             } else {
                 aSocket(selectorManager).tcp().connect(host, port, tcpOptions)
             }

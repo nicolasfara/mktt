@@ -25,6 +25,29 @@ import io.github.nicolasfara.mktt.core.writeProperties
 import kotlinx.io.Sink
 import kotlinx.io.Source
 
+/**
+ * MQTT CONNACK packet sent by the server in response to CONNECT.
+ *
+ * @property isSessionPresent whether an existing session is present on the server.
+ * @property reason connection result reason code.
+ * @property sessionExpiryInterval optional session expiry interval assigned by the server.
+ * @property receiveMaximum optional receive maximum assigned by the server.
+ * @property maximumQoS optional maximum QoS accepted by the server.
+ * @property retainAvailable optional retain support flag from the server.
+ * @property maximumPacketSize optional maximum packet size accepted by the server.
+ * @property assignedClientIdentifier optional server-assigned client identifier.
+ * @property topicAliasMaximum optional topic alias maximum accepted by the server.
+ * @property reasonString optional human-readable reason string.
+ * @property userProperties optional user properties attached to this packet.
+ * @property wildcardSubscriptionAvailable optional wildcard-subscription support flag.
+ * @property subscriptionIdentifierAvailable optional subscription-identifier support flag.
+ * @property sharedSubscriptionAvailable optional shared-subscription support flag.
+ * @property serverKeepAlive optional keep-alive value requested by the server.
+ * @property responseInformation optional response information provided by the server.
+ * @property serverReference optional server reference for reconnect guidance.
+ * @property authenticationMethod optional authentication method.
+ * @property authenticationData optional authentication data.
+ */
 data class Connack(
     val isSessionPresent: Boolean,
     val reason: ReasonCode,
@@ -45,7 +68,7 @@ data class Connack(
     val serverReference: ServerReference? = null,
     val authenticationMethod: AuthenticationMethod? = null,
     val authenticationData: AuthenticationData? = null,
-) : AbstractPacket(PacketType.CONNACK) {
+) : BasePacket(PacketType.CONNACK) {
 
     /**
      * Determines whether this CONNACK represents a successful connection attempt.

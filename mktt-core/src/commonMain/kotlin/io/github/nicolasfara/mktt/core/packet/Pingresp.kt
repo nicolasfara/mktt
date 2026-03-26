@@ -1,6 +1,7 @@
 package io.github.nicolasfara.mktt.core.packet
 
-object Pingresp : AbstractPacket(PacketType.PINGRESP) {
+/** MQTT PINGRESP packet sent by the peer in response to [Pingreq]. */
+object Pingresp : BasePacket(PacketType.PINGRESP) {
     override fun toString(): String = "Pingresp"
 }
 

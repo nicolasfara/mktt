@@ -19,20 +19,22 @@ import io.github.nicolasfara.mktt.core.packet.Unsuback
 import io.github.nicolasfara.mktt.core.packet.Unsubscribe
 import io.github.nicolasfara.mktt.core.packet.hasFailure
 import io.github.nicolasfara.mktt.core.packet.isUnsubscribed
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertIs
+import kotlin.test.assertTrue
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withContext
 import kotlinx.io.bytestring.ByteString
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
-import kotlin.test.assertIs
-import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class MqttClientTest {
@@ -62,7 +64,9 @@ class MqttClientTest {
                 client.connectionState.value,
             )
         } finally {
-            client.disconnect()
+            withContext(NonCancellable) {
+                client.disconnect()
+            }
             client.close()
         }
     }
@@ -119,7 +123,9 @@ class MqttClientTest {
             assertIs<AtLeastOncePublishResponse>(result)
             assertEquals(Success, result.reason)
         } finally {
-            client.disconnect()
+            withContext(NonCancellable) {
+                client.disconnect()
+            }
             client.close()
         }
     }
@@ -163,7 +169,9 @@ class MqttClientTest {
 
             assertEquals("22", message.await().payloadAsString())
         } finally {
-            client.disconnect()
+            withContext(NonCancellable) {
+                client.disconnect()
+            }
             client.close()
         }
     }
@@ -210,7 +218,9 @@ class MqttClientTest {
             assertTrue(!suback.hasFailure)
             assertTrue(unsuback.isUnsubscribed)
         } finally {
-            client.disconnect()
+            withContext(NonCancellable) {
+                client.disconnect()
+            }
             client.close()
         }
     }
@@ -245,7 +255,9 @@ class MqttClientTest {
 
             assertTrue(engine.sentPackets.any { it is Pingreq })
         } finally {
-            client.disconnect()
+            withContext(NonCancellable) {
+                client.disconnect()
+            }
             client.close()
         }
     }

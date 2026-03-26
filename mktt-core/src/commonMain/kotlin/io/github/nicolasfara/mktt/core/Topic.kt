@@ -11,13 +11,17 @@ import kotlin.jvm.JvmInline
  * - `/`
  */
 @JvmInline
-value class Topic(val name: String) {
+value class Topic(
+    /** Topic name or topic-filter expression. */
+    val name: String,
+) {
 
+    /** Returns `true` when this topic contains MQTT wildcard characters. */
     fun containsWildcard(): Boolean = name.indexOfAny(charArrayOf('#', '+')) != -1
 
     /**
      * Determines whether this topic is a valid 'shared subscription name', hence has the form:
-     * `$share/{ShareName}/{filter}`
+     * `$share/{ShareName}/{filter}`.
      */
     fun isShared(): Boolean = shareRegex.matches(name)
 
@@ -27,12 +31,13 @@ value class Topic(val name: String) {
      * returns `consumer1` as the share name and `sport/tennis/+` as the filter.
      */
     fun shareNameAndFilter(): Pair<String, Topic> {
-        shareRegex.find(name)?.let { m ->
-            return m.groupValues[1] to Topic(m.groupValues[2])
+        val match = checkNotNull(shareRegex.find(name)) {
+            "'$name' is not a valid shared subscription"
         }
-        throw IllegalStateException("'$name' is not a valid shared subscription")
+        return match.groupValues[1] to Topic(match.groupValues[2])
     }
 
+    /** Returns `true` when [name] is not blank. */
     fun isNotBlank(): Boolean = name.isNotBlank()
 
     override fun toString(): String = name

@@ -4,8 +4,8 @@ import io.github.nicolasfara.mktt.core.NotAuthorized
 import io.github.nicolasfara.mktt.core.ReasonString
 import io.github.nicolasfara.mktt.core.Success
 import io.github.nicolasfara.mktt.core.buildUserProperties
-import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
+import kotlinx.coroutines.test.runTest
 
 class UnsubackTest {
 
