@@ -3,9 +3,9 @@ package io.github.nicolasfara.mktt.client
 import io.github.nicolasfara.mktt.core.GrantedQoS0
 import io.github.nicolasfara.mktt.core.QoS
 import io.github.nicolasfara.mktt.core.Success
-import java.util.concurrent.Executors
 import io.github.nicolasfara.mktt.core.Topic
 import io.github.nicolasfara.mktt.core.TopicFilter
+import java.util.concurrent.Executors
 import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -15,8 +15,8 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.ExecutorCoroutineDispatcher
 import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.async
 import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
