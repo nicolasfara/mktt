@@ -43,7 +43,7 @@ value class Topic(
     override fun toString(): String = name
 
     internal companion object {
-        val shareRegex = Regex("""${'$'}share/([^+#/]+)/(.+)""")
+        val shareRegex = Regex($$"""\$share/([^+#/]+)/(.+)""")
     }
 }
 
