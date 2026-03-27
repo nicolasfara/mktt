@@ -9,8 +9,6 @@ import io.github.nicolasfara.mktt.core.SessionStore
 import io.github.nicolasfara.mktt.core.packet.Publish
 import io.github.nicolasfara.mktt.core.packet.Pubrel
 import io.github.nicolasfara.mktt.core.util.Logger
-import kotlin.collections.contains
-import kotlin.collections.plus
 import kotlin.concurrent.atomics.AtomicLong
 import kotlin.concurrent.atomics.AtomicReference
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
@@ -21,13 +19,8 @@ import kotlin.time.ExperimentalTime
 /**
  * In-memory [SessionStore] implementation used to track in-flight MQTT packets.
  */
-open class InMemorySessionStore(private val clock: Clock = Clock.System) : SessionStore {
-
-    private val outgoingPackets =
-        AtomicMap<UShort, InFlightPacket>()
-
-    private val incomingPackets = mutableSetOf<UShort>()
-
+class InMemorySessionStore(private val clock: Clock = Clock.System) : SessionStore {
+    private val state = AtomicReference(SessionState())
     private val sequence = AtomicLong(0)
 
     override fun store(source: Publish): InFlightPublish {
@@ -37,29 +30,37 @@ open class InMemorySessionStore(private val clock: Clock = Clock.System) : Sessi
             clock.now(),
             sequence.incrementAndFetch(),
         )
-        outgoingPackets[packet.packetIdentifier] = packet
+        updateState { current ->
+            current.copy(outgoingPackets = current.outgoingPackets + (packet.packetIdentifier to packet))
+        }
         return packet
     }
 
     override fun replace(source: InFlightPublish): InFlightPubrel {
         val packetIdentifier = source.packetIdentifier
+        var replacement: InFlightPubrel? = null
+        updateState { current ->
+            if (!current.outgoingPackets.containsKey(packetIdentifier)) {
+                throw NoSuchElementException("No PUBLISH packet found with identifier $packetIdentifier")
+            }
 
-        if (!outgoingPackets.containsKey(packetIdentifier)) {
-            throw NoSuchElementException("No PUBLISH packet found with identifier $packetIdentifier")
+            val inFlight = InFlightPubrel(source, sequence.incrementAndFetch())
+            replacement = inFlight
+            current.copy(outgoingPackets = current.outgoingPackets + (packetIdentifier to inFlight))
         }
 
-        return InFlightPubrel(source, sequence.incrementAndFetch())
-            .also { inFlight ->
-                Logger.v {
-                    "Replacing PUBLISH packet with identifier $packetIdentifier with $inFlight"
-                }
-                outgoingPackets[packetIdentifier] = inFlight
+        return requireNotNull(replacement).also { inFlight ->
+            Logger.v {
+                "Replacing PUBLISH packet with identifier $packetIdentifier with $inFlight"
             }
+        }
     }
 
     override fun acknowledge(packet: InFlightPacket) {
-        outgoingPackets.remove(packet.packetIdentifier)
-        Logger.v { "Acknowledged PUBLISH packet $packet" }
+        updateState { current ->
+            current.copy(outgoingPackets = current.outgoingPackets - packet.packetIdentifier)
+        }
+        Logger.v { "Acknowledged packet $packet" }
     }
 
     override fun rememberIncomingPacketId(publish: Publish): Boolean {
@@ -67,60 +68,54 @@ open class InMemorySessionStore(private val clock: Clock = Clock.System) : Sessi
             "Packets without packet identifier cannot be part of a transaction"
         }
 
-        return !incomingPackets.add(packetIdentifier)
+        var wasAdded = false
+        updateState { current ->
+            if (packetIdentifier in current.incomingPacketIds) {
+                return@updateState current
+            }
+
+            wasAdded = true
+            current.copy(incomingPacketIds = current.incomingPacketIds + packetIdentifier)
+        }
+        return wasAdded
     }
 
-    override fun hasIncomingPacketId(publish: Publish): Boolean = incomingPackets.contains(publish.packetIdentifier)
+    override fun hasIncomingPacketId(publish: Publish): Boolean {
+        val packetIdentifier = publish.packetIdentifier ?: return false
+        return packetIdentifier in state.load().incomingPacketIds
+    }
 
     override fun releaseIncomingPacketId(pubrel: Pubrel) {
-        incomingPackets.remove(pubrel.packetIdentifier)
+        updateState { current ->
+            current.copy(incomingPacketIds = current.incomingPacketIds - pubrel.packetIdentifier)
+        }
     }
 
     override fun unacknowledgedPackets(): List<InFlightPacket> {
-        // Does not need to be thread safe:
         val now = clock.now()
-        val all = outgoingPackets.ref.load().filterNot { it.value.isExpired(now) }
-        outgoingPackets.ref.store(all)
-
-        return all.values.sorted()
+        val updated = updateState { current ->
+            val unexpired = current.outgoingPackets.filterValues { packet -> !packet.isExpired(now) }
+            current.copy(outgoingPackets = unexpired)
+        }
+        return updated.outgoingPackets.values.sorted()
     }
 
     override fun clear() {
-        outgoingPackets.clear()
-        incomingPackets.clear()
+        state.store(SessionState())
+    }
+
+    private inline fun updateState(transform: (SessionState) -> SessionState): SessionState {
+        var current: SessionState
+        var updated: SessionState
+        do {
+            current = state.load()
+            updated = transform(current)
+        } while (!state.compareAndSet(current, updated))
+        return updated
     }
 }
 
-private class AtomicMap<K, V> {
-
-    val ref = AtomicReference(emptyMap<K, V>())
-
-    fun containsKey(key: K): Boolean = ref.load().containsKey(key)
-
-    operator fun set(key: K, value: V) {
-        while (true) {
-            val current = ref.load()
-            val updated = current + (key to value)
-            if (ref.compareAndSet(current, updated)) {
-                break
-            }
-        }
-    }
-
-    fun remove(key: K) {
-        var done = false
-        while (!done) {
-            val current = ref.load()
-            if (!current.containsKey(key)) {
-                done = true
-            } else {
-                val updated = current - key
-                done = ref.compareAndSet(current, updated)
-            }
-        }
-    }
-
-    fun clear() {
-        ref.store(emptyMap())
-    }
-}
+private data class SessionState(
+    val outgoingPackets: Map<UShort, InFlightPacket> = emptyMap(),
+    val incomingPacketIds: Set<UShort> = emptySet(),
+)
