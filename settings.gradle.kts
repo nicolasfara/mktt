@@ -35,3 +35,4 @@ gitHooks {
 rootProject.name = "mktt"
 include(":mktt-core")
 include(":mktt-client")
+include(":mktt-client-ws")

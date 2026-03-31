@@ -1,5 +1,8 @@
+@file:OptIn(ExperimentalWasmDsl::class)
+
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
+import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -20,6 +23,14 @@ kotlin {
         }
     }
 
+    wasmJs {
+        browser()
+        nodejs()
+    }
+    js {
+        browser()
+        nodejs()
+    }
     linuxX64()
     linuxArm64()
     mingwX64()
