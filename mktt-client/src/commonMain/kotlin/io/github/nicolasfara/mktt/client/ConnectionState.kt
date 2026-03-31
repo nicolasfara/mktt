@@ -11,6 +11,7 @@ import io.github.nicolasfara.mktt.core.Topic
 import io.github.nicolasfara.mktt.core.TopicFilter
 import io.github.nicolasfara.mktt.core.UserProperties
 import io.github.nicolasfara.mktt.core.packet.Connack
+import io.github.nicolasfara.mktt.core.packet.Publish
 import io.github.nicolasfara.mktt.core.packet.Suback
 import io.github.nicolasfara.mktt.core.packet.Unsuback
 
@@ -115,7 +116,7 @@ data class MqttPublishMessage(
     )
 }
 
-internal fun io.github.nicolasfara.mktt.core.packet.Publish.toIncomingMessage(): MqttPublishMessage =
+internal fun Publish.toIncomingMessage(): MqttPublishMessage =
     MqttPublishMessage(
         topic = topic,
         payload = payload.toByteArray(0, payload.size),
