@@ -54,7 +54,10 @@ import kotlin.concurrent.atomics.updateAndFetch
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.mapCatching
 import kotlin.time.Duration.Companion.seconds
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
 import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
@@ -184,7 +187,8 @@ class MqttClient internal constructor(
     private var _maxPacketSize = UInt.MAX_VALUE
 
     /**
-     * Provides the connection state of this MQTT client. When the state is [Connected] this implies that an IP
+     * Provides the connection state of this MQTT client. When the state is
+     * [io.github.nicolasfara.mktt.client.MqttConnectionState.Connected] this implies that an IP
      * connectivity has been established AND that the server responded with a success CONNACK message.
      */
     val connectionState: StateFlow<MqttConnectionState>
@@ -192,7 +196,7 @@ class MqttClient internal constructor(
 
     private val connackFlow = MutableStateFlow<Connack?>(null)
 
-    private val scope = CoroutineScope(config.dispatcher)
+    private val scope = CoroutineScope(engine.dispatcher)
 
     // A replay cache is crucial here to prevent a race condition where a response packet arrives
     // before the corresponding `awaitResponseOf` call is able to subscribe to the flow. Without a
@@ -865,15 +869,10 @@ class MqttClient internal constructor(
  *     ...
  * }
  * ```
- *
- * @sample de.kempmobil.ktor.mqtt.ClientSample.createClient
  */
-fun MqttClient(host: String, port: Int, init: MqttClientConfigBuilder<DefaultEngineConfig>.() -> Unit): MqttClient =
-    MqttClient(
-        MqttClientConfigBuilder(
-            DefaultEngineFactory(
-                host,
-                port,
-            ),
-        ).apply(init).build(),
-    )
+fun MqttClient(
+    host: String,
+    port: Int,
+    dispatcher: CoroutineDispatcher = Dispatchers.Default,
+    init: MqttClientConfigBuilder<DefaultEngineConfig>.() -> Unit,
+): MqttClient = MqttClient(MqttClientConfigBuilder(DefaultEngineFactory(host, port, dispatcher)).apply(init).build())

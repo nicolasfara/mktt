@@ -1,6 +1,7 @@
 package io.github.nicolasfara.mktt.engine
 
 import io.github.nicolasfara.mktt.core.packet.Packet
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -8,6 +9,10 @@ import kotlinx.coroutines.flow.StateFlow
  * Interface for doing the network stuff of sending and receiving MQTT packets.
  */
 interface MqttEngine : AutoCloseable {
+    /**
+     * The dispatcher on which the coroutines are executed within the engine.
+     */
+    val dispatcher: CoroutineDispatcher
 
     /**
      * A shared flow of the received packets. Will contain a failure if a malformed packet has been received (together

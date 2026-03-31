@@ -62,8 +62,7 @@ internal class MqttClientIntegrationTest {
         val dispatcher = createDispatcher(TLS_CONNECT_PARALLELISM)
         try {
             val client =
-                MqttClient(container.host, container.tlsPort) {
-                    this.dispatcher = dispatcher
+                MqttClient(container.host, container.tlsPort, dispatcher) {
                     ackMessageTimeout = ACK_MESSAGE_TIMEOUT
                     clientId = "tls-client"
                     username = MosquittoContainer.USER
@@ -92,8 +91,7 @@ internal class MqttClientIntegrationTest {
         container: MosquittoContainer,
         clientId: String,
         dispatcher: CoroutineDispatcher,
-    ): MqttClient = MqttClient(container.host, container.defaultPort) {
-        this.dispatcher = dispatcher
+    ): MqttClient = MqttClient(container.host, container.defaultPort, dispatcher) {
         ackMessageTimeout = ACK_MESSAGE_TIMEOUT
         this.clientId = clientId
         username = MosquittoContainer.USER

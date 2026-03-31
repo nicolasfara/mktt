@@ -116,20 +116,19 @@ data class MqttPublishMessage(
     )
 }
 
-internal fun Publish.toIncomingMessage(): MqttPublishMessage =
-    MqttPublishMessage(
-        topic = topic,
-        payload = payload.toByteArray(0, payload.size),
-        qos = qoS,
-        retained = isRetainMessage,
-        duplicate = isDupMessage,
-        responseTopic = responseTopic,
-        correlationData = correlationData,
-        contentType = contentType,
-        payloadFormatIndicator = payloadFormatIndicator,
-        subscriptionIdentifier = subscriptionIdentifier,
-        userProperties = userProperties,
-    )
+internal fun Publish.toIncomingMessage(): MqttPublishMessage = MqttPublishMessage(
+    topic = topic,
+    payload = payload.toByteArray(0, payload.size),
+    qos = qoS,
+    retained = isRetainMessage,
+    duplicate = isDupMessage,
+    responseTopic = responseTopic,
+    correlationData = correlationData,
+    contentType = contentType,
+    payloadFormatIndicator = payloadFormatIndicator,
+    subscriptionIdentifier = subscriptionIdentifier,
+    userProperties = userProperties,
+)
 
 /**
  * Checks whether this filter matches the provided [topic].

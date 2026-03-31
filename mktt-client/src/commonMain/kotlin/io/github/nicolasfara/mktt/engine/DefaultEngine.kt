@@ -21,6 +21,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
@@ -46,6 +47,7 @@ import kotlinx.io.EOFException
  */
 internal class DefaultEngine(
     private val config: DefaultEngineConfig,
+    override val dispatcher: CoroutineDispatcher,
     socketHandler: SocketHandler? = null,
     replay: Int = 0,
 ) : MqttEngine {
@@ -56,11 +58,11 @@ internal class DefaultEngine(
     private val _connected = MutableStateFlow(false)
     override val connected = _connected.asStateFlow()
 
-    private val socketHandler = socketHandler ?: SocketHandlerImpl(config.dispatcher)
+    private val socketHandler = socketHandler ?: SocketHandlerImpl(dispatcher)
 
     private val writeMutex = Mutex()
 
-    private val scope = CoroutineScope(config.dispatcher + SupervisorJob())
+    private val scope = CoroutineScope(dispatcher + SupervisorJob())
 
     private var sendChannel: ByteWriteChannel? = null
 
@@ -177,9 +179,7 @@ internal class DefaultEngine(
             disconnected()
             Result.failure(ex)
         } catch (ex: IllegalStateException) {
-            Logger.w(throwable = ex) {
-                "Write channel error detected"
-            }
+            Logger.w(throwable = ex) { "Write channel error detected" }
             disconnected()
             Result.failure(ex)
         }
@@ -196,7 +196,7 @@ internal class DefaultEngine(
         sendChannel = null
     }
 
-    private inner class SocketHandlerImpl(dispatcher: CoroutineDispatcher) : SocketHandler {
+    private inner class SocketHandlerImpl(val dispatcher: CoroutineDispatcher) : SocketHandler {
 
         private val selectorManager = SelectorManager(dispatcher)
 
@@ -220,7 +220,7 @@ internal class DefaultEngine(
                     // When not connected, ignore this exception, as it is a
                     // result of being disconnected.
                 }
-                val tlsContext = CoroutineName("TLS Handler") + config.dispatcher + handler
+                val tlsContext = CoroutineName("TLS Handler") + dispatcher + handler
 
                 aSocket(selectorManager).tcp().connect(host, port, tcpOptions)
                     .tls(tlsContext, tlsConfig)

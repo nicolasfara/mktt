@@ -2,12 +2,13 @@ package io.github.nicolasfara.mktt.client
 
 import io.github.nicolasfara.mktt.core.packet.Packet
 import io.github.nicolasfara.mktt.engine.MqttEngine
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-internal class FakeMqttEngine : MqttEngine {
+internal class FakeMqttEngine(override val dispatcher: CoroutineDispatcher) : MqttEngine {
     private val _packetResults =
         MutableSharedFlow<Result<Packet>>(extraBufferCapacity = 32)
     private val _connected = MutableStateFlow(false)

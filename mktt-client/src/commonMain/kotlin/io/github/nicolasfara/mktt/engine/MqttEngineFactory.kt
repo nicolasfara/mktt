@@ -18,10 +18,4 @@ interface MqttEngineFactory<out T : MqttEngineConfig> {
  * Base DSL configuration used by [MqttEngineFactory] implementations.
  */
 @MqttDslMarker
-open class MqttEngineConfig {
-
-    /**
-     * Dispatcher used by engine internals.
-     */
-    lateinit var dispatcher: CoroutineDispatcher
-}
+open class MqttEngineConfig

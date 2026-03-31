@@ -36,14 +36,12 @@ internal class RemoteBrokerIntegrationTest {
                 Topic(topicName),
             )
             val subscriber =
-                MqttClient(TEST_BROKER_HOST, TEST_BROKER_PORT) {
-                    this.dispatcher = dispatcher
+                MqttClient(TEST_BROKER_HOST, TEST_BROKER_PORT, dispatcher) {
                     ackMessageTimeout = ACK_MESSAGE_TIMEOUT
                     clientId = "mktt-remote-sub-${Random.nextLong().toString(HEX_RADIX)}"
                 }
             val publisher =
-                MqttClient(TEST_BROKER_HOST, TEST_BROKER_PORT) {
-                    this.dispatcher = dispatcher
+                MqttClient(TEST_BROKER_HOST, TEST_BROKER_PORT, dispatcher) {
                     ackMessageTimeout = ACK_MESSAGE_TIMEOUT
                     clientId = "mktt-remote-pub-${Random.nextLong().toString(HEX_RADIX)}"
                 }

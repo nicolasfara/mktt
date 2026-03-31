@@ -27,6 +27,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.NonCancellable
@@ -43,7 +44,8 @@ import kotlinx.io.bytestring.ByteString
 class MqttClientTest {
     @Test
     fun `connect returns connack and updates connection state`() = runTest {
-        val engine = FakeMqttEngine().apply {
+        val dispatcher = UnconfinedTestDispatcher(testScheduler)
+        val engine = FakeMqttEngine(dispatcher).apply {
             sendHandler = { packet ->
                 sentPackets += packet
                 if (packet is Connect) {
@@ -57,7 +59,7 @@ class MqttClientTest {
                 Result.success(Unit)
             }
         }
-        val client = createClient(engine, UnconfinedTestDispatcher(testScheduler))
+        val client = createClient(engine)
 
         val connack = client.connect()
         try {
@@ -76,7 +78,7 @@ class MqttClientTest {
 
     @Test
     fun `connect failure exposes connection error state`() = runTest {
-        val engine = FakeMqttEngine().apply {
+        val engine = FakeMqttEngine(UnconfinedTestDispatcher(testScheduler)).apply {
             startHandler =
                 {
                     Result.failure(
@@ -84,7 +86,7 @@ class MqttClientTest {
                     )
                 }
         }
-        val client = createClient(engine, UnconfinedTestDispatcher(testScheduler))
+        val client = createClient(engine)
 
         assertFailsWith<ConnectionException> {
             client.connect()
@@ -95,7 +97,7 @@ class MqttClientTest {
 
     @Test
     fun `publish qos1 succeeds when ack arrives during send`() = runTest {
-        val engine = FakeMqttEngine().apply {
+        val engine = FakeMqttEngine(UnconfinedTestDispatcher(testScheduler)).apply {
             sendHandler = { packet ->
                 sentPackets += packet
                 when (packet) {
@@ -113,7 +115,7 @@ class MqttClientTest {
                 Result.success(Unit)
             }
         }
-        val client = createClient(engine, UnconfinedTestDispatcher(testScheduler))
+        val client = createClient(engine)
         client.connect()
         try {
             val result = client.publish(
@@ -135,7 +137,7 @@ class MqttClientTest {
 
     @Test
     fun `messages flow filters incoming publishes locally`() = runTest {
-        val engine = FakeMqttEngine().apply {
+        val engine = FakeMqttEngine(UnconfinedTestDispatcher(testScheduler)).apply {
             sendHandler = { packet ->
                 sentPackets += packet
                 if (packet is Connect) {
@@ -149,7 +151,7 @@ class MqttClientTest {
                 Result.success(Unit)
             }
         }
-        val client = createClient(engine, UnconfinedTestDispatcher(testScheduler))
+        val client = createClient(engine)
         client.connect()
         try {
             val message = backgroundScope.async {
@@ -181,7 +183,7 @@ class MqttClientTest {
 
     @Test
     fun `subscribe and unsubscribe return acknowledgements`() = runTest {
-        val engine = FakeMqttEngine().apply {
+        val engine = FakeMqttEngine(UnconfinedTestDispatcher(testScheduler)).apply {
             sendHandler = { packet ->
                 sentPackets += packet
                 when (packet) {
@@ -209,7 +211,7 @@ class MqttClientTest {
                 Result.success(Unit)
             }
         }
-        val client = createClient(engine, UnconfinedTestDispatcher(testScheduler))
+        val client = createClient(engine)
         val filter = TopicFilter(
             Topic("sensors/+"),
         )
@@ -230,8 +232,7 @@ class MqttClientTest {
 
     @Test
     fun `keep alive sends ping requests with virtual time`() = runTest {
-        val dispatcher = UnconfinedTestDispatcher(testScheduler)
-        val engine = FakeMqttEngine().apply {
+        val engine = FakeMqttEngine(UnconfinedTestDispatcher(testScheduler)).apply {
             sendHandler = { packet ->
                 sentPackets += packet
                 when (packet) {
@@ -250,10 +251,10 @@ class MqttClientTest {
                 Result.success(Unit)
             }
         }
-        val client = createClient(engine, dispatcher)
+        val client = createClient(engine)
         client.connect()
         try {
-            advanceTimeBy(1_000)
+            advanceTimeBy(1_000.milliseconds)
             runCurrent()
 
             assertTrue(engine.sentPackets.any { it is Pingreq })
@@ -265,9 +266,8 @@ class MqttClientTest {
         }
     }
 
-    private fun createClient(engine: FakeMqttEngine, dispatcher: CoroutineDispatcher): MqttClient {
+    private fun createClient(engine: FakeMqttEngine): MqttClient {
         val config = buildConfig(TestEngineFactory(engine)) {
-            this.dispatcher = dispatcher
             clientId = "test-client"
         }
         return MqttClient(config)

@@ -34,11 +34,6 @@ interface MqttClientConfig {
     val engine: MqttEngine
 
     /**
-     * Dispatcher used by client coroutines.
-     */
-    val dispatcher: CoroutineDispatcher
-
-    /**
      * MQTT client identifier.
      */
     val clientId: String
@@ -69,7 +64,7 @@ interface MqttClientConfig {
     val keepAliveSeconds: UShort
 
     /**
-     * Optional user name for authentication.
+     * Optional username for authentication.
      */
     val username: String?
 
@@ -135,27 +130,16 @@ interface MqttClientConfig {
 fun <T : MqttEngineConfig> buildConfig(
     connectionFactory: MqttEngineFactory<T>,
     init: MqttClientConfigBuilder<T>.() -> Unit,
-): MqttClientConfig = MqttClientConfigBuilder(
-    connectionFactory,
-).apply(init).build()
+): MqttClientConfig = MqttClientConfigBuilder(connectionFactory).apply(init).build()
 
 /**
  * DSL builder used to assemble [MqttClientConfig].
- *
- * TODO: the coroutine dispatcher should be contextual (Danilo)
  */
 @MqttDslMarker
 class MqttClientConfigBuilder<out T : MqttEngineConfig>(private val engineFactory: MqttEngineFactory<T>) {
     private var userPropertiesBuilder: UserPropertiesBuilder? = null
     private var willMessageBuilder: WillMessageBuilder? = null
     private var connectionBlock: (T.() -> Unit)? = null
-
-    /**
-     * Dispatcher used by [MqttClient].
-     *
-     * TODO: this is a questionable design choice. The dispatcher could be injected as context parameter (Danilo)
-     */
-    lateinit var dispatcher: CoroutineDispatcher
 
     /**
      * Timeout for handshake acknowledgments.
@@ -254,16 +238,11 @@ class MqttClientConfigBuilder<out T : MqttEngineConfig>(private val engineFactor
      * Builds an immutable [MqttClientConfig].
      */
     fun build(): MqttClientConfig {
-        check(::dispatcher.isInitialized) {
-            "dispatcher must be configured explicitly"
-        }
         val resolvedEngine = engineFactory.create {
-            dispatcher = this@MqttClientConfigBuilder.dispatcher
             connectionBlock?.invoke(this)
         }
         return MqttClientConfigImpl(
             engine = resolvedEngine,
-            dispatcher = dispatcher,
             clientId = clientId,
             ackMessageTimeout = ackMessageTimeout,
             willMessage = willMessageBuilder?.build(),
@@ -294,7 +273,6 @@ class MqttClientConfigBuilder<out T : MqttEngineConfig>(private val engineFactor
 
 private data class MqttClientConfigImpl(
     override val engine: MqttEngine,
-    override val dispatcher: CoroutineDispatcher,
     override val clientId: String,
     override val ackMessageTimeout: Duration,
     override val willMessage: WillMessage?,
