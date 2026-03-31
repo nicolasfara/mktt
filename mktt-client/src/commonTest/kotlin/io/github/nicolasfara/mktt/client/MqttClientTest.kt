@@ -19,6 +19,9 @@ import io.github.nicolasfara.mktt.core.packet.Unsuback
 import io.github.nicolasfara.mktt.core.packet.Unsubscribe
 import io.github.nicolasfara.mktt.core.packet.hasFailure
 import io.github.nicolasfara.mktt.core.packet.isUnsubscribed
+import io.github.nicolasfara.mktt.engine.MqttEngine
+import io.github.nicolasfara.mktt.engine.MqttEngineConfig
+import io.github.nicolasfara.mktt.engine.MqttEngineFactory
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith

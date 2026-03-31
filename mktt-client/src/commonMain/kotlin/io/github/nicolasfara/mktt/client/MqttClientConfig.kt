@@ -16,6 +16,9 @@ import io.github.nicolasfara.mktt.core.WillMessage
 import io.github.nicolasfara.mktt.core.WillMessageBuilder
 import io.github.nicolasfara.mktt.core.toSessionExpiryInterval
 import io.github.nicolasfara.mktt.core.util.MqttDslMarker
+import io.github.nicolasfara.mktt.engine.MqttEngine
+import io.github.nicolasfara.mktt.engine.MqttEngineConfig
+import io.github.nicolasfara.mktt.engine.MqttEngineFactory
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CoroutineDispatcher

@@ -1,6 +1,7 @@
 package io.github.nicolasfara.mktt.client
 
 import io.github.nicolasfara.mktt.core.packet.Packet
+import io.github.nicolasfara.mktt.engine.MqttEngine
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow

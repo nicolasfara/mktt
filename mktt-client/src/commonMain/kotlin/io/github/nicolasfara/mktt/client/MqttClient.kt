@@ -43,6 +43,9 @@ import io.github.nicolasfara.mktt.core.packet.Unsubscribe
 import io.github.nicolasfara.mktt.core.packet.isResponseFor
 import io.github.nicolasfara.mktt.core.toReasonString
 import io.github.nicolasfara.mktt.core.util.Logger
+import io.github.nicolasfara.mktt.engine.DefaultEngineConfig
+import io.github.nicolasfara.mktt.engine.DefaultEngineFactory
+import io.github.nicolasfara.mktt.engine.MqttEngine
 import kotlin.collections.map
 import kotlin.collections.set
 import kotlin.concurrent.atomics.AtomicInt
@@ -71,7 +74,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * MQTT v5 client that manages connection lifecycle, subscriptions, publishes,
- * and packet-level request/response coordination over a configurable [MqttEngine].
+ * and packet-level request/response coordination over a configurable [io.github.nicolasfara.mktt.engine.MqttEngine].
  */
 class MqttClient internal constructor(
     private val config: MqttClientConfig,

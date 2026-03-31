@@ -1,4 +1,4 @@
-package io.github.nicolasfara.mktt.client
+package io.github.nicolasfara.mktt.engine
 
 import io.ktor.network.sockets.SocketOptions
 import io.ktor.network.tls.TLSConfigBuilder
@@ -35,7 +35,7 @@ class DefaultEngineConfig(val host: String, val port: Int) : MqttEngineConfig() 
     /**
      * Add TLS configuration for this client. Just use `tls { }` to enable TLS support.
      */
-    fun tls(init: TLSConfigBuilder.() -> Unit) {
+    fun tls(init: TLSConfigBuilder.() -> Unit = {}) {
         tlsConfigBuilder = TLSConfigBuilder().also(init)
     }
 
@@ -44,7 +44,7 @@ class DefaultEngineConfig(val host: String, val port: Int) : MqttEngineConfig() 
      *
      * @see SocketOptions.TCPClientSocketOptions
      */
-    fun tcp(init: SocketOptions.TCPClientSocketOptions.() -> Unit) {
+    fun tcp(init: SocketOptions.TCPClientSocketOptions.() -> Unit = {}) {
         tcpOptions = init
     }
 }
