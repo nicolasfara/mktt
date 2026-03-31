@@ -17,7 +17,6 @@ data class SubscriptionOptions(
     /** Holds default subscription-options values. */
     companion object {
         /** Default MQTT subscription options. */
-        val DEFAULT: SubscriptionOptions =
-            SubscriptionOptions()
+        val DEFAULT: SubscriptionOptions = SubscriptionOptions()
     }
 }

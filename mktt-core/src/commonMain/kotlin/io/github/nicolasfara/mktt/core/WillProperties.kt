@@ -84,9 +84,7 @@ class WillPropertiesBuilder {
         contentType = contentType?.let { ContentType(it) },
         responseTopic = responseTopic?.let { ResponseTopic(it) },
         correlationData = correlationData?.let {
-            CorrelationData(
-                it,
-            )
+            CorrelationData(it)
         },
         userProperties = userPropertiesBuilder.build(),
     )

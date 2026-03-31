@@ -20,7 +20,6 @@ interface SessionStore {
      *
      * This method must be thread safe.
      *
-     * @param packet The PUBLISH packet to store. Must have a non-null packet identifier.
      * @return an in-flight packet with the current time as timestamp and the original packet.
      * @throws IllegalArgumentException if the packet identifier is null.
      */

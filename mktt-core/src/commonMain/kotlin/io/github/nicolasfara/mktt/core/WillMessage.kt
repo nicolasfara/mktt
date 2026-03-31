@@ -93,9 +93,7 @@ internal fun Source.readWillMessage(): WillMessage {
     val topic = readMqttString()
     val payload = readMqttByteString()
     return WillMessage(
-        Topic(
-            topic,
-        ),
+        Topic(topic),
         payload,
         WillProperties.from(properties),
     )
