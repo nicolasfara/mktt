@@ -83,9 +83,7 @@ data class Connect(
 ) : BasePacket(PacketType.CONNECT) {
 
     init {
-        wellFormedWhen(
-            (willMessage != null) || (willQqS == QoS.AT_MOST_ONCE),
-        ) {
+        wellFormedWhen((willMessage != null) || (willQqS == QoS.AT_MOST_ONCE)) {
             "If the Will Flag is set to 0, then the Will QoS MUST be set to 0 (0x00) [MQTT-3.1.2-11]"
         }
         malformedWhen(willMessage == null && retainWillMessage) {

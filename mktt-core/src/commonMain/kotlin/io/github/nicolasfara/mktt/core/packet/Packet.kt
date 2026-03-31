@@ -34,19 +34,19 @@ interface Packet {
 /**
  * Determines whether this packet is of the specified type and its packet identifier is the same as the one of `packet`.
  */
-inline fun <reified T : PacketIdentifierPacket> Packet.isResponseFor(packet: PacketIdentifierPacket): Boolean =
-    T::class.isInstance(this) &&
-        packet.packetIdentifier ==
-        (this as PacketIdentifierPacket).packetIdentifier
+inline fun <reified T : PacketIdentifierPacket> Packet.isResponseFor(packet: PacketIdentifierPacket): Boolean = when(this) {
+    is T -> packet.packetIdentifier == this.packetIdentifier
+    else -> false
+}
 
 /**
  * Determines whether this packet is of the specified type and has the same
  * packet identifier as `publish`.
  */
-inline fun <reified T : PacketIdentifierPacket> Packet.isResponseFor(publish: Publish): Boolean =
-    T::class.isInstance(this) &&
-        publish.packetIdentifier ==
-        (this as PacketIdentifierPacket).packetIdentifier
+inline fun <reified T : PacketIdentifierPacket> Packet.isResponseFor(publish: Publish): Boolean = when(this) {
+    is T -> publish.packetIdentifier == this.packetIdentifier
+    else -> false
+}
 
 /**
  * Reads a packet from this byte read channel. Blocks until the packet has been read completely
@@ -65,41 +65,19 @@ suspend fun ByteReadChannel.readPacket(): Packet {
     return with(readPacket(length)) {
         when (type) {
             PacketType.CONNACK -> readConnack()
-
             PacketType.CONNECT -> readConnect()
-
             PacketType.PUBLISH -> readPublish(header.toInt())
-
-            PacketType.PUBACK -> readPublishResponse(
-                PubackFactory,
-            )
-
-            PacketType.PUBREC -> readPublishResponse(
-                PubrecFactory,
-            )
-
-            PacketType.PUBREL -> readPublishResponse(
-                PubrelFactory,
-            )
-
-            PacketType.PUBCOMP -> readPublishResponse(
-                PubcompFactory,
-            )
-
+            PacketType.PUBACK -> readPublishResponse(PubackFactory)
+            PacketType.PUBREC -> readPublishResponse(PubrecFactory)
+            PacketType.PUBREL -> readPublishResponse(PubrelFactory)
+            PacketType.PUBCOMP -> readPublishResponse(PubcompFactory)
             PacketType.SUBSCRIBE -> readSubscribe()
-
             PacketType.SUBACK -> readSuback()
-
             PacketType.UNSUBSCRIBE -> readUnsubscribe()
-
             PacketType.UNSUBACK -> readUnsuback()
-
             PacketType.PINGREQ -> Pingreq
-
             PacketType.PINGRESP -> Pingresp
-
             PacketType.DISCONNECT -> readDisconnect(length)
-
             PacketType.AUTH -> readAuth()
         }
     }

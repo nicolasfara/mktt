@@ -2,6 +2,8 @@
 
 package io.github.nicolasfara.mktt.core.packet
 
+import io.github.nicolasfara.mktt.core.MalformedPacketException
+
 private const val PACKET_TYPE_CONNECT = 1
 private const val PACKET_TYPE_CONNACK = 2
 private const val PACKET_TYPE_PUBLISH = 3
@@ -79,13 +81,7 @@ enum class PacketType(internal val value: Int) {
         fun from(header: Byte): PacketType {
             val value = (header.toInt() and MQTT_HEADER_BYTE_MASK) shr MQTT_PACKET_TYPE_SHIFT
             return entries.firstOrNull { it.value == value }
-                ?: throw _root_ide_package_.io.github.nicolasfara.mktt.core.MalformedPacketException(
-                    "Unknown header type: ${
-                        header.toHexString(
-                            HeaderFormat,
-                        )
-                    }",
-                )
+                ?: throw MalformedPacketException("Unknown header type: ${header.toHexString(HeaderFormat)}")
         }
     }
 }
