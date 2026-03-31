@@ -69,94 +69,49 @@ data class ReasonCode internal constructor(val code: Int, val name: String) {
 
             return when (code.toInt() and REASON_CODE_BYTE_MASK) {
                 0 -> defaultSuccessReason
-
                 GrantedQoS1.code -> GrantedQoS1
-
                 GrantedQoS2.code -> GrantedQoS2
-
                 DisconnectWithWillMessage.code -> DisconnectWithWillMessage
-
                 NoMatchingSubscribers.code -> NoMatchingSubscribers
-
                 NoSubscriptionExisted.code -> NoSubscriptionExisted
-
                 ContinueAuthentication.code -> ContinueAuthentication
-
                 ReAuthenticate.code -> ReAuthenticate
-
                 UnspecifiedError.code -> UnspecifiedError
-
                 MalformedPacket.code -> MalformedPacket
-
                 ProtocolError.code -> ProtocolError
-
                 ImplementationSpecificError.code -> ImplementationSpecificError
-
                 UnsupportedProtocolVersion.code -> UnsupportedProtocolVersion
-
                 ClientIdentifierNotValid.code -> ClientIdentifierNotValid
-
                 BadUserNameOrPassword.code -> BadUserNameOrPassword
-
                 NotAuthorized.code -> NotAuthorized
-
                 ServerUnavailable.code -> ServerUnavailable
-
                 ServerBusy.code -> ServerBusy
-
                 Banned.code -> Banned
-
                 ServerShuttingDown.code -> ServerShuttingDown
-
                 BadAuthenticationMethod.code -> BadAuthenticationMethod
-
                 KeepAliveTimeout.code -> KeepAliveTimeout
-
                 SessionTakenOver.code -> SessionTakenOver
-
                 TopicFilterInvalid.code -> TopicFilterInvalid
-
                 TopicNameInvalid.code -> TopicNameInvalid
-
                 PacketIdentifierInUse.code -> PacketIdentifierInUse
-
                 PacketIdentifierNotFound.code -> PacketIdentifierNotFound
-
                 ReceiveMaximumExceeded.code -> ReceiveMaximumExceeded
-
                 TopicAliasInvalid.code -> TopicAliasInvalid
-
                 PacketTooLarge.code -> PacketTooLarge
-
                 MessageRateTooHigh.code -> MessageRateTooHigh
-
                 QuotaExceeded.code -> QuotaExceeded
-
                 AdministrativeAction.code -> AdministrativeAction
-
                 PayloadFormatInvalid.code -> PayloadFormatInvalid
-
                 RetainNotSupported.code -> RetainNotSupported
-
                 QoSNotSupported.code -> QoSNotSupported
-
                 UseAnotherServer.code -> UseAnotherServer
-
                 ServerMoved.code -> ServerMoved
-
                 SharedSubscriptionsNotSupported.code -> SharedSubscriptionsNotSupported
-
                 ConnectionRateExceeded.code -> ConnectionRateExceeded
-
                 MaximumConnectTime.code -> MaximumConnectTime
-
                 SubscriptionIdentifiersNotSupported.code -> SubscriptionIdentifiersNotSupported
-
                 WildcardSubscriptionsNotSupported.code -> WildcardSubscriptionsNotSupported
-
-                else -> throw MalformedPacketException(
-                    "Unknown reason code: $code",
-                )
+                else -> throw MalformedPacketException("Unknown reason code: $code")
             }
         }
     }

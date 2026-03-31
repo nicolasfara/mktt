@@ -34,14 +34,9 @@ enum class QoS(
     internal companion object {
         fun from(value: Int): QoS = when (value) {
             0 -> AT_MOST_ONCE
-
             1 -> AT_LEAST_ONCE
-
             2 -> EXACTLY_ONE
-
-            else -> throw MalformedPacketException(
-                "Unknown QoS value: $value",
-            )
+            else -> throw MalformedPacketException("Unknown QoS value: $value")
         }
     }
 }
