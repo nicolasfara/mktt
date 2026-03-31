@@ -34,16 +34,17 @@ interface Packet {
 /**
  * Determines whether this packet is of the specified type and its packet identifier is the same as the one of `packet`.
  */
-inline fun <reified T : PacketIdentifierPacket> Packet.isResponseFor(packet: PacketIdentifierPacket): Boolean = when(this) {
-    is T -> packet.packetIdentifier == this.packetIdentifier
-    else -> false
-}
+inline fun <reified T : PacketIdentifierPacket> Packet.isResponseFor(packet: PacketIdentifierPacket): Boolean =
+    when (this) {
+        is T -> packet.packetIdentifier == this.packetIdentifier
+        else -> false
+    }
 
 /**
  * Determines whether this packet is of the specified type and has the same
  * packet identifier as `publish`.
  */
-inline fun <reified T : PacketIdentifierPacket> Packet.isResponseFor(publish: Publish): Boolean = when(this) {
+inline fun <reified T : PacketIdentifierPacket> Packet.isResponseFor(publish: Publish): Boolean = when (this) {
     is T -> publish.packetIdentifier == this.packetIdentifier
     else -> false
 }
