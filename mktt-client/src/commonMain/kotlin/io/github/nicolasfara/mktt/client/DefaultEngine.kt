@@ -1,6 +1,3 @@
-// We must provide our own exception handler for the TLS connection, otherwise errors (which might happen
-// due to an already closed connection) will get propagated to the parent's coroutine, which is not what
-// we want.
 package io.github.nicolasfara.mktt.client
 
 import io.github.nicolasfara.mktt.core.ConnectionException
@@ -53,8 +50,7 @@ internal class DefaultEngine(
     replay: Int = 0,
 ) : MqttEngine {
 
-    private val _packetResults =
-        MutableSharedFlow<Result<Packet>>(replay = replay)
+    private val _packetResults = MutableSharedFlow<Result<Packet>>(replay = replay)
     override val packetResults = _packetResults.asSharedFlow()
 
     private val _connected = MutableStateFlow(false)
