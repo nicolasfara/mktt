@@ -1,5 +1,6 @@
 package io.github.nicolasfara.mktt
 
+import io.github.nicolasfara.mktt.client.DefaultMqttClient
 import io.github.nicolasfara.mktt.client.MqttClient
 import io.github.nicolasfara.mktt.client.MqttClientConfigBuilder
 import io.ktor.http.Url
@@ -57,4 +58,4 @@ fun MqttClient(
     url: Url,
     dispatcher: CoroutineDispatcher,
     init: MqttClientConfigBuilder<WebSocketEngineConfig>.() -> Unit,
-): MqttClient = MqttClient(MqttClientConfigBuilder(WebSocketEngineFactory(url, dispatcher)).also(init).build())
+): MqttClient = DefaultMqttClient(MqttClientConfigBuilder(WebSocketEngineFactory(url, dispatcher)).also(init).build())

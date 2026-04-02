@@ -116,7 +116,7 @@ data class MqttPublishMessage(
     )
 }
 
-internal fun Publish.toIncomingMessage(): MqttPublishMessage = MqttPublishMessage(
+fun Publish.toIncomingMessage(): MqttPublishMessage = MqttPublishMessage(
     topic = topic,
     payload = payload.toByteArray(0, payload.size),
     qos = qoS,

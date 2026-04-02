@@ -52,7 +52,7 @@ data class PublishRequest(
         }
     }
 
-    internal fun payloadAsByteString(): ByteString = ByteString(payload)
+    fun payloadAsByteString(): ByteString = ByteString(payload)
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

@@ -24,8 +24,8 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.channels.ClosedSendChannelException
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
+import kotlinx.coroutines.channels.ClosedSendChannelException
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -91,9 +91,8 @@ internal class WebSocketEngine(
         Result.failure(ConnectionException("Cannot connect to ${config.url}", ex))
     }
 
-    override suspend fun send(packet: Packet): Result<Unit> =
-        wsSession?.let { doSend(it, packet) }
-            ?: Result.failure(ConnectionException("Not connected to ${config.url}"))
+    override suspend fun send(packet: Packet): Result<Unit> = wsSession?.let { doSend(it, packet) }
+        ?: Result.failure(ConnectionException("Not connected to ${config.url}"))
 
     override suspend fun disconnect() {
         _connected.value = false
@@ -122,8 +121,7 @@ internal class WebSocketEngine(
         Result.success(Unit)
     } catch (ex: CancellationException) {
         throw ex
-    }
-    catch (ex: ClosedSendChannelException) {
+    } catch (ex: ClosedSendChannelException) {
         Logger.w(ex) { "Unexpected exception while sending packet: $ex" }
         Result.failure(ex)
     }

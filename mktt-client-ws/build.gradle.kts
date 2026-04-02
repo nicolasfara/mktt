@@ -50,7 +50,6 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(project(":mktt-core"))
-            implementation(project(":mktt-client"))
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.websockets)
             implementation(libs.kotlinx.coroutines)

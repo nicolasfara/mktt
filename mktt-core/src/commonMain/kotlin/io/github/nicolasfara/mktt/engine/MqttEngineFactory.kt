@@ -1,7 +1,6 @@
 package io.github.nicolasfara.mktt.engine
 
 import io.github.nicolasfara.mktt.core.util.MqttDslMarker
-import kotlinx.coroutines.CoroutineDispatcher
 
 /**
  * Factory used to create transport engines for the MQTT client.
