@@ -14,7 +14,6 @@ import io.ktor.client.plugins.websocket.webSocketSession
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.http.URLProtocol
-import io.ktor.http.headers
 import io.ktor.utils.io.ByteChannel
 import io.ktor.utils.io.CancellationException
 import io.ktor.utils.io.writeFully
@@ -25,6 +24,8 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.channels.ClosedSendChannelException
+import kotlinx.coroutines.channels.ClosedReceiveChannelException
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -122,7 +123,7 @@ internal class WebSocketEngine(
     } catch (ex: CancellationException) {
         throw ex
     }
-    catch (ex: Exception) {
+    catch (ex: ClosedSendChannelException) {
         Logger.w(ex) { "Unexpected exception while sending packet: $ex" }
         Result.failure(ex)
     }
@@ -156,8 +157,8 @@ internal class WebSocketEngine(
             }
         } catch (ex: CancellationException) {
             throw ex
-        } catch (ex: Exception) {
-            Logger.e(ex) { "Error while receiving messages: ${ex::class}" }
+        } catch (_: ClosedReceiveChannelException) {
+            Logger.d { "WebSocket incoming channel closed" }
         } finally {
             withContext(NonCancellable) {
                 disconnect()
