@@ -65,6 +65,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.withTimeoutOrNull
 
+/**
+ * Default [MqttClient] implementation backed by a [MqttEngine] and a [SessionStore].
+ */
 class DefaultMqttClient(
     private val config: MqttClientConfig,
     private val engine: MqttEngine,
@@ -692,6 +695,11 @@ class DefaultMqttClient(
         return waitForResponse.await()
     }
 
+    /**
+     * Returns the next MQTT packet identifier in the valid range `1..65535`.
+     *
+     * The sequence wraps back to `1` after reaching `65535`.
+     */
     @OptIn(ExperimentalAtomicApi::class)
     fun nextPacketIdentifier(): UShort = packetIdentifier.updateAndFetch { p ->
         val next = p + 1

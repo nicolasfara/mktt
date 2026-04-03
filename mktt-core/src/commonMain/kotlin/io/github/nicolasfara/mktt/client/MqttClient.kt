@@ -14,6 +14,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 
+/**
+ * Public MQTT client API for connecting, publishing, subscribing, and observing connection state.
+ */
 interface MqttClient : AutoCloseable {
     /**
      * A shared flow of all incoming PUBLISH messages received from the server.

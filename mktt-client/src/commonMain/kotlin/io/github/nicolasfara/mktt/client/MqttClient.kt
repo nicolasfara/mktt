@@ -27,6 +27,9 @@ fun MqttClient(
     DefaultMqttClient(MqttClientConfigBuilder(DefaultEngineFactory(host, port, dispatcher)).apply(init).build())
 
 /**
- * TODO!
+ * Creates a new MQTT client from a fully configured [MqttClientConfig].
+ *
+ * Use this overload when you want to construct the configuration separately
+ * (for example via [buildConfig]) and then create the client instance from it.
  */
 fun MqttClient(config: MqttClientConfig): MqttClient = DefaultMqttClient(config)

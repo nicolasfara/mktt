@@ -40,6 +40,9 @@ class MqttClientConfigBuilder<out T : MqttEngineConfig>(private val engineFactor
     private var willMessageBuilder: WillMessageBuilder? = null
     private var connectionBlock: (T.() -> Unit)? = null
 
+    /**
+     * Internal constants used while generating default MQTT client identifiers.
+     */
     companion object {
         private const val MAX_CLIENT_ID_LENGTH = 6
         private val ALLOWED_CHARS = ('a'..'z') + ('A'..'Z') + ('0'..'9')

@@ -7,6 +7,7 @@ import io.github.nicolasfara.mktt.core.packet.readPacket
 import io.github.nicolasfara.mktt.core.packet.write
 import io.github.nicolasfara.mktt.core.util.Logger
 import io.github.nicolasfara.mktt.engine.MqttEngine
+import io.ktor.client.plugins.HttpRequestTimeoutException
 import io.ktor.client.plugins.pluginOrNull
 import io.ktor.client.plugins.websocket.DefaultClientWebSocketSession
 import io.ktor.client.plugins.websocket.WebSockets
@@ -87,7 +88,20 @@ internal class WebSocketEngine(
         Result.success(Unit)
     } catch (ex: CancellationException) {
         throw ex
-    } catch (ex: Exception) {
+    } catch (ex: IllegalArgumentException) {
+        Logger.e(ex) { "Failed to connect to ${config.url}: invalid websocket configuration" }
+        Result.failure(ConnectionException("Cannot connect to ${config.url}", ex))
+    } catch (ex: HttpRequestTimeoutException) {
+        Logger.w(ex) { "Failed to connect to ${config.url}: request timed out" }
+        Result.failure(ConnectionException("Cannot connect to ${config.url}", ex))
+    } catch (ex: ClosedReceiveChannelException) {
+        Logger.w(ex) { "Failed to connect to ${config.url}: receive channel closed during setup" }
+        Result.failure(ConnectionException("Cannot connect to ${config.url}", ex))
+    } catch (ex: ClosedSendChannelException) {
+        Logger.w(ex) { "Failed to connect to ${config.url}: send channel closed during setup" }
+        Result.failure(ConnectionException("Cannot connect to ${config.url}", ex))
+    } catch (ex: IllegalStateException) {
+        Logger.e(ex) { "Failed to connect to ${config.url}: client or session was in an invalid state" }
         Result.failure(ConnectionException("Cannot connect to ${config.url}", ex))
     }
 

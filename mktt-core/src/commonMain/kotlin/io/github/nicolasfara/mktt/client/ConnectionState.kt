@@ -116,6 +116,9 @@ data class MqttPublishMessage(
     )
 }
 
+/**
+ * Converts a received MQTT [Publish] packet into the public [MqttPublishMessage] model.
+ */
 fun Publish.toIncomingMessage(): MqttPublishMessage = MqttPublishMessage(
     topic = topic,
     payload = payload.toByteArray(0, payload.size),
@@ -153,12 +156,10 @@ private fun topicMatchesFilter(filter: String, topic: String): Boolean {
                 filterIndex = filterLevels.size
                 topicIndex = topicLevels.size
             }
-
             "+" -> {
                 filterIndex += 1
                 topicIndex += 1
             }
-
             else -> {
                 if (level != topicLevels[topicIndex]) {
                     matches = false

@@ -52,6 +52,9 @@ data class PublishRequest(
         }
     }
 
+    /**
+     * Returns [payload] as an immutable [ByteString].
+     */
     fun payloadAsByteString(): ByteString = ByteString(payload)
 
     override fun equals(other: Any?): Boolean {
