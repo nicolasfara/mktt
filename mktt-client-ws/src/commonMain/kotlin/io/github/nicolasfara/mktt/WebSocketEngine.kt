@@ -56,7 +56,7 @@ internal class WebSocketEngine(
     init {
         val errorMessage =
             "No WebSockets plugin installed in ${client.engine::class.simpleName}, consider using 'install(WebSockets)'"
-        check(client.pluginOrNull(WebSockets) == null) {
+        checkNotNull(client.pluginOrNull(WebSockets)) {
             errorMessage
         }
     }

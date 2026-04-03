@@ -51,6 +51,7 @@ kotlin {
         commonMain.dependencies {
             implementation(project(":mktt-core"))
             implementation(libs.ktor.client.core)
+            //            implementation(libs.ktor.client.cio)
             implementation(libs.ktor.client.websockets)
             implementation(libs.kotlinx.coroutines)
             implementation(libs.kotlinx.io)
@@ -60,6 +61,24 @@ kotlin {
         commonTest.dependencies {
             implementation(libs.kotlin.test)
             implementation(libs.kotlinx.coroutines.test)
+        }
+        jvmTest.dependencies {
+            implementation(libs.ktor.client.cio)
+        }
+        jsTest.dependencies {
+            implementation(libs.ktor.client.js)
+        }
+        mingwTest.dependencies {
+            implementation(libs.ktor.client.winhttp)
+        }
+        macosTest.dependencies {
+            implementation(libs.ktor.client.darwin)
+        }
+        iosTest.dependencies {
+            implementation(libs.ktor.client.darwin)
+        }
+        linuxTest.dependencies {
+            implementation(libs.ktor.client.curl)
         }
     }
 }
