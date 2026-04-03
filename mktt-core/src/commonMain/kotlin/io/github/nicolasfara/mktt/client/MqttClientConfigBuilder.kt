@@ -40,6 +40,11 @@ class MqttClientConfigBuilder<out T : MqttEngineConfig>(private val engineFactor
     private var willMessageBuilder: WillMessageBuilder? = null
     private var connectionBlock: (T.() -> Unit)? = null
 
+    companion object {
+        private const val MAX_CLIENT_ID_LENGTH = 6
+        private val ALLOWED_CHARS = ('a'..'z') + ('A'..'Z') + ('0'..'9')
+    }
+
     /**
      * Timeout for handshake acknowledgments.
      */
@@ -48,7 +53,8 @@ class MqttClientConfigBuilder<out T : MqttEngineConfig>(private val engineFactor
     /**
      * MQTT client identifier. Empty means broker-assigned when supported.
      */
-    var clientId: String = ""
+    var clientId: String =
+        "mktt-" + (0..MAX_CLIENT_ID_LENGTH).map { ALLOWED_CHARS.random() }.joinToString(separator = "")
 
     /**
      * Keep-alive interval in seconds.
