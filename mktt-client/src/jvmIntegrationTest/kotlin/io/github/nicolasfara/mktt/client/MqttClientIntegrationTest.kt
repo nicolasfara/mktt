@@ -12,12 +12,13 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExecutorCoroutineDispatcher
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 
 internal class MqttClientIntegrationTest {
     @Test
-    fun publishAndReceiveOverLocalMosquitto() = runTest {
-        val container = LocalBrokerSupport.startBrokerOrSkip() ?: return@runTest
+    fun publishAndReceiveOverLocalMosquitto() = runBlocking {
+        val container = LocalBrokerSupport.startBrokerOrSkip() ?: return@runBlocking
         val dispatcher = createDispatcher(PUBLISH_RECEIVE_PARALLELISM)
         try {
             val topic = "mktt/integration/${System.nanoTime()}"
@@ -57,8 +58,8 @@ internal class MqttClientIntegrationTest {
     }
 
     @Test
-    fun connectOverTlsToLocalMosquitto() = runTest {
-        val container = LocalBrokerSupport.startBrokerOrSkip() ?: return@runTest
+    fun connectOverTlsToLocalMosquitto() = runBlocking {
+        val container = LocalBrokerSupport.startBrokerOrSkip() ?: return@runBlocking
         val dispatcher = createDispatcher(TLS_CONNECT_PARALLELISM)
         try {
             val client =
