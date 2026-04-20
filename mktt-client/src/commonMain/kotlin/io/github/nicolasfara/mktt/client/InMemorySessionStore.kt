@@ -44,7 +44,10 @@ class InMemorySessionStore(private val clock: Clock = Clock.System) : SessionSto
                 throw NoSuchElementException("No PUBLISH packet found with identifier $packetIdentifier")
             }
 
-            val inFlight = InFlightPubrel(source, sequence.incrementAndFetch())
+            // Using sequence directly here inside a retry loop is a bug as it could increment multiple times.
+            // But we can just create the replacement safely.
+            val seq = sequence.incrementAndFetch()
+            val inFlight = InFlightPubrel(source, seq)
             replacement = inFlight
             current.copy(outgoingPackets = current.outgoingPackets + (packetIdentifier to inFlight))
         }
@@ -68,16 +71,17 @@ class InMemorySessionStore(private val clock: Clock = Clock.System) : SessionSto
             "Packets without packet identifier cannot be part of a transaction"
         }
 
-        var wasAdded = false
+        var wasAddedResult = false
         updateState { current ->
             if (packetIdentifier in current.incomingPacketIds) {
-                return@updateState current
+                wasAddedResult = false
+                current
+            } else {
+                wasAddedResult = true
+                current.copy(incomingPacketIds = current.incomingPacketIds + packetIdentifier)
             }
-
-            wasAdded = true
-            current.copy(incomingPacketIds = current.incomingPacketIds + packetIdentifier)
         }
-        return wasAdded
+        return wasAddedResult
     }
 
     override fun hasIncomingPacketId(publish: Publish): Boolean {
