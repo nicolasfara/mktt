@@ -35,6 +35,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.io.Buffer
+import kotlinx.io.EOFException
 
 internal class WebSocketEngine(
     private val config: WebSocketEngineConfig,
@@ -148,6 +149,8 @@ internal class WebSocketEngine(
                     Result.success(channel.readPacket())
                 } catch (ex: CancellationException) {
                     throw ex
+                } catch (_: EOFException) {
+                    break
                 } catch (ex: MalformedPacketException) {
                     Result.failure(ex)
                 }
@@ -169,8 +172,8 @@ internal class WebSocketEngine(
             }
         } catch (ex: CancellationException) {
             throw ex
-        } catch (_: ClosedReceiveChannelException) {
-            Logger.d { "WebSocket incoming channel closed" }
+        } catch (ex: ClosedReceiveChannelException) {
+            Logger.i(ex) { "WebSocket incoming channel closed" }
         } finally {
             withContext(NonCancellable) {
                 disconnect()
