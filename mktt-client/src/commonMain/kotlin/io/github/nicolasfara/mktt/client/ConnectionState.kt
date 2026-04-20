@@ -44,11 +44,11 @@ sealed interface MqttConnectionState {
     data object Disconnected : MqttConnectionState
 
     /**
-     * Connection attempt or active session failed.
+     * The connection failed or was disconnected due to an error.
      *
-     * @property cause the failure cause.
+     * @property error the exception that caused the error.
      */
-    data class ConnectionError(val cause: Throwable) : MqttConnectionState
+    data class ConnectionError(val error: Throwable) : MqttConnectionState
 }
 
 /**
