@@ -50,6 +50,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(project(":mktt-core"))
+            implementation(project(":mktt-client"))
             implementation(libs.ktor.client.core)
             //            implementation(libs.ktor.client.cio)
             implementation(libs.ktor.client.websockets)
@@ -110,7 +111,7 @@ publishOnCentral {
     publishing {
         publications {
             withType<MavenPublication> {
-                artifactId = "mktt-client"
+                artifactId = "mktt-client-ws"
                 scmConnection.set("git:git@github.com:nicolasfara/${rootProject.name}")
                 projectUrl.set("https://github.com/nicolasfara/${rootProject.name}")
                 pom {
