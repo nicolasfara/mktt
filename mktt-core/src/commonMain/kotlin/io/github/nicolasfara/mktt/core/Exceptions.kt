@@ -22,7 +22,7 @@ class ConnectionException(message: String? = null, cause: Throwable? = null) :
 /**
  * Indicates that a packet was not received within the expected time.
  */
-class TimeoutException(message: String) : MqttException(message)
+class TimeoutException(message: String, cause: Throwable? = null) : MqttException(message, cause)
 
 /**
  * Indicates that the topic alias value of a publish request exceed the "Topic Alias Maximum" sent by the server.
