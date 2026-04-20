@@ -269,7 +269,7 @@ class MqttClientTest {
         val config = buildConfig(TestEngineFactory(engine)) {
             clientId = "test-client"
         }
-        return MqttClient(config)
+        return DefaultMqttClient(config)
     }
 
     private class TestEngineFactory(private val engine: FakeMqttEngine) :
