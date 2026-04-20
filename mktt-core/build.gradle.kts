@@ -65,12 +65,36 @@ tasks.withType<Test>().configureEach {
     }
 }
 
-tasks {
-    // Prevent publishing this module since it is a test-only module
-    withType<AbstractPublishToMaven>().configureEach {
-        enabled = false
+signing {
+    if (System.getenv("CI") == "true") {
+        val signingKey: String? by project
+        val signingPassword: String? by project
+        useInMemoryPgpKeys(signingKey, signingPassword)
     }
-    withType<GenerateModuleMetadata>().configureEach {
-        enabled = false
+}
+
+publishOnCentral {
+    projectLongName.set("MKTT Core")
+    projectDescription.set("MQTT 5 core protocol types and codecs for MKTT.")
+    projectUrl.set("https://github.com/nicolasfara/${rootProject.name}")
+    licenseName.set("Apache-2.0")
+    licenseUrl.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
+    publishing {
+        publications {
+            withType<MavenPublication> {
+                artifactId = "mktt-core"
+                scmConnection.set("git:git@github.com:nicolasfara/${rootProject.name}")
+                projectUrl.set("https://github.com/nicolasfara/${rootProject.name}")
+                pom {
+                    developers {
+                        developer {
+                            name.set("Nicolas Farabegoli")
+                            email.set("nicolas.farabegoli@gmail.com")
+                            url.set("https://www.nicolasfarabegoli.it/")
+                        }
+                    }
+                }
+            }
+        }
     }
 }
