@@ -102,8 +102,9 @@ class DefaultMqttClient(
         get() = _receiveMaximum
     private var _receiveMaximum = UShort.MAX_VALUE
         set(value) {
+            val oldValue = field
             field = value
-            sendQuota = Semaphore(value.toInt())
+            adjustSendQuota(oldValue.toInt(), value.toInt())
         }
 
     override val isRetainAvailable: Boolean
@@ -129,19 +130,18 @@ class DefaultMqttClient(
 
     private val scope = CoroutineScope(engine.dispatcher)
 
-    // A replay cache is crucial here to prevent a race condition where a response packet arrives
-    // before the corresponding `awaitResponseOf` call is able to subscribe to the flow. Without a
-    // replay cache, such a packet would be lost. A capacity of RESPONSE_REPLAY_CACHE_CAPACITY is
-    // chosen to safely handle bursts of responses from concurrent requests.
-    private val receivedPackets = MutableSharedFlow<Packet>(replay = RESPONSE_REPLAY_CACHE_CAPACITY)
+    // A map of pending response deferreds to resolve responses securely
+    private val pendingResponses = kotlinx.coroutines.flow.MutableSharedFlow<Packet>(replay = 16)
 
     @OptIn(ExperimentalAtomicApi::class)
     private val packetIdentifier = AtomicInt(0)
 
     // Initialize with the default receive maximum
-    private var sendQuota = Semaphore(DEFAULT_RECEIVE_MAXIMUM)
+    @Suppress("MagicNumber")
+    private val sendQuota = Semaphore(65535)
 
     private val publishReceivedPackets = mutableMapOf<UShort, Pubrec>()
+    private var keepAliveJob: kotlinx.coroutines.Job? = null
 
     init {
         scope.launch {
@@ -168,6 +168,7 @@ class DefaultMqttClient(
 
         if (cleanStart) {
             session.clear()
+            publishReceivedPackets.clear()
         }
         try {
             engine.start().fold(
@@ -190,6 +191,7 @@ class DefaultMqttClient(
                 resumeSession()
             } else {
                 session.clear()
+                publishReceivedPackets.clear()
             }
             return connack
         } catch (ex: CancellationException) {
@@ -275,6 +277,7 @@ class DefaultMqttClient(
         reasonCode: DisconnectReason,
         reasonString: String?,
     ) {
+        keepAliveJob?.cancel()
         engine.send(createDisconnect(reasonCode, reasonString, sessionExpiryInterval))
         engine.disconnect()
         _connectionState.value = MqttConnectionState.Disconnected
@@ -336,12 +339,14 @@ class DefaultMqttClient(
                 ),
             )
         } else {
-            val actualQoS = request.desiredQoS.coerceAtMost(maxQos) // MQTT-3.2.2-11
+            val actualQoS = request.desiredQoS.coerceAtMost(maxQos)
             if (actualQoS != request.desiredQoS) {
-                Logger.i {
-                    "Publish QoS for ${request.topic} was ${request.desiredQoS} " +
-                        "but was downgraded to $actualQoS due to server requirements"
-                }
+                return Result.failure(
+                    IllegalArgumentException("Server maximum QoS is $maxQos but requested ${request.desiredQoS}"),
+                )
+            }
+            if (request.isRetainMessage && !_isRetainAvailable) {
+                return Result.failure(IllegalArgumentException("Server does not support retained messages"))
             }
             Result.success(
                 Publish(
@@ -353,7 +358,7 @@ class DefaultMqttClient(
                         isDupMessage
                     }, // MQTT-3.3.1-2
                     qoS = actualQoS,
-                    isRetainMessage = _isRetainAvailable && request.isRetainMessage,
+                    isRetainMessage = request.isRetainMessage,
                     packetIdentifier = if (actualQoS ==
                         QoS.AT_MOST_ONCE
                     ) {
@@ -470,7 +475,8 @@ class DefaultMqttClient(
 
             val keepAlive = (connack.serverKeepAlive?.value ?: config.keepAliveSeconds).toInt().seconds
             if (keepAlive.inWholeSeconds > 0) {
-                scope.launch {
+                keepAliveJob?.cancel()
+                keepAliveJob = scope.launch {
                     while (_connectionState.value ==
                         MqttConnectionState.Connected(connack)
                     ) {
@@ -633,12 +639,12 @@ class DefaultMqttClient(
 
             is Puback -> {
                 releaseSendQuotaSafe() // See chapter 4.9 Flow Control
-                receivedPackets.emit(packet)
+                pendingResponses.emit(packet)
             }
 
             is Pubcomp -> {
                 releaseSendQuotaSafe() // See chapter 4.9 Flow Control
-                receivedPackets.emit(packet)
+                pendingResponses.emit(packet)
             }
 
             is Pubrec -> {
@@ -646,11 +652,11 @@ class DefaultMqttClient(
                 if (packet.reason >= UnspecifiedError) {
                     releaseSendQuotaSafe()
                 }
-                receivedPackets.emit(packet)
+                pendingResponses.emit(packet)
             }
 
             else -> {
-                receivedPackets.emit(packet)
+                pendingResponses.emit(packet)
             }
         }
     }
@@ -662,10 +668,26 @@ class DefaultMqttClient(
     private fun releaseSendQuotaSafe() {
         try {
             sendQuota.release()
-        } catch (_: IllegalStateException) {
+        } catch (ex: IllegalStateException) {
+            Logger.v(ex) { "Ignored IllegalStateException in releaseSendQuotaSafe" }
             // "The attempt to increment above the initial send quota might be caused by the
             // re-transmission of a PUBREL packet after a new Network Connection is established."
             // Hence, we might call release() too often, which results in this IllegalStateException.
+        }
+    }
+
+    private fun adjustSendQuota(oldValue: Int, newValue: Int) {
+        val difference = newValue - oldValue
+        if (difference > 0) {
+            repeat(difference) {
+                sendQuota.release()
+            }
+        } else if (difference < 0) {
+            scope.launch {
+                repeat(-difference) {
+                    sendQuota.acquire()
+                }
+            }
         }
     }
 
@@ -673,26 +695,36 @@ class DefaultMqttClient(
         noinline predicate: suspend (P) -> Boolean,
         crossinline request: suspend () -> Result<Unit>,
     ): Result<P> {
-        val waitForResponse = scope.async {
-            val response = withTimeoutOrNull(config.ackMessageTimeout) {
-                receivedPackets.filterIsInstance<P>().first(predicate)
-            }
-            if (response != null) {
-                Result.success(response)
-            } else {
-                Result.failure(
-                    TimeoutException(
-                        "Didn't receive requested packet within ${config.ackMessageTimeout}",
-                    ),
-                )
+        val deferred = kotlinx.coroutines.CompletableDeferred<P>()
+        val collectorJob = scope.launch(start = kotlinx.coroutines.CoroutineStart.UNDISPATCHED) {
+            pendingResponses.filterIsInstance<P>().first {
+                if (predicate(it)) {
+                    deferred.complete(it)
+                    true
+                } else {
+                    false
+                }
             }
         }
+
         request().onFailure {
-            waitForResponse.cancel()
+            collectorJob.cancel()
             return Result.failure(it)
         }
 
-        return waitForResponse.await()
+        return try {
+            kotlinx.coroutines.withTimeout(config.ackMessageTimeout) {
+                Result.success(deferred.await())
+            }
+        } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+            collectorJob.cancel()
+            Result.failure(
+                TimeoutException(
+                    "Didn't receive requested packet within ${config.ackMessageTimeout}",
+                    e,
+                ),
+            )
+        }
     }
 
     /**
@@ -714,16 +746,6 @@ class DefaultMqttClient(
 
     /** Holds internal constants used by [MqttClient]. */
     companion object {
-        /**
-         * Replay cache capacity for the shared flow of received packets.
-         * Sized to safely absorb bursts of responses from concurrent requests.
-         */
-        private const val RESPONSE_REPLAY_CACHE_CAPACITY = 16
-
-        /**
-         * The default receive maximum as defined by the MQTT 5 specification (section 3.3.4).
-         * When the server does not specify a receive maximum in its CONNACK, this value is used.
-         */
-        private const val DEFAULT_RECEIVE_MAXIMUM = 65535
+        // Remove unused constants
     }
 }
