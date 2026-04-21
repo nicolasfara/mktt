@@ -9,10 +9,8 @@ import io.github.nicolasfara.mktt.core.SessionStore
 import io.github.nicolasfara.mktt.core.packet.Publish
 import io.github.nicolasfara.mktt.core.packet.Pubrel
 import io.github.nicolasfara.mktt.core.util.Logger
-import kotlin.concurrent.atomics.AtomicLong
 import kotlin.concurrent.atomics.AtomicReference
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
-import kotlin.concurrent.atomics.incrementAndFetch
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
@@ -21,38 +19,39 @@ import kotlin.time.ExperimentalTime
  */
 class InMemorySessionStore(private val clock: Clock = Clock.System) : SessionStore {
     private val state = AtomicReference(SessionState())
-    private val sequence = AtomicLong(0)
 
     override fun store(source: Publish): InFlightPublish {
         Logger.v { "Storing in-flight packet $source" }
-        val packet = InFlightPublish(
-            source,
-            clock.now(),
-            sequence.incrementAndFetch(),
-        )
-        updateState { current ->
-            current.copy(outgoingPackets = current.outgoingPackets + (packet.packetIdentifier to packet))
+        return updateState { current ->
+            val nextSequence = current.sequence + 1
+            val packet = InFlightPublish(
+                source,
+                clock.now(),
+                nextSequence,
+            )
+            current.copy(
+                sequence = nextSequence,
+                outgoingPackets = current.outgoingPackets + (packet.packetIdentifier to packet),
+            ) to packet
         }
-        return packet
     }
 
     override fun replace(source: InFlightPublish): InFlightPubrel {
         val packetIdentifier = source.packetIdentifier
-        var replacement: InFlightPubrel? = null
-        updateState { current ->
+        val replacement = updateState { current ->
             if (!current.outgoingPackets.containsKey(packetIdentifier)) {
                 throw NoSuchElementException("No PUBLISH packet found with identifier $packetIdentifier")
             }
 
-            // Using sequence directly here inside a retry loop is a bug as it could increment multiple times.
-            // But we can just create the replacement safely.
-            val seq = sequence.incrementAndFetch()
-            val inFlight = InFlightPubrel(source, seq)
-            replacement = inFlight
-            current.copy(outgoingPackets = current.outgoingPackets + (packetIdentifier to inFlight))
+            val nextSequence = current.sequence + 1
+            val inFlight = InFlightPubrel(source, nextSequence)
+            current.copy(
+                sequence = nextSequence,
+                outgoingPackets = current.outgoingPackets + (packetIdentifier to inFlight),
+            ) to inFlight
         }
 
-        return requireNotNull(replacement).also { inFlight ->
+        return replacement.also { inFlight ->
             Logger.v {
                 "Replacing PUBLISH packet with identifier $packetIdentifier with $inFlight"
             }
@@ -61,7 +60,7 @@ class InMemorySessionStore(private val clock: Clock = Clock.System) : SessionSto
 
     override fun acknowledge(packet: InFlightPacket) {
         updateState { current ->
-            current.copy(outgoingPackets = current.outgoingPackets - packet.packetIdentifier)
+            current.copy(outgoingPackets = current.outgoingPackets - packet.packetIdentifier) to Unit
         }
         Logger.v { "Acknowledged packet $packet" }
     }
@@ -71,17 +70,13 @@ class InMemorySessionStore(private val clock: Clock = Clock.System) : SessionSto
             "Packets without packet identifier cannot be part of a transaction"
         }
 
-        var wasAddedResult = false
-        updateState { current ->
+        return updateState { current ->
             if (packetIdentifier in current.incomingPacketIds) {
-                wasAddedResult = false
-                current
+                current to false
             } else {
-                wasAddedResult = true
-                current.copy(incomingPacketIds = current.incomingPacketIds + packetIdentifier)
+                current.copy(incomingPacketIds = current.incomingPacketIds + packetIdentifier) to true
             }
         }
-        return wasAddedResult
     }
 
     override fun hasIncomingPacketId(publish: Publish): Boolean {
@@ -91,35 +86,39 @@ class InMemorySessionStore(private val clock: Clock = Clock.System) : SessionSto
 
     override fun releaseIncomingPacketId(pubrel: Pubrel) {
         updateState { current ->
-            current.copy(incomingPacketIds = current.incomingPacketIds - pubrel.packetIdentifier)
+            current.copy(incomingPacketIds = current.incomingPacketIds - pubrel.packetIdentifier) to Unit
         }
     }
 
     override fun unacknowledgedPackets(): List<InFlightPacket> {
         val now = clock.now()
-        val updated = updateState { current ->
+        updateState { current ->
             val unexpired = current.outgoingPackets.filterValues { packet -> !packet.isExpired(now) }
-            current.copy(outgoingPackets = unexpired)
+            current.copy(outgoingPackets = unexpired) to Unit
         }
-        return updated.outgoingPackets.values.sorted()
+        return state.load().outgoingPackets.values.sorted()
     }
 
     override fun clear() {
         state.store(SessionState())
     }
 
-    private inline fun updateState(transform: (SessionState) -> SessionState): SessionState {
+    private inline fun <T> updateState(transform: (SessionState) -> Pair<SessionState, T>): T {
         var current: SessionState
         var updated: SessionState
+        var result: T
         do {
             current = state.load()
-            updated = transform(current)
+            val update = transform(current)
+            updated = update.first
+            result = update.second
         } while (!state.compareAndSet(current, updated))
-        return updated
+        return result
     }
 }
 
 private data class SessionState(
+    val sequence: Long = 0,
     val outgoingPackets: Map<UShort, InFlightPacket> = emptyMap(),
     val incomingPacketIds: Set<UShort> = emptySet(),
 )

@@ -123,19 +123,19 @@ internal class WebSocketEngine(
         Logger.d { "Sending packet: $packet" }
         with(Buffer()) {
             write(packet)
-            if (size <= session.maxFrameSize) {
-                session.outgoing.send(Frame.Binary(fin = true, packet = this))
-            } else {
-                val frame = Buffer()
-                while (size > 0) {
-                    readAtMostTo(frame, size.coerceAtMost(session.maxFrameSize))
-                    session.outgoing.send(Frame.Binary(fin = true, packet = frame))
-                }
+            if (size > session.maxFrameSize) {
+                throw IllegalArgumentException(
+                    "MQTT packet size $size exceeds websocket maxFrameSize ${session.maxFrameSize}",
+                )
             }
+            session.outgoing.send(Frame.Binary(fin = true, packet = this))
         }
         Result.success(Unit)
     } catch (ex: CancellationException) {
         throw ex
+    } catch (ex: IllegalArgumentException) {
+        Logger.w(ex) { "Refusing to send oversized websocket packet" }
+        Result.failure(ex)
     } catch (ex: ClosedSendChannelException) {
         Logger.w(ex) { "Unexpected exception while sending packet: $ex" }
         Result.failure(ex)

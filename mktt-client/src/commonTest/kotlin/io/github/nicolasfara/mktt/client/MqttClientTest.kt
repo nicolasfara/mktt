@@ -2,9 +2,13 @@ package io.github.nicolasfara.mktt.client
 
 import io.github.nicolasfara.mktt.core.ConnectionException
 import io.github.nicolasfara.mktt.core.GrantedQoS0
+import io.github.nicolasfara.mktt.core.HandshakeFailedException
+import io.github.nicolasfara.mktt.core.MaximumQoS
 import io.github.nicolasfara.mktt.core.QoS
+import io.github.nicolasfara.mktt.core.ReceiveMaximum
 import io.github.nicolasfara.mktt.core.ServerKeepAlive
 import io.github.nicolasfara.mktt.core.Success
+import io.github.nicolasfara.mktt.core.TimeoutException
 import io.github.nicolasfara.mktt.core.Topic
 import io.github.nicolasfara.mktt.core.TopicFilter
 import io.github.nicolasfara.mktt.core.packet.Connack
@@ -26,6 +30,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -132,6 +137,138 @@ class MqttClientTest {
             }
             client.close()
         }
+    }
+
+    @Test
+    fun `connect does not reuse stale connack from a previous attempt`() = runTest {
+        val engine = FakeMqttEngine(UnconfinedTestDispatcher(testScheduler)).apply {
+            var connackCount = 0
+            sendHandler = { packet ->
+                sentPackets += packet
+                if (packet is Connect && connackCount++ == 0) {
+                    emit(
+                        Connack(
+                            isSessionPresent = false,
+                            reason = Success,
+                        ),
+                    )
+                }
+                Result.success(Unit)
+            }
+        }
+        val client = createClient(engine) {
+            ackMessageTimeout = 100.milliseconds
+        }
+
+        client.connect()
+
+        val failure = backgroundScope.async {
+            assertFailsWith<TimeoutException> {
+                client.connect()
+            }
+        }
+        advanceTimeBy(100.milliseconds)
+        runCurrent()
+
+        assertIs<TimeoutException>(failure.await())
+        assertIs<MqttConnectionState.ConnectionError>(client.connectionState.value)
+        client.close()
+    }
+
+    @Test
+    fun `publish downgrades qos to broker maximum`() = runTest {
+        val engine = FakeMqttEngine(UnconfinedTestDispatcher(testScheduler)).apply {
+            sendHandler = { packet ->
+                sentPackets += packet
+                if (packet is Connect) {
+                    emit(
+                        Connack(
+                            isSessionPresent = false,
+                            reason = Success,
+                            maximumQoS = MaximumQoS(0),
+                        ),
+                    )
+                }
+                Result.success(Unit)
+            }
+        }
+        val client = createClient(engine)
+
+        client.connect()
+        try {
+            val result = client.publish(
+                PublishRequest("sensor/temperature") {
+                    desiredQoS = QoS.AT_LEAST_ONCE
+                    payload("21")
+                },
+            )
+
+            assertIs<AtMostOncePublishResponse>(result)
+            assertEquals(QoS.AT_MOST_ONCE, result.qoS)
+        } finally {
+            withContext(NonCancellable) {
+                client.disconnect()
+            }
+            client.close()
+        }
+    }
+
+    @Test
+    fun `publish timeout disconnects client and allows reconnect`() = runTest {
+        val engine = FakeMqttEngine(UnconfinedTestDispatcher(testScheduler)).apply {
+            sendHandler = { packet ->
+                sentPackets += packet
+                when (packet) {
+                    is Connect -> emit(
+                        Connack(
+                            isSessionPresent = false,
+                            reason = Success,
+                            receiveMaximum = ReceiveMaximum(1u),
+                        ),
+                    )
+
+                    is Publish -> {
+                        if (packet.topic.name == "sensor/retry") {
+                            emit(Puback.from(packet))
+                        }
+                    }
+                }
+                Result.success(Unit)
+            }
+        }
+        val client = createClient(engine) {
+            ackMessageTimeout = 100.milliseconds
+        }
+
+        client.connect()
+
+        val failure = backgroundScope.async {
+            assertFailsWith<HandshakeFailedException> {
+                client.publish(
+                    PublishRequest("sensor/timeout") {
+                        desiredQoS = QoS.AT_LEAST_ONCE
+                        payload("stuck")
+                    },
+                )
+            }
+        }
+        advanceTimeBy(100.milliseconds)
+        runCurrent()
+
+        assertIs<HandshakeFailedException>(failure.await())
+        assertFalse(engine.connected.value)
+        assertEquals(MqttConnectionState.Disconnected, client.connectionState.value)
+
+        client.connect()
+        val result = client.publish(
+            PublishRequest("sensor/retry") {
+                desiredQoS = QoS.AT_LEAST_ONCE
+                payload("ok")
+            },
+        )
+
+        assertIs<AtLeastOncePublishResponse>(result)
+        client.close()
     }
 
     @Test
@@ -265,9 +402,13 @@ class MqttClientTest {
         }
     }
 
-    private fun createClient(engine: FakeMqttEngine): MqttClient {
+    private fun createClient(
+        engine: FakeMqttEngine,
+        init: MqttClientConfigBuilder<MqttEngineConfig>.() -> Unit = {},
+    ): MqttClient {
         val config = buildConfig(TestEngineFactory(engine)) {
             clientId = "test-client"
+            init()
         }
         return DefaultMqttClient(config)
     }

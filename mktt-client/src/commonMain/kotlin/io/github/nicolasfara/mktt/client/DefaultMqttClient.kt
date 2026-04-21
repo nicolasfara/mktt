@@ -7,13 +7,10 @@ import io.github.nicolasfara.mktt.core.InFlightPubrel
 import io.github.nicolasfara.mktt.core.MalformedPacketException
 import io.github.nicolasfara.mktt.core.MqttException
 import io.github.nicolasfara.mktt.core.QoS
-import io.github.nicolasfara.mktt.core.ReasonCode
 import io.github.nicolasfara.mktt.core.SessionExpiryInterval
 import io.github.nicolasfara.mktt.core.SessionStore
 import io.github.nicolasfara.mktt.core.SubscriptionIdentifier
 import io.github.nicolasfara.mktt.core.TimeoutException
-import io.github.nicolasfara.mktt.core.Topic
-import io.github.nicolasfara.mktt.core.TopicAliasException
 import io.github.nicolasfara.mktt.core.TopicAliasMaximum
 import io.github.nicolasfara.mktt.core.TopicFilter
 import io.github.nicolasfara.mktt.core.UnspecifiedError
@@ -21,9 +18,7 @@ import io.github.nicolasfara.mktt.core.UserProperties
 import io.github.nicolasfara.mktt.core.hasSharedTopic
 import io.github.nicolasfara.mktt.core.hasWildcard
 import io.github.nicolasfara.mktt.core.ifNull
-import io.github.nicolasfara.mktt.core.isAvailable
 import io.github.nicolasfara.mktt.core.packet.Connack
-import io.github.nicolasfara.mktt.core.packet.Connect
 import io.github.nicolasfara.mktt.core.packet.Disconnect
 import io.github.nicolasfara.mktt.core.packet.Packet
 import io.github.nicolasfara.mktt.core.packet.PacketType
@@ -35,11 +30,8 @@ import io.github.nicolasfara.mktt.core.packet.Publish
 import io.github.nicolasfara.mktt.core.packet.Pubrec
 import io.github.nicolasfara.mktt.core.packet.Pubrel
 import io.github.nicolasfara.mktt.core.packet.Suback
-import io.github.nicolasfara.mktt.core.packet.Subscribe
 import io.github.nicolasfara.mktt.core.packet.Unsuback
-import io.github.nicolasfara.mktt.core.packet.Unsubscribe
 import io.github.nicolasfara.mktt.core.packet.isResponseFor
-import io.github.nicolasfara.mktt.core.toReasonString
 import io.github.nicolasfara.mktt.core.util.Logger
 import io.github.nicolasfara.mktt.engine.MqttEngine
 import kotlin.concurrent.atomics.AtomicInt
@@ -48,7 +40,6 @@ import kotlin.concurrent.atomics.updateAndFetch
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -59,11 +50,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.filterIsInstance
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Semaphore
-import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * Default [MqttClient] implementation backed by a [MqttEngine] and a [SessionStore].
@@ -83,80 +70,56 @@ class DefaultMqttClient(
         get() = _incomingPublishes.asSharedFlow()
 
     override val maxQos: QoS
-        get() = _maxQos
-    private var _maxQos = QoS.EXACTLY_ONE
+        get() = capabilities.maxQos
 
     override val clientId: String
-        get() = _clientId
-    private var _clientId = config.clientId
+        get() = capabilities.clientId
 
     override val serverTopicAliasMaximum: TopicAliasMaximum
-        get() = _serverTopicAliasMaximum
-    private var _serverTopicAliasMaximum: TopicAliasMaximum = TopicAliasMaximum(0u)
+        get() = capabilities.serverTopicAliasMaximum
 
     override val subscriptionIdentifierAvailable: Boolean
-        get() = _subscriptionIdentifierAvailable
-    private var _subscriptionIdentifierAvailable = true
+        get() = capabilities.subscriptionIdentifierAvailable
 
     override val receiveMaximum: UShort
-        get() = _receiveMaximum
-    private var _receiveMaximum = UShort.MAX_VALUE
-        set(value) {
-            val oldValue = field
-            field = value
-            adjustSendQuota(oldValue.toInt(), value.toInt())
-        }
+        get() = capabilities.receiveMaximum
 
     override val isRetainAvailable: Boolean
-        get() = _isRetainAvailable
-    private var _isRetainAvailable = true
+        get() = capabilities.retainAvailable
 
     override val isWildcardSubscriptionAvailable: Boolean
-        get() = _isWildcardSubscriptionAvailable
-    private var _isWildcardSubscriptionAvailable = true
+        get() = capabilities.wildcardSubscriptionAvailable
 
     override val isSharedSubscriptionAvailable: Boolean
-        get() = _isSharedSubscriptionAvailable
-    private var _isSharedSubscriptionAvailable = true
+        get() = capabilities.sharedSubscriptionAvailable
 
     override val maxPacketSize: UInt
-        get() = _maxPacketSize
-    private var _maxPacketSize = UInt.MAX_VALUE
+        get() = capabilities.maxPacketSize
 
     override val connectionState: StateFlow<MqttConnectionState>
         get() = _connectionState.asStateFlow()
 
-    private val connackFlow = MutableStateFlow<Connack?>(null)
-
     private val scope = CoroutineScope(engine.dispatcher)
-
-    // A map of pending response deferreds to resolve responses securely
-    private val pendingResponses = kotlinx.coroutines.flow.MutableSharedFlow<Packet>(replay = 16)
+    private val capabilities = DefaultMqttClientCapabilities(config.clientId)
+    private val pendingResponses = PendingResponseRegistry(config.ackMessageTimeout)
 
     @OptIn(ExperimentalAtomicApi::class)
     private val packetIdentifier = AtomicInt(0)
-
-    // Initialize with the default receive maximum
-    @Suppress("MagicNumber")
-    private val sendQuota = Semaphore(65535)
+    private val sendQuota = SendQuotaController()
 
     private val publishReceivedPackets = mutableMapOf<UShort, Pubrec>()
     private var keepAliveJob: kotlinx.coroutines.Job? = null
 
     init {
         scope.launch {
-            engine.packetResults.collect { result ->
-                handlePacketResult(result)
-            }
+            engine.packetResults.collect { result -> handlePacketResult(result) }
         }
         scope.launch {
             engine.connected.collect { connected ->
-                if (!connected &&
-                    _connectionState.value !=
-                    MqttConnectionState.Connecting
-                ) {
-                    _connectionState.value =
-                        MqttConnectionState.Disconnected
+                if (!connected && _connectionState.value != MqttConnectionState.Connecting) {
+                    pendingResponses.reset()
+                    sendQuota.reset()
+                    _connectionState.value = MqttConnectionState.Disconnected
                 }
             }
         }
@@ -164,35 +127,24 @@ class DefaultMqttClient(
 
     override suspend fun connect(cleanStart: Boolean): ConnAck {
         _connectionState.value = MqttConnectionState.Connecting
-        connackFlow.emit(null)
-
+        pendingResponses.reset()
+        sendQuota.reset()
         if (cleanStart) {
-            session.clear()
-            publishReceivedPackets.clear()
+            clearSessionState()
         }
         try {
             engine.start().fold(
                 onSuccess = {},
                 onFailure = { throw it },
             )
-
-            val connack = awaitResponseOf<Connack>(
-                { packet -> packet.type == PacketType.CONNACK },
-            ) {
-                engine.send(createConnect(cleanStart))
+            val connack = awaitResponseOf<Connack>({ packet -> packet.type == PacketType.CONNACK }) {
+                engine.send(DefaultMqttClientPackets.createConnect(config, cleanStart))
             }.fold(
                 onSuccess = { it },
                 onFailure = { throw it },
             )
-
             inspectConnack(connack)
-
-            if (connack.isSessionPresent) {
-                resumeSession()
-            } else {
-                session.clear()
-                publishReceivedPackets.clear()
-            }
+            if (connack.isSessionPresent) resumeSession() else clearSessionState()
             return connack
         } catch (ex: CancellationException) {
             throw ex
@@ -207,19 +159,19 @@ class DefaultMqttClient(
         subscriptionIdentifier: SubscriptionIdentifier?,
         userProperties: UserProperties,
     ): SubAck {
-        if (!_isWildcardSubscriptionAvailable && filters.hasWildcard()) {
+        if (!isWildcardSubscriptionAvailable && filters.hasWildcard()) {
             Logger.w {
                 "Requesting at least one wildcard subscription ($filters), but the server does not support it. " +
                     "This will likely result in a DISCONNECT message from the server."
             }
         }
-        if (!_isSharedSubscriptionAvailable && filters.hasSharedTopic()) {
+        if (!isSharedSubscriptionAvailable && filters.hasSharedTopic()) {
             Logger.w {
                 "Requesting at least one shared subscription ($filters), but the server does not support it. " +
                     "This will likely result in a DISCONNECT message from the server."
             }
         }
-        val identifier = if ((subscriptionIdentifier != null) && !_subscriptionIdentifierAvailable) {
+        val identifier = if ((subscriptionIdentifier != null) && !subscriptionIdentifierAvailable) {
             Logger.w(IllegalArgumentException("Ignoring $subscriptionIdentifier")) {
                 "Ignoring subscription identifier, as the server doesn't support it"
             }
@@ -227,21 +179,23 @@ class DefaultMqttClient(
         } else {
             subscriptionIdentifier
         }
-        val subscribe = createSubscribe(filters, identifier, userProperties)
-
-        return awaitResponseOf<Suback>({
-            it.isResponseFor<Suback>(subscribe)
-        }, {
+        val subscribe = DefaultMqttClientPackets.createSubscribe(
+            filters = filters,
+            subscriptionIdentifier = identifier,
+            userProperties = userProperties,
+            nextPacketIdentifier = ::nextPacketIdentifier,
+        )
+        return awaitResponseOf<Suback>({ it.isResponseFor<Suback>(subscribe) }, {
             engine.send(subscribe)
         }).getOrElse { throw it }
     }
 
     override suspend fun unsubscribe(filters: List<TopicFilter>, userProperties: UserProperties): UnsubAck {
-        val unsubscribe =
-            createUnsubscribe(
-                filters.map(TopicFilter::filter),
-                userProperties,
-            )
+        val unsubscribe = DefaultMqttClientPackets.createUnsubscribe(
+            topics = filters.map(TopicFilter::filter),
+            userProperties = userProperties,
+            nextPacketIdentifier = ::nextPacketIdentifier,
+        )
 
         return awaitResponseOf<Unsuback>({
             it.isResponseFor<Unsuback>(unsubscribe)
@@ -254,7 +208,11 @@ class DefaultMqttClient(
         if (!engine.connected.value) {
             throw ConnectionException("Cannot send PUBLISH packet while not connected")
         }
-        return createPublish(request).mapCatching { publish ->
+        return DefaultMqttClientPackets.createPublish(
+            request = request,
+            capabilities = capabilities,
+            nextPacketIdentifier = ::nextPacketIdentifier,
+        ).mapCatching { publish ->
             when (publish.qoS) {
                 QoS.AT_MOST_ONCE -> {
                     engine.send(publish).onFailure { throw it }
@@ -278,7 +236,7 @@ class DefaultMqttClient(
         reasonString: String?,
     ) {
         keepAliveJob?.cancel()
-        engine.send(createDisconnect(reasonCode, reasonString, sessionExpiryInterval))
+        engine.send(DefaultMqttClientPackets.createDisconnect(reasonCode, reasonString, sessionExpiryInterval))
         engine.disconnect()
         _connectionState.value = MqttConnectionState.Disconnected
     }
@@ -292,98 +250,8 @@ class DefaultMqttClient(
         scope.cancel()
     }
 
-    // ---- Helper methods ---------------------------------------------------------------------------------------------
-
-    private fun createConnect(isCleanStart: Boolean): Connect = Connect(
-        isCleanStart = isCleanStart,
-        willMessage = config.willMessage,
-        willQqS = config.willQqS,
-        retainWillMessage = config.retainWillMessage,
-        keepAliveSeconds = config.keepAliveSeconds,
-        clientId = config.clientId,
-        userName = config.username,
-        password = config.password,
-        sessionExpiryInterval = config.sessionExpiryInterval,
-        receiveMaximum = config.receiveMaximum,
-        maximumPacketSize = config.maximumPacketSize,
-        topicAliasMaximum = config.topicAliasMaximum,
-        requestResponseInformation = config.requestResponseInformation,
-        requestProblemInformation = config.requestProblemInformation,
-        userProperties = config.userProperties,
-        authenticationMethod = config.authenticationMethod,
-        authenticationData = config.authenticationData,
-    )
-
-    private fun createSubscribe(
-        filters: List<TopicFilter>,
-        subscriptionIdentifier: SubscriptionIdentifier?,
-        userProperties: UserProperties,
-    ): Subscribe = Subscribe(
-        packetIdentifier = nextPacketIdentifier(),
-        filters = filters,
-        subscriptionIdentifier = subscriptionIdentifier,
-        userProperties = userProperties,
-    )
-
-    private fun createUnsubscribe(topics: List<Topic>, userProperties: UserProperties): Unsubscribe = Unsubscribe(
-        packetIdentifier = nextPacketIdentifier(),
-        topics = topics,
-        userProperties = userProperties,
-    )
-
-    private fun createPublish(request: PublishRequest, isDupMessage: Boolean = false): Result<Publish> =
-        if (request.topicAlias != null && request.topicAlias.value > serverTopicAliasMaximum.value) {
-            Result.failure(
-                TopicAliasException(
-                    "Server maximum topic alias is: $serverTopicAliasMaximum, but you requested: ${request.topicAlias}",
-                ),
-            )
-        } else {
-            val actualQoS = request.desiredQoS.coerceAtMost(maxQos)
-            if (actualQoS != request.desiredQoS) {
-                return Result.failure(
-                    IllegalArgumentException("Server maximum QoS is $maxQos but requested ${request.desiredQoS}"),
-                )
-            }
-            if (request.isRetainMessage && !_isRetainAvailable) {
-                return Result.failure(IllegalArgumentException("Server does not support retained messages"))
-            }
-            Result.success(
-                Publish(
-                    isDupMessage = if (actualQoS ==
-                        QoS.AT_MOST_ONCE
-                    ) {
-                        false
-                    } else {
-                        isDupMessage
-                    }, // MQTT-3.3.1-2
-                    qoS = actualQoS,
-                    isRetainMessage = request.isRetainMessage,
-                    packetIdentifier = if (actualQoS ==
-                        QoS.AT_MOST_ONCE
-                    ) {
-                        null
-                    } else {
-                        nextPacketIdentifier()
-                    },
-                    topic = request.topic,
-                    payloadFormatIndicator = request.payloadFormatIndicator,
-                    messageExpiryInterval = request.messageExpiryInterval,
-                    topicAlias = request.topicAlias,
-                    responseTopic = request.responseTopic,
-                    correlationData = request.correlationData,
-                    userProperties = request.userProperties,
-                    // A PUBLISH packet sent from a Client to a Server MUST NOT
-                    // contain a Subscription Identifier [MQTT-3.3.4-6]
-                    subscriptionIdentifier = null,
-                    contentType = request.contentType,
-                    payload = request.payloadAsByteString(),
-                ),
-            )
-        }
-
     private suspend fun sendAtLeastOnceMessage(inFlight: InFlightPublish): PublishResponse {
-        acquireSendQuotaSafe()
+        sendQuota.acquire()
         val publish = inFlight.source
 
         val puback = awaitResponseOf<Puback>({
@@ -391,7 +259,7 @@ class DefaultMqttClient(
         }) {
             engine.send(publish)
         }.getOrElse {
-            it.throwHandshakeExceptionForTimeout("PUBACK", publish)
+            it.throwHandshakeFailure("PUBACK", publish)
         }
 
         session.acknowledge(inFlight)
@@ -399,7 +267,7 @@ class DefaultMqttClient(
     }
 
     private suspend fun sendExactlyOnceMessage(inFlight: InFlightPublish): PublishResponse {
-        acquireSendQuotaSafe()
+        sendQuota.acquire()
         val publish = inFlight.source
 
         awaitResponseOf<Pubrec>({
@@ -407,7 +275,7 @@ class DefaultMqttClient(
         }) {
             engine.send(publish)
         }.getOrElse {
-            it.throwHandshakeExceptionForTimeout("PUBREC", publish)
+            it.throwHandshakeFailure("PUBREC", publish)
         }
 
         val pubrel = session.replace(inFlight)
@@ -416,7 +284,7 @@ class DefaultMqttClient(
         }) {
             engine.send(pubrel.source)
         }.getOrElse {
-            it.throwHandshakeExceptionForTimeout("PUBCOMP", publish)
+            it.throwHandshakeFailure("PUBCOMP", publish)
         }
 
         session.acknowledge(pubrel)
@@ -431,30 +299,18 @@ class DefaultMqttClient(
         null
     }
 
-    private fun Throwable.throwHandshakeExceptionForTimeout(expected: String, publish: Publish): Nothing {
+    private suspend fun Throwable.throwHandshakeFailure(expected: String, publish: Publish): Nothing {
+        disconnectAfterHandshakeFailure()
         if (this is TimeoutException) {
             throw HandshakeFailedException(
                 "Did not receive $expected for $publish",
                 publish,
             )
-        } else {
-            throw this
         }
+        throw this
     }
 
-    private fun createDisconnect(
-        reasonCode: ReasonCode,
-        reason: String?,
-        sessionExpiryInterval: SessionExpiryInterval?,
-    ): Disconnect = Disconnect(
-        reason = reasonCode,
-        sessionExpiryInterval = sessionExpiryInterval,
-        reasonString = reason.toReasonString(),
-    )
-
     private suspend fun inspectConnack(connack: Connack): Connack {
-        connackFlow.emit(connack)
-
         if (!connack.isSuccess) {
             Logger.i {
                 "Server sent CONNACK packet with ${connack.reason}, hence terminating the connection"
@@ -465,13 +321,7 @@ class DefaultMqttClient(
         } else {
             _connectionState.value =
                 MqttConnectionState.Connected(connack)
-            connack.maximumQoS?.let {
-                _maxQos = it.qoS
-            }
-            _serverTopicAliasMaximum =
-                connack.topicAliasMaximum ?: TopicAliasMaximum(
-                    0u,
-                )
+            capabilities.updateFrom(connack, config.clientId, ::updateReceiveMaximum)
 
             val keepAlive = (connack.serverKeepAlive?.value ?: config.keepAliveSeconds).toInt().seconds
             if (keepAlive.inWholeSeconds > 0) {
@@ -496,30 +346,18 @@ class DefaultMqttClient(
                 }
             }
 
-            // MQTT-3.2.2-16
-            if (config.clientId.isEmpty()) {
-                connack.assignedClientIdentifier?.let { _clientId = it.value }
-            }
-
-            _subscriptionIdentifierAvailable = connack.subscriptionIdentifierAvailable.isAvailable()
-            _receiveMaximum = connack.receiveMaximum?.value ?: UShort.MAX_VALUE
-            _isRetainAvailable = connack.retainAvailable?.value ?: true
-            _isWildcardSubscriptionAvailable = connack.wildcardSubscriptionAvailable?.value ?: true
-            _isSharedSubscriptionAvailable = connack.sharedSubscriptionAvailable?.value ?: true
-            _maxPacketSize = connack.maximumPacketSize?.value ?: UInt.MAX_VALUE
-
             Logger.i {
                 "Received server parameters: " +
                     "maxQoS=$maxQos, " +
                     "keepAlive=$keepAlive, " +
                     "serverTopicAliasMaximum=${serverTopicAliasMaximum.value}, " +
                     "assignedClientIdentifier=${connack.assignedClientIdentifier?.value ?: "''"}, " +
-                    "subscriptionIdentifierAvailable=$_subscriptionIdentifierAvailable, " +
-                    "receiveMaximum=$_receiveMaximum, " +
-                    "retainAvailable=$_isRetainAvailable, " +
-                    "maximumPacketSize=$_maxPacketSize, " +
-                    "wildcardSubscriptionAvailable=$_isWildcardSubscriptionAvailable, " +
-                    "sharedSubscriptionAvailable=$_isSharedSubscriptionAvailable"
+                    "subscriptionIdentifierAvailable=$subscriptionIdentifierAvailable, " +
+                    "receiveMaximum=$receiveMaximum, " +
+                    "retainAvailable=$isRetainAvailable, " +
+                    "maximumPacketSize=$maxPacketSize, " +
+                    "wildcardSubscriptionAvailable=$isWildcardSubscriptionAvailable, " +
+                    "sharedSubscriptionAvailable=$isSharedSubscriptionAvailable"
             }
         }
 
@@ -580,6 +418,8 @@ class DefaultMqttClient(
             }
             _connectionState.value =
                 MqttConnectionState.ConnectionError(throwable)
+            pendingResponses.reset()
+            sendQuota.reset()
             engine.disconnect()
         }
     }
@@ -638,93 +478,49 @@ class DefaultMqttClient(
             }
 
             is Puback -> {
-                releaseSendQuotaSafe() // See chapter 4.9 Flow Control
-                pendingResponses.emit(packet)
+                sendQuota.release() // See chapter 4.9 Flow Control
+                pendingResponses.dispatch(packet)
             }
 
             is Pubcomp -> {
-                releaseSendQuotaSafe() // See chapter 4.9 Flow Control
-                pendingResponses.emit(packet)
+                sendQuota.release() // See chapter 4.9 Flow Control
+                pendingResponses.dispatch(packet)
             }
 
             is Pubrec -> {
                 // See chapter 4.9 Flow Control
                 if (packet.reason >= UnspecifiedError) {
-                    releaseSendQuotaSafe()
+                    sendQuota.release()
                 }
-                pendingResponses.emit(packet)
+                pendingResponses.dispatch(packet)
             }
 
             else -> {
-                pendingResponses.emit(packet)
+                pendingResponses.dispatch(packet)
             }
         }
     }
 
-    private suspend fun acquireSendQuotaSafe() {
-        sendQuota.acquire()
-    }
-
-    private fun releaseSendQuotaSafe() {
-        try {
-            sendQuota.release()
-        } catch (ex: IllegalStateException) {
-            Logger.v(ex) { "Ignored IllegalStateException in releaseSendQuotaSafe" }
-            // "The attempt to increment above the initial send quota might be caused by the
-            // re-transmission of a PUBREL packet after a new Network Connection is established."
-            // Hence, we might call release() too often, which results in this IllegalStateException.
-        }
-    }
-
-    private fun adjustSendQuota(oldValue: Int, newValue: Int) {
-        val difference = newValue - oldValue
-        if (difference > 0) {
-            repeat(difference) {
-                sendQuota.release()
-            }
-        } else if (difference < 0) {
-            scope.launch {
-                repeat(-difference) {
-                    sendQuota.acquire()
-                }
-            }
-        }
+    private suspend fun updateReceiveMaximum(value: UShort) {
+        sendQuota.updateLimit(capabilities.receiveMaximum, value)
     }
 
     private suspend inline fun <reified P : Packet> awaitResponseOf(
-        noinline predicate: suspend (P) -> Boolean,
+        noinline predicate: (P) -> Boolean,
         crossinline request: suspend () -> Result<Unit>,
-    ): Result<P> {
-        val deferred = kotlinx.coroutines.CompletableDeferred<P>()
-        val collectorJob = scope.launch(start = kotlinx.coroutines.CoroutineStart.UNDISPATCHED) {
-            pendingResponses.filterIsInstance<P>().first {
-                if (predicate(it)) {
-                    deferred.complete(it)
-                    true
-                } else {
-                    false
-                }
-            }
-        }
+    ): Result<P> = pendingResponses.awaitResponseOf(predicate, request)
 
-        request().onFailure {
-            collectorJob.cancel()
-            return Result.failure(it)
-        }
+    private suspend fun disconnectAfterHandshakeFailure() {
+        keepAliveJob?.cancel()
+        pendingResponses.reset()
+        sendQuota.reset()
+        engine.disconnect()
+        _connectionState.value = MqttConnectionState.Disconnected
+    }
 
-        return try {
-            kotlinx.coroutines.withTimeout(config.ackMessageTimeout) {
-                Result.success(deferred.await())
-            }
-        } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
-            collectorJob.cancel()
-            Result.failure(
-                TimeoutException(
-                    "Didn't receive requested packet within ${config.ackMessageTimeout}",
-                    e,
-                ),
-            )
-        }
+    private fun clearSessionState() {
+        session.clear()
+        publishReceivedPackets.clear()
     }
 
     /**
@@ -743,9 +539,4 @@ class DefaultMqttClient(
     }.also {
         Logger.v { "Next packet identifier: $it" }
     }.toUShort()
-
-    /** Holds internal constants used by [MqttClient]. */
-    companion object {
-        // Remove unused constants
-    }
 }
