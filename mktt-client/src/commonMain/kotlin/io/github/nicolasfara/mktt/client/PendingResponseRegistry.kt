@@ -3,9 +3,11 @@ package io.github.nicolasfara.mktt.client
 import io.github.nicolasfara.mktt.core.TimeoutException
 import io.github.nicolasfara.mktt.core.packet.Packet
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 
 internal class PendingResponseRegistry(private val ackMessageTimeout: kotlin.time.Duration) {
@@ -48,7 +50,9 @@ internal class PendingResponseRegistry(private val ackMessageTimeout: kotlin.tim
                 ),
             )
         } finally {
-            remove(response)
+            withContext(NonCancellable) {
+                remove(response)
+            }
         }
     }
 

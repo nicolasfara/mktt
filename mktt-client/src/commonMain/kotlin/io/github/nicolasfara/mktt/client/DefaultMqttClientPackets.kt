@@ -63,42 +63,44 @@ internal object DefaultMqttClientPackets {
         capabilities: DefaultMqttClientCapabilities,
         nextPacketIdentifier: () -> UShort,
         isDupMessage: Boolean = false,
-    ): Result<Publish> {
-        if (request.topicAlias != null && request.topicAlias.value > capabilities.serverTopicAliasMaximum.value) {
-            return Result.failure(
-                TopicAliasException(
-                    "Server maximum topic alias is: ${capabilities.serverTopicAliasMaximum}, " +
-                        "but you requested: ${request.topicAlias}",
-                ),
-            )
+    ): Result<Publish> =
+        when {
+            request.topicAlias != null && request.topicAlias.value > capabilities.serverTopicAliasMaximum.value -> {
+                Result.failure(
+                    TopicAliasException(
+                        "Server maximum topic alias is: ${capabilities.serverTopicAliasMaximum}, " +
+                            "but you requested: ${request.topicAlias}",
+                    ),
+                )
+            }
+
+            request.isRetainMessage && !capabilities.retainAvailable -> {
+                Result.failure(IllegalArgumentException("Server does not support retained messages"))
+            }
+
+            else -> {
+                val actualQoS = request.desiredQoS.coerceAtMost(capabilities.maxQos)
+                val isAtMostOnce = actualQoS == QoS.AT_MOST_ONCE
+                Result.success(
+                    Publish(
+                        isDupMessage = if (isAtMostOnce) false else isDupMessage,
+                        qoS = actualQoS,
+                        isRetainMessage = request.isRetainMessage,
+                        packetIdentifier = if (isAtMostOnce) null else nextPacketIdentifier(),
+                        topic = request.topic,
+                        payloadFormatIndicator = request.payloadFormatIndicator,
+                        messageExpiryInterval = request.messageExpiryInterval,
+                        topicAlias = request.topicAlias,
+                        responseTopic = request.responseTopic,
+                        correlationData = request.correlationData,
+                        userProperties = request.userProperties,
+                        subscriptionIdentifier = null,
+                        contentType = request.contentType,
+                        payload = request.payloadAsByteString(),
+                    ),
+                )
+            }
         }
-
-        if (request.isRetainMessage && !capabilities.retainAvailable) {
-            return Result.failure(IllegalArgumentException("Server does not support retained messages"))
-        }
-
-        val actualQoS = request.desiredQoS.coerceAtMost(capabilities.maxQos)
-        val isAtMostOnce = actualQoS == QoS.AT_MOST_ONCE
-
-        return Result.success(
-            Publish(
-                isDupMessage = if (isAtMostOnce) false else isDupMessage,
-                qoS = actualQoS,
-                isRetainMessage = request.isRetainMessage,
-                packetIdentifier = if (isAtMostOnce) null else nextPacketIdentifier(),
-                topic = request.topic,
-                payloadFormatIndicator = request.payloadFormatIndicator,
-                messageExpiryInterval = request.messageExpiryInterval,
-                topicAlias = request.topicAlias,
-                responseTopic = request.responseTopic,
-                correlationData = request.correlationData,
-                userProperties = request.userProperties,
-                subscriptionIdentifier = null,
-                contentType = request.contentType,
-                payload = request.payloadAsByteString(),
-            ),
-        )
-    }
 
     fun createDisconnect(
         reasonCode: ReasonCode,

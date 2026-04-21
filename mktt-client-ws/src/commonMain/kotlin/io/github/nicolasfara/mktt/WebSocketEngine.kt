@@ -123,10 +123,8 @@ internal class WebSocketEngine(
         Logger.d { "Sending packet: $packet" }
         with(Buffer()) {
             write(packet)
-            if (size > session.maxFrameSize) {
-                throw IllegalArgumentException(
-                    "MQTT packet size $size exceeds websocket maxFrameSize ${session.maxFrameSize}",
-                )
+            require(size <= session.maxFrameSize) {
+                "MQTT packet size $size exceeds websocket maxFrameSize ${session.maxFrameSize}"
             }
             session.outgoing.send(Frame.Binary(fin = true, packet = this))
         }
