@@ -287,7 +287,7 @@ value class CorrelationData(override val value: ByteString) :
     override val writeValue: Sink.(ByteString) -> Unit
         get() = ByteStringWriter
 
-    override fun byteCount(): Int = value.size + 1
+    override fun byteCount(): Int = value.size + 3
 
     override fun toString(): String = value.toString()
 }
@@ -427,7 +427,7 @@ value class AuthenticationData(override val value: ByteString) :
     override val writeValue: Sink.(ByteString) -> Unit
         get() = ByteStringWriter
 
-    override fun byteCount(): Int = value.size + 1
+    override fun byteCount(): Int = value.size + 3
 
     override fun toString(): String = value.toString()
 }

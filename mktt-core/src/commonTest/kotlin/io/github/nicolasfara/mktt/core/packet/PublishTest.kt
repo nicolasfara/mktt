@@ -8,12 +8,16 @@ import io.github.nicolasfara.mktt.core.QoS
 import io.github.nicolasfara.mktt.core.SubscriptionIdentifier
 import io.github.nicolasfara.mktt.core.TopicAlias
 import io.github.nicolasfara.mktt.core.buildUserProperties
+import io.github.nicolasfara.mktt.core.util.readMqttString
+import io.github.nicolasfara.mktt.core.util.readVariableByteInt
 import io.github.nicolasfara.mktt.core.util.toResponseTopic
 import io.github.nicolasfara.mktt.core.util.toTopic
 import io.ktor.utils.io.core.toByteArray
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlinx.coroutines.test.runTest
+import kotlinx.io.Buffer
 import kotlinx.io.bytestring.ByteString
 import kotlinx.io.bytestring.encodeToByteString
 
@@ -39,6 +43,22 @@ class PublishTest {
                 payload = ByteString("payload".toByteArray()),
             ),
         )
+    }
+
+    @Test
+    fun `correlation data contributes its length prefix to properties length`() {
+        val reader = Buffer().apply {
+            write(
+                Publish(
+                    topic = "test/topic".toTopic(),
+                    correlationData = CorrelationData("data".encodeToByteString()),
+                    payload = ByteString(ByteArray(0)),
+                ),
+            )
+        }
+
+        assertEquals("test/topic", reader.readMqttString())
+        assertEquals(7, reader.readVariableByteInt())
     }
 
     @Test
