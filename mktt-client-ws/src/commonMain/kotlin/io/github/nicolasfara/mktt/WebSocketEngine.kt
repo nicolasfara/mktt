@@ -25,6 +25,8 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
 import kotlinx.coroutines.channels.ClosedSendChannelException
 import kotlinx.coroutines.coroutineScope
@@ -50,7 +52,7 @@ internal class WebSocketEngine(
     private val _connected = MutableStateFlow(false)
     override val connected = _connected.asStateFlow()
 
-    private val scope = CoroutineScope(dispatcher)
+    private val scope = CoroutineScope(dispatcher + SupervisorJob())
     private var receiverJob: Job? = null
     private var wsSession: DefaultClientWebSocketSession? = null
 
@@ -110,12 +112,20 @@ internal class WebSocketEngine(
         ?: Result.failure(ConnectionException("Not connected to ${config.url}"))
 
     override suspend fun disconnect() {
+        val session = wsSession
+        wsSession = null
         _connected.value = false
-        wsSession?.close()
         receiverJob?.cancel()
+        receiverJob = null
+        session?.close()
     }
 
     override fun close() {
+        _connected.value = false
+        wsSession = null
+        receiverJob?.cancel()
+        receiverJob = null
+        scope.cancel()
         client.close()
     }
 
@@ -163,8 +173,13 @@ internal class WebSocketEngine(
                         channel.writeFully(frame.readBytes())
                     }
                     else -> {
-                        // TODO: Close the network connection when receiving a non-binary frame [MQTT-6.0.0-1]
-                        Logger.e { "Received unexpected frame type: $frame" }
+                        val exception = MalformedPacketException(
+                            "Received unexpected non-binary websocket frame: $frame",
+                        )
+                        Logger.e(exception) { "Closing websocket connection after non-binary MQTT frame" }
+                        _packetResults.emit(Result.failure(exception))
+                        session.close()
+                        break
                     }
                 }
             }
@@ -174,7 +189,10 @@ internal class WebSocketEngine(
             Logger.i(ex) { "WebSocket incoming channel closed" }
         } finally {
             withContext(NonCancellable) {
-                disconnect()
+                _connected.value = false
+                wsSession = null
+                receiverJob = null
+                session.close()
                 reader.cancel()
             }
         }

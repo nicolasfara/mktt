@@ -40,67 +40,69 @@ internal object DefaultMqttClientPackets {
         filters: List<TopicFilter>,
         subscriptionIdentifier: SubscriptionIdentifier?,
         userProperties: UserProperties,
-        nextPacketIdentifier: () -> UShort,
+        packetIdentifier: UShort,
     ): Subscribe = Subscribe(
-        packetIdentifier = nextPacketIdentifier(),
+        packetIdentifier = packetIdentifier,
         filters = filters,
         subscriptionIdentifier = subscriptionIdentifier,
         userProperties = userProperties,
     )
 
-    fun createUnsubscribe(
-        topics: List<Topic>,
-        userProperties: UserProperties,
-        nextPacketIdentifier: () -> UShort,
-    ): Unsubscribe = Unsubscribe(
-        packetIdentifier = nextPacketIdentifier(),
-        topics = topics,
-        userProperties = userProperties,
-    )
+    fun createUnsubscribe(topics: List<Topic>, userProperties: UserProperties, packetIdentifier: UShort): Unsubscribe =
+        Unsubscribe(
+            packetIdentifier = packetIdentifier,
+            topics = topics,
+            userProperties = userProperties,
+        )
 
     fun createPublish(
         request: PublishRequest,
         capabilities: DefaultMqttClientCapabilities,
-        nextPacketIdentifier: () -> UShort,
+        packetIdentifier: UShort?,
         isDupMessage: Boolean = false,
-    ): Result<Publish> =
-        when {
-            request.topicAlias != null && request.topicAlias.value > capabilities.serverTopicAliasMaximum.value -> {
-                Result.failure(
-                    TopicAliasException(
-                        "Server maximum topic alias is: ${capabilities.serverTopicAliasMaximum}, " +
-                            "but you requested: ${request.topicAlias}",
-                    ),
-                )
-            }
+    ): Result<Publish> = when {
+        request.topicAlias != null && request.topicAlias.value > capabilities.serverTopicAliasMaximum.value -> {
+            Result.failure(
+                TopicAliasException(
+                    "Server maximum topic alias is: ${capabilities.serverTopicAliasMaximum}, " +
+                        "but you requested: ${request.topicAlias}",
+                ),
+            )
+        }
 
-            request.isRetainMessage && !capabilities.retainAvailable -> {
-                Result.failure(IllegalArgumentException("Server does not support retained messages"))
-            }
+        request.isRetainMessage && !capabilities.retainAvailable -> {
+            Result.failure(IllegalArgumentException("Server does not support retained messages"))
+        }
 
-            else -> {
-                val actualQoS = request.desiredQoS.coerceAtMost(capabilities.maxQos)
-                val isAtMostOnce = actualQoS == QoS.AT_MOST_ONCE
-                Result.success(
-                    Publish(
-                        isDupMessage = if (isAtMostOnce) false else isDupMessage,
-                        qoS = actualQoS,
-                        isRetainMessage = request.isRetainMessage,
-                        packetIdentifier = if (isAtMostOnce) null else nextPacketIdentifier(),
-                        topic = request.topic,
-                        payloadFormatIndicator = request.payloadFormatIndicator,
-                        messageExpiryInterval = request.messageExpiryInterval,
-                        topicAlias = request.topicAlias,
-                        responseTopic = request.responseTopic,
-                        correlationData = request.correlationData,
-                        userProperties = request.userProperties,
-                        subscriptionIdentifier = null,
-                        contentType = request.contentType,
-                        payload = request.payloadAsByteString(),
-                    ),
+        else -> {
+            val actualQoS = request.desiredQoS.coerceAtMost(capabilities.maxQos)
+            val isAtMostOnce = actualQoS == QoS.AT_MOST_ONCE
+            runCatching {
+                Publish(
+                    isDupMessage = if (isAtMostOnce) false else isDupMessage,
+                    qoS = actualQoS,
+                    isRetainMessage = request.isRetainMessage,
+                    packetIdentifier = if (isAtMostOnce) {
+                        null
+                    } else {
+                        requireNotNull(packetIdentifier) {
+                            "Packet identifier is required for QoS > 0"
+                        }
+                    },
+                    topic = request.topic,
+                    payloadFormatIndicator = request.payloadFormatIndicator,
+                    messageExpiryInterval = request.messageExpiryInterval,
+                    topicAlias = request.topicAlias,
+                    responseTopic = request.responseTopic,
+                    correlationData = request.correlationData,
+                    userProperties = request.userProperties,
+                    subscriptionIdentifier = null,
+                    contentType = request.contentType,
+                    payload = request.payloadAsByteString(),
                 )
             }
         }
+    }
 
     fun createDisconnect(
         reasonCode: ReasonCode,

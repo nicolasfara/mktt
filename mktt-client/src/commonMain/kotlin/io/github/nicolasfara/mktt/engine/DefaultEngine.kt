@@ -24,7 +24,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.async
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -70,24 +70,32 @@ internal class DefaultEngine(
     private var receiverJob: Job? = null
 
     override suspend fun start(): Result<Unit> = try {
-        socket = scope.async {
-            val socket = withTimeout(config.connectionTimeout) {
+        val connectedSocket = withContext(dispatcher) {
+            withTimeout(config.connectionTimeout) {
                 socketHandler.openSocket(config)
             }
-            _connected.value = true
-            socket
-        }.await().also { socket ->
-            sendChannel = socket.openWriteChannel()
-            // Open the read channel before launching the reader job to surface setup failures.
-            val readChannel = socket.openReadChannel()
-            receiverJob = scope.launch {
-                readChannel.incomingMessageLoop()
-            }
+        }
+        socket = connectedSocket
+        sendChannel = connectedSocket.openWriteChannel()
+        // Open the read channel before launching the reader job to surface setup failures.
+        val readChannel = connectedSocket.openReadChannel()
+        _connected.value = true
+        receiverJob = scope.launch {
+            readChannel.incomingMessageLoop()
         }
         Result.success(Unit)
+    } catch (ex: TimeoutCancellationException) {
+        disconnected()
+        Result.failure(
+            ConnectionException(
+                "Cannot connect to ${config.host}:${config.port}",
+                ex,
+            ),
+        )
     } catch (ex: CancellationException) {
         throw ex
     } catch (ex: ClosedWriteChannelException) {
+        disconnected()
         Result.failure(
             ConnectionException(
                 "Cannot connect to ${config.host}:${config.port}",
@@ -95,6 +103,7 @@ internal class DefaultEngine(
             ),
         )
     } catch (ex: IllegalStateException) {
+        disconnected()
         Result.failure(
             ConnectionException(
                 "Cannot connect to ${config.host}:${config.port}",

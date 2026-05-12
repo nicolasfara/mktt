@@ -1,5 +1,6 @@
 package io.github.nicolasfara.mktt.core.packet
 
+import io.github.nicolasfara.mktt.core.MalformedPacketException
 import io.github.nicolasfara.mktt.core.util.Logger
 import io.github.nicolasfara.mktt.core.util.readVariableByteInt
 import io.github.nicolasfara.mktt.core.util.writeVariableByteInt
@@ -16,7 +17,10 @@ import kotlinx.io.Sink
 
 private const val HEADER_FLAG_BIT_COUNT = 4
 private const val HEADER_FLAGS_MAX_EXCLUSIVE = 1 shl HEADER_FLAG_BIT_COUNT
+private const val HEADER_FLAGS_MASK = HEADER_FLAGS_MAX_EXCLUSIVE - 1
 private const val PACKET_TYPE_SHIFT = HEADER_FLAG_BIT_COUNT
+private const val DEFAULT_HEADER_FLAGS = 0
+private const val COMMAND_WITH_PACKET_IDENTIFIER_HEADER_FLAGS = 2
 
 /** Base type for all MQTT packets. */
 interface Packet {
@@ -57,17 +61,20 @@ inline fun <reified T : PacketIdentifierPacket> Packet.isResponseFor(publish: Pu
 suspend fun ByteReadChannel.readPacket(): Packet {
     val header = readByte()
     val type = PacketType.from(header)
+    val headerFlags = header.toInt() and HEADER_FLAGS_MASK
+    validateHeaderFlags(type, headerFlags)
     val length = readVariableByteInt()
 
     Logger.v {
         "New MQTT header of type $type received, remaining packet has $length bytes"
     }
 
-    return with(readPacket(length)) {
+    val body = readPacket(length)
+    val packet = with(body) {
         when (type) {
             PacketType.CONNACK -> readConnack()
             PacketType.CONNECT -> readConnect()
-            PacketType.PUBLISH -> readPublish(header.toInt())
+            PacketType.PUBLISH -> readPublish(headerFlags)
             PacketType.PUBACK -> readPublishResponse(PubackFactory)
             PacketType.PUBREC -> readPublishResponse(PubrecFactory)
             PacketType.PUBREL -> readPublishResponse(PubrelFactory)
@@ -82,6 +89,12 @@ suspend fun ByteReadChannel.readPacket(): Packet {
             PacketType.AUTH -> readAuth()
         }
     }
+    if (!body.exhausted()) {
+        throw MalformedPacketException(
+            "$type packet contains ${body.remaining} unread bytes after decoding",
+        )
+    }
+    return packet
 }
 
 /**
@@ -143,4 +156,21 @@ private suspend fun ByteWriteChannel.writeFixedHeader(packet: Packet, remainingL
     }
     writeByte(((packet.type.value shl PACKET_TYPE_SHIFT) or packet.headerFlags).toByte())
     writeVariableByteInt(remainingLength)
+}
+
+private fun validateHeaderFlags(type: PacketType, headerFlags: Int) {
+    val expected = when (type) {
+        PacketType.PUBLISH -> return
+        PacketType.PUBREL,
+        PacketType.SUBSCRIBE,
+        PacketType.UNSUBSCRIBE,
+        -> COMMAND_WITH_PACKET_IDENTIFIER_HEADER_FLAGS
+
+        else -> DEFAULT_HEADER_FLAGS
+    }
+    if (headerFlags != expected) {
+        throw MalformedPacketException(
+            "Invalid fixed header flags for $type: $headerFlags (expected $expected)",
+        )
+    }
 }

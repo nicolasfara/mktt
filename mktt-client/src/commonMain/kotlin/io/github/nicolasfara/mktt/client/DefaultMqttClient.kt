@@ -34,9 +34,6 @@ import io.github.nicolasfara.mktt.core.packet.Unsuback
 import io.github.nicolasfara.mktt.core.packet.isResponseFor
 import io.github.nicolasfara.mktt.core.util.Logger
 import io.github.nicolasfara.mktt.engine.MqttEngine
-import kotlin.concurrent.atomics.AtomicInt
-import kotlin.concurrent.atomics.ExperimentalAtomicApi
-import kotlin.concurrent.atomics.updateAndFetch
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CoroutineScope
@@ -51,6 +48,8 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /**
  * Default [MqttClient] implementation backed by a [MqttEngine] and a [SessionStore].
@@ -103,8 +102,9 @@ class DefaultMqttClient(
     private val capabilities = DefaultMqttClientCapabilities(config.clientId)
     private val pendingResponses = PendingResponseRegistry(config.ackMessageTimeout)
 
-    @OptIn(ExperimentalAtomicApi::class)
-    private val packetIdentifier = AtomicInt(0)
+    private val packetIdentifierMutex = Mutex()
+    private val allocatedPacketIdentifiers = mutableSetOf<UShort>()
+    private var packetIdentifier = 0
     private val sendQuota = SendQuotaController()
 
     private val publishReceivedPackets = mutableMapOf<UShort, Pubrec>()
@@ -119,6 +119,7 @@ class DefaultMqttClient(
                 if (!connected && _connectionState.value != MqttConnectionState.Connecting) {
                     pendingResponses.reset()
                     sendQuota.reset()
+                    restorePacketIdentifiersFromSession()
                     _connectionState.value = MqttConnectionState.Disconnected
                 }
             }
@@ -131,6 +132,8 @@ class DefaultMqttClient(
         sendQuota.reset()
         if (cleanStart) {
             clearSessionState()
+        } else {
+            restorePacketIdentifiersFromSession()
         }
         try {
             engine.start().fold(
@@ -144,7 +147,12 @@ class DefaultMqttClient(
                 onFailure = { throw it },
             )
             inspectConnack(connack)
-            if (connack.isSessionPresent) resumeSession() else clearSessionState()
+            if (connack.isSessionPresent) {
+                restorePacketIdentifiersFromSession()
+                resumeSession()
+            } else {
+                clearSessionState()
+            }
             return connack
         } catch (ex: CancellationException) {
             throw ex
@@ -179,53 +187,97 @@ class DefaultMqttClient(
         } else {
             subscriptionIdentifier
         }
-        val subscribe = DefaultMqttClientPackets.createSubscribe(
-            filters = filters,
-            subscriptionIdentifier = identifier,
-            userProperties = userProperties,
-            nextPacketIdentifier = ::nextPacketIdentifier,
-        )
+        val packetIdentifier = nextPacketIdentifier()
+        val subscribe = runCatching {
+            DefaultMqttClientPackets.createSubscribe(
+                filters = filters,
+                subscriptionIdentifier = identifier,
+                userProperties = userProperties,
+                packetIdentifier = packetIdentifier,
+            )
+        }.getOrElse {
+            releasePacketIdentifier(packetIdentifier)
+            throw it
+        }
         return awaitResponseOf<Suback>({ it.isResponseFor<Suback>(subscribe) }, {
             engine.send(subscribe)
-        }).getOrElse { throw it }
+        }).getOrElse {
+            disconnectAfterHandshakeFailure()
+            throw it
+        }.also {
+            releasePacketIdentifier(subscribe.packetIdentifier)
+        }
     }
 
     override suspend fun unsubscribe(filters: List<TopicFilter>, userProperties: UserProperties): UnsubAck {
-        val unsubscribe = DefaultMqttClientPackets.createUnsubscribe(
-            topics = filters.map(TopicFilter::filter),
-            userProperties = userProperties,
-            nextPacketIdentifier = ::nextPacketIdentifier,
-        )
+        val packetIdentifier = nextPacketIdentifier()
+        val unsubscribe = runCatching {
+            DefaultMqttClientPackets.createUnsubscribe(
+                topics = filters.map(TopicFilter::filter),
+                userProperties = userProperties,
+                packetIdentifier = packetIdentifier,
+            )
+        }.getOrElse {
+            releasePacketIdentifier(packetIdentifier)
+            throw it
+        }
 
         return awaitResponseOf<Unsuback>({
             it.isResponseFor<Unsuback>(unsubscribe)
         }, {
             engine.send(unsubscribe)
-        }).getOrElse { throw it }
+        }).getOrElse {
+            disconnectAfterHandshakeFailure()
+            throw it
+        }.also {
+            releasePacketIdentifier(unsubscribe.packetIdentifier)
+        }
     }
 
     override suspend fun publish(request: PublishRequest): PublishResult {
         if (!engine.connected.value) {
             throw ConnectionException("Cannot send PUBLISH packet while not connected")
         }
+        val packetIdentifier = if (request.desiredQoS.coerceAtMost(maxQos) == QoS.AT_MOST_ONCE) {
+            null
+        } else {
+            nextPacketIdentifier()
+        }
         return DefaultMqttClientPackets.createPublish(
             request = request,
             capabilities = capabilities,
-            nextPacketIdentifier = ::nextPacketIdentifier,
-        ).mapCatching { publish ->
-            when (publish.qoS) {
-                QoS.AT_MOST_ONCE -> {
-                    engine.send(publish).onFailure { throw it }
-                    AtMostOncePublishResponse(publish)
+            packetIdentifier = packetIdentifier,
+        ).onFailure {
+            releasePacketIdentifier(packetIdentifier)
+        }.mapCatching { publish ->
+            var sessionOwnsPacketIdentifier = false
+            try {
+                when (publish.qoS) {
+                    QoS.AT_MOST_ONCE -> {
+                        engine.send(publish).onFailure { throw it }
+                        AtMostOncePublishResponse(publish)
+                    }
+
+                    QoS.AT_LEAST_ONCE -> {
+                        val inFlight = session.store(publish)
+                        sessionOwnsPacketIdentifier = true
+                        sendAtLeastOnceMessage(inFlight)
+                    }
+
+                    QoS.EXACTLY_ONE -> {
+                        val inFlight = session.store(publish)
+                        sessionOwnsPacketIdentifier = true
+                        sendExactlyOnceMessage(inFlight)
+                    }
                 }
-
-                QoS.AT_LEAST_ONCE -> sendAtLeastOnceMessage(
-                    session.store(publish),
-                )
-
-                QoS.EXACTLY_ONE -> sendExactlyOnceMessage(
-                    session.store(publish),
-                )
+            } catch (ex: MqttException) {
+                if (!sessionOwnsPacketIdentifier) {
+                    releasePacketIdentifier(publish.packetIdentifier)
+                }
+                throw ex
+            } catch (ex: IllegalArgumentException) {
+                releasePacketIdentifier(publish.packetIdentifier)
+                throw ex
             }
         }.getOrElse { throw it }
     }
@@ -263,6 +315,7 @@ class DefaultMqttClient(
         }
 
         session.acknowledge(inFlight)
+        releasePacketIdentifier(publish.packetIdentifier)
         return AtLeastOncePublishResponse(publish, puback)
     }
 
@@ -288,6 +341,7 @@ class DefaultMqttClient(
         }
 
         session.acknowledge(pubrel)
+        releasePacketIdentifier(publish.packetIdentifier)
         return ExactlyOnePublishResponse(publish, pubcomp)
     }
 
@@ -387,6 +441,7 @@ class DefaultMqttClient(
                     is InFlightPubrel -> {
                         sendPubrel(packet.source)?.also {
                             session.acknowledge(packet)
+                            releasePacketIdentifier(packet.packetIdentifier)
                         }
                     }
                 }
@@ -515,12 +570,14 @@ class DefaultMqttClient(
         pendingResponses.reset()
         sendQuota.reset()
         engine.disconnect()
+        restorePacketIdentifiersFromSession()
         _connectionState.value = MqttConnectionState.Disconnected
     }
 
-    private fun clearSessionState() {
+    private suspend fun clearSessionState() {
         session.clear()
         publishReceivedPackets.clear()
+        clearAllocatedPacketIdentifiers()
     }
 
     /**
@@ -528,15 +585,53 @@ class DefaultMqttClient(
      *
      * The sequence wraps back to `1` after reaching `65535`.
      */
-    @OptIn(ExperimentalAtomicApi::class)
-    fun nextPacketIdentifier(): UShort = packetIdentifier.updateAndFetch { p ->
-        val next = p + 1
-        if (next > UShort.MAX_VALUE.toInt()) {
+    private suspend fun nextPacketIdentifier(): UShort = packetIdentifierMutex.withLock {
+        if (allocatedPacketIdentifiers.size >= MAX_PACKET_IDENTIFIER) {
+            throw ConnectionException("No MQTT packet identifiers available")
+        }
+        var candidate: UShort
+        do {
+            packetIdentifier = nextPacketIdentifierAfter(packetIdentifier)
+            candidate = packetIdentifier.toUShort()
+        } while (candidate in allocatedPacketIdentifiers)
+        allocatedPacketIdentifiers += candidate
+        Logger.v { "Next packet identifier: $packetIdentifier" }
+        candidate
+    }
+
+    private suspend fun releasePacketIdentifier(packetIdentifier: UShort?) {
+        if (packetIdentifier == null) return
+        packetIdentifierMutex.withLock {
+            allocatedPacketIdentifiers -= packetIdentifier
+        }
+    }
+
+    private suspend fun clearAllocatedPacketIdentifiers() {
+        packetIdentifierMutex.withLock {
+            allocatedPacketIdentifiers.clear()
+        }
+    }
+
+    private suspend fun restorePacketIdentifiersFromSession() {
+        val unacknowledgedPacketIdentifiers = session.unacknowledgedPackets().mapTo(mutableSetOf()) {
+            it.packetIdentifier
+        }
+        packetIdentifierMutex.withLock {
+            allocatedPacketIdentifiers.clear()
+            allocatedPacketIdentifiers += unacknowledgedPacketIdentifiers
+        }
+    }
+
+    private fun nextPacketIdentifierAfter(packetIdentifier: Int): Int {
+        val next = packetIdentifier + 1
+        return if (next > MAX_PACKET_IDENTIFIER) {
             1 // Zero is not allowed as packet identifier
         } else {
             next
         }
-    }.also {
-        Logger.v { "Next packet identifier: $it" }
-    }.toUShort()
+    }
+
+    private companion object {
+        private val MAX_PACKET_IDENTIFIER = UShort.MAX_VALUE.toInt()
+    }
 }

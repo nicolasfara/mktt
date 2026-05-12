@@ -1,7 +1,9 @@
 package io.github.nicolasfara.mktt.client
 
+import io.github.nicolasfara.mktt.core.ConnectionException
 import io.github.nicolasfara.mktt.core.TimeoutException
 import io.github.nicolasfara.mktt.core.packet.Packet
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.TimeoutCancellationException
@@ -19,7 +21,7 @@ internal class PendingResponseRegistry(private val ackMessageTimeout: kotlin.tim
         crossinline request: suspend () -> Result<Unit>,
     ): Result<P> {
         val deferred = CompletableDeferred<P>()
-        val response = PendingResponse { packet: Packet ->
+        val response = PendingResponse(deferred) { packet: Packet ->
             val typedPacket = packet as? P ?: return@PendingResponse false
             if (!predicate(typedPacket)) {
                 return@PendingResponse false
@@ -32,23 +34,13 @@ internal class PendingResponseRegistry(private val ackMessageTimeout: kotlin.tim
             pendingResponses += response
         }
 
-        val requestResult = request()
-        requestResult.onFailure {
-            remove(response)
-            return Result.failure(it)
-        }
-
         return try {
-            withTimeout(ackMessageTimeout) {
-                Result.success(deferred.await())
+            val requestFailure = request().exceptionOrNull()
+            if (requestFailure == null) {
+                awaitResponse(deferred)
+            } else {
+                Result.failure(requestFailure)
             }
-        } catch (e: TimeoutCancellationException) {
-            Result.failure(
-                TimeoutException(
-                    "Didn't receive requested packet within $ackMessageTimeout",
-                    e,
-                ),
-            )
         } finally {
             withContext(NonCancellable) {
                 remove(response)
@@ -68,9 +60,16 @@ internal class PendingResponseRegistry(private val ackMessageTimeout: kotlin.tim
         }
     }
 
-    suspend fun reset() {
-        mutex.withLock {
-            pendingResponses.clear()
+    suspend fun reset(
+        cause: ConnectionException = ConnectionException("Connection closed while waiting for response"),
+    ) {
+        val removed = mutex.withLock {
+            pendingResponses.toList().also {
+                pendingResponses.clear()
+            }
+        }
+        removed.forEach {
+            it.completeExceptionally(cause)
         }
     }
 
@@ -79,10 +78,30 @@ internal class PendingResponseRegistry(private val ackMessageTimeout: kotlin.tim
             pendingResponses.remove(response)
         }
     }
+
+    private suspend fun <P : Packet> awaitResponse(deferred: CompletableDeferred<P>): Result<P> = try {
+        withTimeout(ackMessageTimeout) {
+            Result.success(deferred.await())
+        }
+    } catch (e: TimeoutCancellationException) {
+        Result.failure(
+            TimeoutException(
+                "Didn't receive requested packet within $ackMessageTimeout",
+                e,
+            ),
+        )
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: ConnectionException) {
+        Result.failure(e)
+    }
 }
 
 internal class PendingResponse(
+    private val deferred: CompletableDeferred<*>,
     private val matcher: (Packet) -> Boolean,
 ) {
     fun tryComplete(packet: Packet): Boolean = matcher(packet)
+
+    fun completeExceptionally(cause: Throwable): Boolean = deferred.completeExceptionally(cause)
 }
