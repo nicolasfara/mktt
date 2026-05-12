@@ -165,6 +165,9 @@ internal fun Source.readProperties(): List<Property<*>> {
         while (bytesRead < byteCount) {
             val property = readProperty()
             bytesRead += (property as WritableProperty<*>).byteCount()
+            malformedWhen(bytesRead > byteCount) {
+                "Properties length exceeded declared byte count: read $bytesRead bytes, expected $byteCount"
+            }
             add(property)
         }
     }
@@ -673,6 +676,12 @@ value class TopicAlias(override val value: UShort) :
 value class MaximumQoS(override val value: Byte) :
     WritableProperty<Byte>,
     Property<Byte> {
+
+    init {
+        malformedWhen(value > QoS.AT_LEAST_ONCE.value.toByte()) {
+            "The Maximum QoS must be 0 or 1."
+        }
+    }
 
     /** The identifier value of this property is: `0x24`. */
     override val identifier: Int

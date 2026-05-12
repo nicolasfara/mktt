@@ -38,9 +38,7 @@ internal class DefaultMqttClientCapabilities(initialClientId: String) {
         configuredClientId: String,
         updateReceiveMaximum: suspend (UShort) -> Unit,
     ) {
-        connack.maximumQoS?.let {
-            maxQos = it.qoS
-        }
+        maxQos = connack.maximumQoS?.qoS ?: QoS.EXACTLY_ONE
         serverTopicAliasMaximum = connack.topicAliasMaximum ?: TopicAliasMaximum(0u)
 
         if (configuredClientId.isEmpty()) {

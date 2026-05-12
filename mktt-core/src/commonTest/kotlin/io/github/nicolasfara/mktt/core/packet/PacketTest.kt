@@ -24,4 +24,24 @@ class PacketTest {
             ByteReadChannel(pingreqWithBody).readPacket()
         }
     }
+
+    @Test
+    fun `readPacket rejects properties exceeding declared property length`() = runTest {
+        val connackWithOverlongProperty = byteArrayOf(
+            0x20,
+            8,
+            0,
+            0,
+            2,
+            0x27,
+            0,
+            0,
+            0,
+            1,
+        )
+
+        assertFailsWith<MalformedPacketException> {
+            ByteReadChannel(connackWithOverlongProperty).readPacket()
+        }
+    }
 }

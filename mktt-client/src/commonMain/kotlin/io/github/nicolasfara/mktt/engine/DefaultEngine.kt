@@ -128,6 +128,12 @@ internal class DefaultEngine(
     }
 
     override fun close() {
+        _connected.value = false
+        receiverJob?.cancel()
+        receiverJob = null
+        sendChannel = null
+        socket?.close()
+        socket = null
         socketHandler.close()
         scope.cancel()
     }

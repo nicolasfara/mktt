@@ -298,6 +298,9 @@ class DefaultMqttClient(
     }
 
     override fun close() {
+        keepAliveJob?.cancel()
+        keepAliveJob = null
+        _connectionState.value = MqttConnectionState.Disconnected
         engine.close()
         scope.cancel()
     }

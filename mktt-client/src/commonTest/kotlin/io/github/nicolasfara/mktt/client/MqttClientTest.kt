@@ -214,6 +214,91 @@ class MqttClientTest {
     }
 
     @Test
+    fun `broker maximum qos defaults are restored across reconnects`() = runTest {
+        val engine = FakeMqttEngine(UnconfinedTestDispatcher(testScheduler)).apply {
+            var connectCount = 0
+            sendHandler = { packet ->
+                sentPackets += packet
+                when (packet) {
+                    is Connect -> emit(
+                        if (connectCount++ == 0) {
+                            Connack(
+                                isSessionPresent = false,
+                                reason = Success,
+                                maximumQoS = MaximumQoS(0),
+                            )
+                        } else {
+                            Connack(
+                                isSessionPresent = false,
+                                reason = Success,
+                            )
+                        },
+                    )
+
+                    is Publish -> {
+                        if (packet.qoS == QoS.AT_LEAST_ONCE) {
+                            emit(Puback.from(packet))
+                        }
+                    }
+                }
+                Result.success(Unit)
+            }
+        }
+        val client = createClient(engine)
+
+        client.connect()
+        val downgraded = client.publish(
+            PublishRequest("sensor/limited") {
+                desiredQoS = QoS.AT_LEAST_ONCE
+                payload("qos0")
+            },
+        )
+        assertIs<AtMostOncePublishResponse>(downgraded)
+
+        client.disconnect()
+        client.connect()
+        try {
+            val restored = client.publish(
+                PublishRequest("sensor/restored") {
+                    desiredQoS = QoS.AT_LEAST_ONCE
+                    payload("qos1")
+                },
+            )
+
+            assertIs<AtLeastOncePublishResponse>(restored)
+        } finally {
+            withContext(NonCancellable) {
+                client.disconnect()
+            }
+            client.close()
+        }
+    }
+
+    @Test
+    fun `close updates connection state`() = runTest {
+        val engine = FakeMqttEngine(UnconfinedTestDispatcher(testScheduler)).apply {
+            sendHandler = { packet ->
+                sentPackets += packet
+                if (packet is Connect) {
+                    emit(
+                        Connack(
+                            isSessionPresent = false,
+                            reason = Success,
+                        ),
+                    )
+                }
+                Result.success(Unit)
+            }
+        }
+        val client = createClient(engine)
+
+        client.connect()
+        client.close()
+
+        assertEquals(MqttConnectionState.Disconnected, client.connectionState.value)
+    }
+
+    @Test
     fun `publish timeout disconnects client and allows reconnect`() = runTest {
         val engine = FakeMqttEngine(UnconfinedTestDispatcher(testScheduler)).apply {
             sendHandler = { packet ->
