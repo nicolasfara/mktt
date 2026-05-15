@@ -3,16 +3,22 @@ import org.gradle.api.tasks.testing.logging.TestLogEvent
 
 plugins {
     alias(libs.plugins.dokka)
+    alias(libs.plugins.kotlin.multiplatform) apply false
     alias(libs.plugins.gitSemVer)
     alias(libs.plugins.taskTree)
 }
 
 subprojects {
     group = "io.github.nicolasfara"
-
     repositories {
         mavenCentral()
     }
+}
+
+dependencies {
+    dokka(project(":mktt-core"))
+    dokka(project(":mktt-client"))
+    dokka(project(":mktt-client-ws"))
 }
 
 tasks.withType<Test>().configureEach {
