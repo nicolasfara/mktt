@@ -39,10 +39,11 @@ import kotlinx.coroutines.withTimeout
 import kotlinx.io.EOFException
 
 /**
- * @property config the engine config
- * @param socketHandler use a [io.github.nicolasfara.mktt.client.SocketHandler] other than
- *   the default one, mainly used for testing
- * @param replay the size of the replay cache for [packetResults], mainly used for testing
+ * Default TCP [MqttEngine] implementation.
+ *
+ * @property config engine configuration.
+ * @param socketHandler optional socket handler override, mainly used for tests.
+ * @param replay replay cache size for [packetResults], mainly used for tests.
  */
 internal class DefaultEngine(
     private val config: DefaultEngineConfig,

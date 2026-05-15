@@ -15,11 +15,15 @@ internal class WebSocketEngineFactory(private val url: Url, val dispatcher: Coro
 }
 
 /**
- * Configures the websocket passing the [url] at which the client should connect to.
+ * WebSocket transport configuration.
+ *
+ * @property url broker URL used by the WebSocket engine.
  */
 class WebSocketEngineConfig(val url: Url) : MqttEngineConfig() {
     /**
-     * Configures the http client to be used.
+     * Factory for the Ktor [HttpClient] used by the WebSocket engine.
+     *
+     * The default client installs the Ktor [WebSockets] plugin.
      */
     var http: () -> HttpClient = {
         HttpClient {

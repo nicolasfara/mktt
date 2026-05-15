@@ -91,6 +91,11 @@ data class PublishRequest(
 
 /**
  * Builds a [PublishRequest] for [topicName] using the DSL [init] block.
+ *
+ * @param topicName destination topic name.
+ * @param topicAlias optional topic alias to send instead of a full topic on subsequent publishes.
+ * @param init configuration block applied to the request builder.
+ * @return the built publish request.
  */
 fun PublishRequest(
     topicName: String,
@@ -146,6 +151,10 @@ class PublishRequestBuilder(private val topic: Topic, private val topicAlias: US
 
     /**
      * Sets payload bytes from UTF-8 [text].
+     *
+     * This also sets [payloadFormatIndicator] to [PayloadFormatIndicator.UTF_8].
+     *
+     * @param text payload text encoded as UTF-8.
      */
     fun payload(text: String) {
         val byteString = text.encodeToByteString()
@@ -156,6 +165,10 @@ class PublishRequestBuilder(private val topic: Topic, private val topicAlias: US
 
     /**
      * Sets payload bytes from [bytes].
+     *
+     * The provided array is copied.
+     *
+     * @param bytes payload bytes.
      */
     fun payload(bytes: ByteArray) {
         payload = bytes.copyOf()
@@ -163,6 +176,8 @@ class PublishRequestBuilder(private val topic: Topic, private val topicAlias: US
 
     /**
      * Configures user properties for the publish packet.
+     *
+     * @param init configuration block used to add user properties.
      */
     fun userProperties(init: UserPropertiesBuilder.() -> Unit) {
         userProperties = UserPropertiesBuilder().apply(init).build()
@@ -170,6 +185,8 @@ class PublishRequestBuilder(private val topic: Topic, private val topicAlias: US
 
     /**
      * Builds a [PublishRequest] from the current builder state.
+     *
+     * @return the built publish request.
      */
     fun build(): PublishRequest = PublishRequest(
         topic = topic,

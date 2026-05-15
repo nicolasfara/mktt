@@ -9,9 +9,10 @@ import kotlinx.coroutines.CoroutineDispatcher
 /**
  * Creates a new MQTT client using web sockets for connecting to the server.
  *
- * When not configured, this will use the default ktor http client as
- * described [here](https://ktor.io/docs/client-engines.html#default).
- * If you want to specify or configure an engine, for example CIO, use the following code snippet:
+ * When not configured, this uses the
+ * [default Ktor HTTP client engine](https://ktor.io/docs/client-engines.html#default). To specify or configure an
+ * engine, for example CIO, use:
+ *
  * ```
  * MqttClient("https://test.mosquitto.org:8091") {
  *     connection {
@@ -25,7 +26,10 @@ import kotlinx.coroutines.CoroutineDispatcher
  * }
  * ```
  *
- * @param url the URL to connect to, this may contain a 'http', 'https', 'ws' or 'wss' protocol
+ * @param url URL to connect to. Supported schemes are `http`, `https`, `ws`, and `wss`.
+ * @param dispatcher coroutine dispatcher used by the WebSocket transport engine.
+ * @param init configuration block applied before the client is created.
+ * @return a client configured to use the WebSocket transport engine.
  */
 fun MqttClient(
     url: String,
@@ -36,9 +40,10 @@ fun MqttClient(
 /**
  * Creates a new MQTT client using web sockets for connecting to the server.
  *
- * When not configured, this will use the default ktor http client
- * as described [here](https://ktor.io/docs/client-engines.html#default).
- * If you want to specify or configure an engine, for example CIO, use the following code snippet:
+ * When not configured, this uses the
+ * [default Ktor HTTP client engine](https://ktor.io/docs/client-engines.html#default). To specify or configure an
+ * engine, for example CIO, use:
+ *
  * ```
  * MqttClient("https://test.mosquitto.org:8091") {
  *     connection {
@@ -52,7 +57,10 @@ fun MqttClient(
  * }
  * ```
  *
- * @param url the URL to connect to, this may contain a 'http', 'https', 'ws' or 'wss' protocol
+ * @param url URL to connect to. Supported schemes are `http`, `https`, `ws`, and `wss`.
+ * @param dispatcher coroutine dispatcher used by the WebSocket transport engine.
+ * @param init configuration block applied before the client is created.
+ * @return a client configured to use the WebSocket transport engine.
  */
 fun MqttClient(
     url: Url,

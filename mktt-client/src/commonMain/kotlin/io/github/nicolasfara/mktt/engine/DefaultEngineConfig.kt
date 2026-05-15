@@ -16,13 +16,17 @@ class DefaultEngineConfig(val host: String, val port: Int) : MqttEngineConfig() 
     internal var tcpOptions: (SocketOptions.TCPClientSocketOptions.() -> Unit) = { }
 
     /**
-     * The time before a connection request times out. Ktor doesn't provide an option to specify the connection timeout
-     * in the TCP settings (see https://youtrack.jetbrains.com/issue/KTOR-5064/), hence we use this extra parameter.
+     * Time before a TCP connection attempt times out.
+     *
+     * This is exposed separately because Ktor does not provide a TCP socket option for connection timeout. See
+     * [KTOR-5064](https://youtrack.jetbrains.com/issue/KTOR-5064/).
      */
     var connectionTimeout: Duration = 10.seconds
 
     /**
      * Add TLS configuration for this client. Just use `tls { }` to enable TLS support.
+     *
+     * @param init TLS configuration block.
      */
     fun tls(init: TLSConfigBuilder.() -> Unit = {}) {
         tlsConfigBuilder = TLSConfigBuilder().also(init)
@@ -31,6 +35,7 @@ class DefaultEngineConfig(val host: String, val port: Int) : MqttEngineConfig() 
     /**
      * Configure the TCP options for this client.
      *
+     * @param init TCP socket options block.
      * @see SocketOptions.TCPClientSocketOptions
      */
     fun tcp(init: SocketOptions.TCPClientSocketOptions.() -> Unit = {}) {

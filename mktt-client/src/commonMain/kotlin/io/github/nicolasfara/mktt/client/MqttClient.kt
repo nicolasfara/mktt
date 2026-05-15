@@ -19,9 +19,10 @@ import kotlinx.coroutines.flow.StateFlow
  */
 interface MqttClient : AutoCloseable {
     /**
-     * A shared flow of all incoming PUBLISH messages received from the server.
-     * Subscribers will receive every message that arrives after they start collecting.
-     * Use [messages] to filter by a specific [io.github.nicolasfara.mktt.core.TopicFilter].
+     * Shared stream of incoming PUBLISH messages received from the server.
+     *
+     * Collectors receive messages emitted after collection starts. Use [messages] to observe only messages matching a
+     * specific [TopicFilter].
      */
     val incomingPublishes: SharedFlow<MqttPublishMessage>
 
@@ -34,72 +35,74 @@ interface MqttClient : AutoCloseable {
     val maxQos: QoS
 
     /**
-     * The ID of this client or the value of the assigned client ID of the [io.github.nicolasfara.mktt.core.packet.Connack]
-     * packet.
+     * Client identifier currently used by this client.
+     *
+     * Before a broker assigns an identifier, this is the configured client identifier. After a successful CONNACK with
+     * an assigned client identifier, this value is the broker-assigned identifier.
      */
     val clientId: String
 
     /**
-     * The server topic alias maximum value from the CONNACK message (or the default value of 0).
+     * Server topic alias maximum value from CONNACK, or `0` when the server did not provide one.
      */
     val serverTopicAliasMaximum: TopicAliasMaximum
 
     /**
-     * The value of 'Subscription Identifiers Available' from the CONNACK message of the server.
+     * Value of the `Subscription Identifiers Available` CONNACK property.
      */
     val subscriptionIdentifierAvailable: Boolean
 
     /**
-     * The value of 'Receive Maximum' from the CONNACK message of the server.
+     * Value of the `Receive Maximum` CONNACK property.
      */
     val receiveMaximum: UShort
 
     /**
-     * The value of 'Retain Available' from the CONNACK message of the server.
+     * Value of the `Retain Available` CONNACK property.
      */
     val isRetainAvailable: Boolean
 
     /**
-     * The value of 'Wildcard Subscription Available' from the CONNACK message of the server.
+     * Value of the `Wildcard Subscription Available` CONNACK property.
      *
      * Note that this value is only reported here, the [subscribe] method merely logs a warning message if a wildcard
-     * subscription is requested, when the server does not support it. The server should send a DISCONNECT with reason
-     * [WildcardSubscriptionsNotSupported] when a wild card subscription was requested for a server who is not
-     * supporting it.
+     * subscription is requested, when the server does not support it. The server should send DISCONNECT with
+     * [io.github.nicolasfara.mktt.core.WildcardSubscriptionsNotSupported] when a wildcard subscription is requested
+     * from a server that does not support it.
      */
     val isWildcardSubscriptionAvailable: Boolean
 
     /**
-     * The value of 'Shared Subscription Available' from the CONNACK message of the server.
+     * Value of the `Shared Subscription Available` CONNACK property.
      *
      * Note that this value is only reported here, the [subscribe] method merely logs a warning message if a shared
-     * subscription is requested, when the server does not support it. The server should send a DISCONNECT with reason
-     * [SharedSubscriptionsNotSupported] when a wild card subscription was requested for a server who is not supporting
-     * it.
+     * subscription is requested, when the server does not support it. The server should send DISCONNECT with
+     * [io.github.nicolasfara.mktt.core.SharedSubscriptionsNotSupported] when a shared subscription is requested from a
+     * server that does not support it.
      */
     val isSharedSubscriptionAvailable: Boolean
 
     /**
-     * The value of 'Maximum Packet Size' from the CONNACK message of the server.
+     * Value of the `Maximum Packet Size` CONNACK property.
      *
      * Note that this value is only reported here, packets are not checked for their size before being sent.
      */
     val maxPacketSize: UInt
 
     /**
-     * Provides the connection state of this MQTT client. When the state is
-     * [MqttConnectionState.Connected] this implies that an IP
-     * connectivity has been established AND that the server responded with a success CONNACK message.
+     * Observable connection state of this MQTT client.
+     *
+     * [MqttConnectionState.Connected] means that transport connectivity is established and the broker accepted CONNECT
+     * with a successful CONNACK.
      */
     val connectionState: StateFlow<MqttConnectionState>
 
     /**
-     * Tries to connect to the MQTT server and send a CONNECT message.
+     * Connects to the MQTT server and sends CONNECT.
      *
-     * @param cleanStart when set to `true` the `Clean Start` flag in the CONNACK packet will be set to `1`. Also, the
-     *        [io.github.nicolasfara.mktt.core.SessionStore] is cleared.
-     * @return the connection result. Note that even when the result returns a Connack packet, the client may still not
-     *         be successfully connected, as the server may send a CONNACK with an error message.
+     * @param cleanStart when `true`, sets the CONNECT `Clean Start` flag and clears the
+     * [io.github.nicolasfara.mktt.core.SessionStore].
+     * @return the CONNACK packet returned by the broker.
      * @see connectionState
      */
     suspend fun connect(cleanStart: Boolean = true): ConnAck
@@ -107,9 +110,10 @@ interface MqttClient : AutoCloseable {
     /**
      * Sends a SUBSCRIBE request to the MQTT server for the list of topics contained in [filters].
      *
-     * @param filters the filters to subscribe to
+     * @param filters topic filters to subscribe to.
      * @param subscriptionIdentifier an optional subscription identifier for this subscribe request. Note that a
      *        non-null value will be ignored, when the server does not support subscription identifiers.
+     * @param userProperties optional user properties to include in the SUBSCRIBE packet.
      * @return the SUBACK packet if the subscribe request was answered by the server. Note that the SUBACK may still
      *         contain error messages for each of the subscribed topics.
      * @see io.github.nicolasfara.mktt.core.packet.hasFailure
@@ -134,21 +138,20 @@ interface MqttClient : AutoCloseable {
     ): UnsubAck
 
     /**
-     * Sends the specified [io.github.nicolasfara.mktt.client.PublishRequest] to the server.
+     * Sends the specified [PublishRequest] to the server.
      *
-     * If the server announced a [io.github.nicolasfara.mktt.core.QoS] value lower
-     * than the one requested, the QoS of the published packet will be
-     * automatically downgraded. The actual QoS can be determined from either
-     * [maxQos] or [qoS].
+     * If the server announced a [QoS] lower than the requested one, the published packet is automatically downgraded.
+     * The actual QoS is exposed by [PublishResponse.qoS].
      *
      * When this method successfully returns, all handshake packets required by the
      * actual `QoS` will be exchanged between this client and the server. When the
-     * server does not respond within
-     * [ackMessageTimeout][de.kempmobil.ktor.mqtt.MqttClientConfigBuilder.ackMessageTimeout],
+     * server does not respond within [MqttClientConfig.ackMessageTimeout],
      * the result will be a failure with a
      * [io.github.nicolasfara.mktt.core.HandshakeFailedException].
      *
-     * All returned exceptions are of type [MqttException] resp. its subtypes.
+     * @param request publish request to send.
+     * @return publish acknowledgement details for the effective QoS.
+     * @throws MqttException when the publish flow fails.
      */
     suspend fun publish(request: PublishRequest): PublishResult
 

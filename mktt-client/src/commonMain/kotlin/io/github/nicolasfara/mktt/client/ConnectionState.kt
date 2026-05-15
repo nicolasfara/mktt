@@ -15,11 +15,22 @@ import io.github.nicolasfara.mktt.core.packet.Publish
 import io.github.nicolasfara.mktt.core.packet.Suback
 import io.github.nicolasfara.mktt.core.packet.Unsuback
 
+/** Public alias for MQTT CONNACK packets returned by [MqttClient.connect]. */
 typealias ConnAck = Connack
+
+/** Public alias for MQTT SUBACK packets returned by [MqttClient.subscribe]. */
 typealias SubAck = Suback
+
+/** Public alias for MQTT UNSUBACK packets returned by [MqttClient.unsubscribe]. */
 typealias UnsubAck = Unsuback
+
+/** Public alias for reason codes accepted by [MqttClient.disconnect]. */
 typealias DisconnectReason = ReasonCode
+
+/** Public alias for topic filters used as subscriptions. */
 typealias Subscription = TopicFilter
+
+/** Public alias for publish responses returned by [MqttClient.publish]. */
 typealias PublishResult = PublishResponse
 
 /**
@@ -118,6 +129,8 @@ data class MqttPublishMessage(
 
 /**
  * Converts a received MQTT [Publish] packet into the public [MqttPublishMessage] model.
+ *
+ * @return a public message model with copied payload bytes.
  */
 fun Publish.toIncomingMessage(): MqttPublishMessage = MqttPublishMessage(
     topic = topic,
@@ -135,6 +148,11 @@ fun Publish.toIncomingMessage(): MqttPublishMessage = MqttPublishMessage(
 
 /**
  * Checks whether this filter matches the provided [topic].
+ *
+ * Shared-subscription prefixes are ignored when matching the underlying topic filter.
+ *
+ * @param topic topic name to test.
+ * @return `true` when [topic] matches this filter.
  */
 fun TopicFilter.matches(topic: Topic): Boolean {
     val rawFilter = if (filter.isShared()) filter.shareNameAndFilter().second.name else filter.name

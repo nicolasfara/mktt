@@ -17,6 +17,12 @@ import kotlinx.coroutines.Dispatchers
  *     ...
  * }
  * ```
+ *
+ * @param host broker host name or IP address.
+ * @param port broker TCP port.
+ * @param dispatcher coroutine dispatcher used by the transport engine.
+ * @param init configuration block applied before the client is created.
+ * @return a client configured to use the default TCP transport engine.
  */
 fun MqttClient(
     host: String,
@@ -31,5 +37,8 @@ fun MqttClient(
  *
  * Use this overload when you want to construct the configuration separately
  * (for example via [buildConfig]) and then create the client instance from it.
+ *
+ * @param config immutable client configuration.
+ * @return a client using [config].
  */
 fun MqttClient(config: MqttClientConfig): MqttClient = DefaultMqttClient(config)

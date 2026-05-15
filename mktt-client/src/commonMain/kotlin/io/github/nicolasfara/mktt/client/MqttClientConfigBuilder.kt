@@ -25,6 +25,10 @@ import kotlinx.io.bytestring.ByteString
 
 /**
  * Builds an immutable [MqttClientConfig] using the provided [connectionFactory] and DSL [init] block.
+ *
+ * @param connectionFactory factory that creates the transport engine.
+ * @param init configuration block applied to the builder.
+ * @return the built immutable client configuration.
  */
 fun <T : MqttEngineConfig> buildConfig(
     connectionFactory: MqttEngineFactory<T>,
@@ -49,68 +53,75 @@ class MqttClientConfigBuilder<out T : MqttEngineConfig>(private val engineFactor
     }
 
     /**
-     * Timeout for handshake acknowledgments.
+     * Timeout for MQTT acknowledgement handshakes.
+     *
+     * This timeout is used while waiting for broker responses such as CONNACK, SUBACK, PUBACK, PUBREC, PUBCOMP, and
+     * UNSUBACK.
      */
     var ackMessageTimeout: Duration = 7.seconds
 
     /**
-     * MQTT client identifier. Empty means broker-assigned when supported.
+     * MQTT client identifier.
+     *
+     * An empty value requests a broker-assigned client identifier when the broker supports it.
      */
     var clientId: String =
         "mktt-" + (0..MAX_CLIENT_ID_LENGTH).map { ALLOWED_CHARS.random() }.joinToString(separator = "")
 
     /**
-     * Keep-alive interval in seconds.
+     * MQTT keep-alive interval in seconds.
+     *
+     * A value of `0` disables keep-alive.
      */
     var keepAliveSeconds: UShort = 0u
 
     /**
-     * Optional user name for authentication.
+     * Optional username included in CONNECT.
      */
     var username: String? = null
 
     /**
-     * Optional password for authentication.
+     * Optional password included in CONNECT.
      */
     var password: String? = null
 
     /**
-     * Optional session expiry interval.
+     * Optional session expiry interval requested in CONNECT.
      */
     var sessionExpiryInterval: Duration? = null
 
     /**
-     * Optional receive maximum value.
+     * Optional receive maximum value requested in CONNECT.
      */
     var receiveMaximum: UShort? = null
 
     /**
-     * Optional maximum packet size value.
+     * Optional maximum packet size requested in CONNECT.
      */
     var maximumPacketSize: UInt? = null
 
     /**
-     * Topic alias maximum value.
+     * Topic alias maximum value requested in CONNECT.
      */
     var topicAliasMaximum: UShort = 0u
 
     /**
-     * Whether to request response information from the server.
+     * Whether CONNECT should request response information from the broker.
      */
     var requestResponseInformation: Boolean = false
 
     /**
-     * Whether to request problem information from the server.
+     * Whether CONNECT should request problem information from the broker.
      */
     var requestProblemInformation: Boolean = true
 
     /**
-     * Optional enhanced authentication method.
+     * Optional enhanced authentication method included in CONNECT.
      */
     var authenticationMethod: String? = null
 
     /**
-     * Optional enhanced authentication data.
+     * Optional enhanced authentication data included in CONNECT.
      */
     var authenticationData: ByteString? = null
 
@@ -123,6 +134,8 @@ class MqttClientConfigBuilder<out T : MqttEngineConfig>(private val engineFactor
 
     /**
      * Configures the underlying transport engine.
+     *
+     * @param init configuration block applied to the engine-specific configuration.
      */
     fun connection(init: T.() -> Unit) {
         connectionBlock = init
@@ -130,6 +143,8 @@ class MqttClientConfigBuilder<out T : MqttEngineConfig>(private val engineFactor
 
     /**
      * Adds CONNECT user properties.
+     *
+     * @param init configuration block used to add user properties.
      */
     fun userProperties(init: UserPropertiesBuilder.() -> Unit) {
         userPropertiesBuilder = UserPropertiesBuilder().apply(init)
@@ -137,6 +152,9 @@ class MqttClientConfigBuilder<out T : MqttEngineConfig>(private val engineFactor
 
     /**
      * Configures the Last Will and Testament message for the given [topic].
+     *
+     * @param topic will topic name.
+     * @param init configuration block applied to the will message builder.
      */
     fun willMessage(topic: String, init: WillMessageBuilder.() -> Unit) {
         willMessageBuilder = WillMessageBuilder(topic).apply(init)
@@ -144,6 +162,8 @@ class MqttClientConfigBuilder<out T : MqttEngineConfig>(private val engineFactor
 
     /**
      * Builds an immutable [MqttClientConfig].
+     *
+     * @return a configuration object ready to pass to [MqttClient].
      */
     fun build(): MqttClientConfig {
         val resolvedEngine = engineFactory.create {

@@ -6,46 +6,57 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 
 /**
- * Interface for doing the network stuff of sending and receiving MQTT packets.
+ * Transport abstraction for sending and receiving MQTT packets.
  */
 interface MqttEngine : AutoCloseable {
     /**
-     * The dispatcher on which the coroutines are executed within the engine.
+     * Dispatcher used by the engine's coroutines.
      */
     val dispatcher: CoroutineDispatcher
 
     /**
-     * A shared flow of the received packets. Will contain a failure if a malformed packet has been received (together
-     * with a [io.github.nicolasfara.mktt.core.MalformedPacketException]).
+     * Shared stream of decoded packets received from the remote peer.
+     *
+     * A malformed packet is emitted as a failed [Result] whose cause is usually
+     * [io.github.nicolasfara.mktt.core.MalformedPacketException].
      */
     val packetResults: SharedFlow<Result<Packet>>
 
     /**
-     * Provides information about the connection state of this engine.
+     * Current transport connection state.
      */
     val connected: StateFlow<Boolean>
 
     /**
-     * Starts a connection of this engine and returns the result. When this method returns a success, the
-     * [connected] state will be `true`.
+     * Starts the transport connection.
+     *
+     * @return success when the transport is connected and [connected] has become `true`; otherwise a failure with the
+     * cause of the connection failure.
      */
     suspend fun start(): Result<Unit>
 
     /**
-     * Send an MQTT packet.
+     * Sends an MQTT packet.
      *
      * When the client is not connected, when this method is called or when sending the packet will
      * fail for some other reason, the returned result will be a failure.
+     *
+     * @param packet packet to send.
+     * @return success when the packet was written to the transport; otherwise a failure.
      */
     suspend fun send(packet: Packet): Result<Unit>
 
     /**
-     * Disconnect this engine from its remote. The engine will be reusable after this call for reconnections.
+     * Disconnects this engine from its remote peer.
+     *
+     * The engine remains reusable for later reconnections.
      */
     suspend fun disconnect()
 
     /**
-     * Closes all resources of this engine, it will no longer be usable after this method!
+     * Closes all engine resources.
+     *
+     * The engine cannot be reused after this method returns.
      */
     override fun close()
 }

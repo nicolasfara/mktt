@@ -13,13 +13,12 @@ import io.github.nicolasfara.mktt.core.packet.Pubrel
  */
 interface SessionStore {
 
-    // ---- Outgoing Message Flow (Client -> Server) ----
-
     /**
      * Stores an outgoing PUBLISH packet that requires an acknowledgement (QoS 1 or QoS 2).
      *
      * This method must be thread safe.
      *
+     * @param source PUBLISH packet to store.
      * @return an in-flight packet with the current time as timestamp and the original packet.
      * @throws IllegalArgumentException if the packet identifier is null.
      */
@@ -52,8 +51,6 @@ interface SessionStore {
      * due to their message expiry interval.
      */
     fun unacknowledgedPackets(): List<InFlightPacket>
-
-    // ---- Incoming Message Flow (Server -> Client) ----
 
     /**
      * Stores the packet identifier of an incoming QoS 2 PUBLISH packet. This is to prevent reprocessing of the same
