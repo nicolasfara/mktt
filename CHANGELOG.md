@@ -1,3 +1,13 @@
+## [3.0.0](https://github.com/nicolasfara/mktt/compare/2.0.2...3.0.0) (2026-05-18)
+
+### ⚠ BREAKING CHANGES
+
+* re-implement public API leveraging Ktor for implementing MQTT protocol (#429)
+
+### Refactoring
+
+* re-implement public API leveraging Ktor for implementing MQTT protocol ([#429](https://github.com/nicolasfara/mktt/issues/429)) ([76480da](https://github.com/nicolasfara/mktt/commit/76480da23770a34ba0f7935dde142878938a67e4))
+
 ## [2.0.2](https://github.com/nicolasfara/mktt/compare/2.0.1...2.0.2) (2026-03-08)
 
 ### Dependency updates
