@@ -1,0 +1,41 @@
+package io.github.nicolasfara.mktt.core.packet
+
+import io.github.nicolasfara.mktt.core.QoS
+import io.github.nicolasfara.mktt.core.RetainHandling
+import io.github.nicolasfara.mktt.core.SubscriptionIdentifier
+import io.github.nicolasfara.mktt.core.buildFilterList
+import io.github.nicolasfara.mktt.core.buildUserProperties
+import kotlin.test.Test
+import kotlinx.coroutines.test.runTest
+
+class SubscribeTest {
+
+    @Test
+    fun `encode and decode returns same packet`() = runTest {
+        assertEncodeDecodeOf(Subscribe(1024u, buildFilterList { add("test/topic") }))
+        assertEncodeDecodeOf(
+            Subscribe(
+                packetIdentifier = 1024u,
+                filters = buildFilterList {
+                    add("test/topic/1")
+                    add(
+                        "test/topic/2",
+                        QoS.EXACTLY_ONE,
+                        isNoLocal = true,
+                        retainAsPublished = true,
+                        retainHandling = RetainHandling.DO_NOT_SEND,
+                    )
+                    add(
+                        "test/topic/3",
+                        QoS.AT_LEAST_ONCE,
+                        isNoLocal = false,
+                        retainAsPublished = true,
+                        retainHandling = RetainHandling.SEND_IF_NOT_EXISTS,
+                    )
+                },
+                subscriptionIdentifier = SubscriptionIdentifier(8888),
+                userProperties = buildUserProperties { "key" to "value" },
+            ),
+        )
+    }
+}
